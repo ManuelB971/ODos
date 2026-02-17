@@ -1,7 +1,7 @@
 import { Tabs, useRouter, useSegments } from 'expo-router';
 
 import { Compass, Search, User, Grid2x2 as Grid } from 'lucide-react-native';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { useEffect } from 'react';
 
 export default function TabLayout() {
@@ -10,7 +10,7 @@ export default function TabLayout() {
   const segments = useSegments();
 
   useEffect(() => {
-    
+
     if (!isLoading && !isAuthenticated) {
       router.replace('/login');
     }
@@ -29,8 +29,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#3b82f6',
         tabBarInactiveTintColor: '#94a3b8',
       }}
-      
-      >
+
+    >
       <Tabs.Screen
         name="index"
         options={{
@@ -62,13 +62,13 @@ export default function TabLayout() {
       <Tabs.Screen
         name="database"
         options={{
-          href: null, 
+          href: null,
         }}
       />
       <Tabs.Screen
         name="styles"
         options={{
-          href: null, 
+          href: null,
         }}
       />
     </Tabs>

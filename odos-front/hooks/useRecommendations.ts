@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { createRecommendationModel, Activity } from '../app/ml/recommendationModel';
+import { createRecommendationModel, Activity } from '@/ml/recommendationModel';
 
 const model = createRecommendationModel();
 
@@ -42,6 +42,6 @@ export const useRecommendations = (interests: string[]) => {
     recommendations,
     loading,
     error,
-    refresh: generateRecommendations, 
+    refresh: generateRecommendations,
   };
 };

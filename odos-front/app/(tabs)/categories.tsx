@@ -1,6 +1,6 @@
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useState } from 'react';
-import { activities } from '../data/activities';
+import { activities } from '@/data/activities';
 import { Image } from 'react-native';
 const categories = [
   'All',
@@ -59,7 +59,8 @@ export default function CategoriesScreen() {
         )}
       </ScrollView>
     </View>
-);};
+  );
+};
 const styles = StyleSheet.create({
   container: {
     flex: 1,

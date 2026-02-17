@@ -2,7 +2,7 @@ import { View, Text, ScrollView, StyleSheet, Image, Pressable, FlatList, Touchab
 import { useState } from 'react';
 import { Star, MapPin } from 'lucide-react-native';
 import { Link } from 'expo-router';
-import { useInterests } from '../context/interestcontext';
+import { useInterests } from '@/context/interestcontext';
 import { ActivityIndicator } from 'react-native';
 import { useRecommendations } from '@/hooks/useRecommendations';
 
@@ -107,13 +107,13 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.welcomeText}>Bienvenue sur ODOS</Text>
-        
+
         <View style={styles.recommendationsContainer}>
           <Text style={styles.recommendationsTitle}>Recommandations</Text>
-          
+
           {loading && <ActivityIndicator size="large" color="#3b82f6" style={styles.loader} />}
           {error && <Text style={styles.errorText}>{error}</Text>}
-          
+
           {!loading && !error && (
             <FlatList
               data={recommendations}
@@ -138,7 +138,7 @@ export default function HomeScreen() {
             />
           )}
         </View>
-        
+
         <View style={styles.activitiesSection}>
           <Text style={styles.sectionTitle}>Toutes les activités</Text>
           <FlatList

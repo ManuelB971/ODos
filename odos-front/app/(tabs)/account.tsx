@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { Settings, Heart, Clock, LogOut, Edit } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { signOut } from './database/auth';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -24,10 +24,10 @@ export default function AccountScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Image
-         source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200' }}
-         style={styles.avatar}
+          source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200' }}
+          style={styles.avatar}
         />
-        
+
         <Text style={styles.email}>{user?.email || 'Email non disponible'}</Text>
       </View>
 
@@ -36,17 +36,17 @@ export default function AccountScreen() {
           <Settings color="#3b82f6" size={24} />
           <Text style={styles.menuText}>Parametres</Text>
         </Pressable>
-        
+
         <Pressable style={styles.menuItem}>
           <Heart color="#3b82f6" size={24} />
           <Text style={styles.menuText}>Favorites</Text>
         </Pressable>
-        
+
         <Pressable style={styles.menuItem} onPress={handleChangeInterests}>
           <Edit color="#3b82f6" size={24} />
           <Text style={styles.menuText}>Changer mes intérêts</Text>
         </Pressable>
-        
+
       </View>
 
       <Pressable style={styles.logoutButton} onPress={handleLogout}>

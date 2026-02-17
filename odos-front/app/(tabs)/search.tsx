@@ -2,7 +2,7 @@ import { View, TextInput, StyleSheet, ScrollView, Text, Pressable, FlatList } fr
 import { Search as SearchIcon } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
-import { activities, Activity } from '../data/activities';
+import { activities, Activity } from '@/data/activities';
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -26,7 +26,7 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-    
+
       <View style={styles.searchContainer}>
         <SearchIcon color="#64748b" size={20} style={styles.searchIcon} />
         <TextInput
@@ -45,7 +45,7 @@ export default function SearchScreen() {
           data={filteredActivities}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <Pressable 
+            <Pressable
               style={styles.resultItem}
               onPress={() => navigateToActivity(item.id)}
             >
@@ -65,7 +65,7 @@ export default function SearchScreen() {
           contentContainerStyle={styles.resultsContainer}
         />
       ) : (
-       
+
         <View style={styles.recentContainer}>
           <Text style={styles.sectionTitle}>Recherches récentes</Text>
           {recentSearches.length > 0 ? (

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { styles } from '@/app/(tabs)/styles';
 import { useRecommendations } from '@/hooks/useRecommendations';
-import { useInterests } from './context/interestcontext';
+import { useInterests } from '@/context/interestcontext';
 import { useRouter } from 'expo-router';
 
 export const interests = [
@@ -59,7 +59,7 @@ const InterestsScreen = () => {
       <TouchableOpacity
         style={styles.button}
         onPress={() => {
-         
+
           router.replace('/');
         }}
         disabled={selectedInterests.length === 0}

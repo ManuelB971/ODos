@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 
 import { AlertCircle, Loader2 } from 'lucide-react-native';
 import { signUp, signIn } from '@/app/(tabs)/database/auth';
 import { useRouter } from 'expo-router';
-import { useAuth } from './context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -21,29 +21,29 @@ export default function LoginScreen() {
 
     try {
       if (isLogin) {
-       
+
         const { success, errorMessage, user } = await signIn(email, password);
         if (!success) {
           setError(errorMessage ?? 'Erreur de connexion');
         } else {
-          
+
           if (user) {
             setUser({
               id: user.id,
               email: user.email || '',
             });
-            
+
             router.replace('/interests');
           }
         }
       } else {
-       
+
         const { success, errorMessage } = await signUp(email, password);
         if (!success) {
           setError(errorMessage ?? 'Une erreur est survenue');
         } else {
           setSuccess(true);
-          
+
           setTimeout(() => {
             setSuccess(false);
             setIsLogin(true);
@@ -60,7 +60,7 @@ export default function LoginScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.formContainer}>
-      <Text style={styles.welcomeText}>Bienvenue sur ODOS</Text>
+        <Text style={styles.welcomeText}>Bienvenue sur ODOS</Text>
         <Text style={styles.title}>{isLogin ? 'Connexion' : 'Inscription'}</Text>
 
         {error && (
@@ -109,7 +109,7 @@ export default function LoginScreen() {
             <Text style={styles.buttonText}>{isLogin ? 'Se connecter' : 'S\'inscrire'}</Text>
           )}
         </TouchableOpacity>
-        
+
         <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
           <Text style={styles.switchModeText}>
             {isLogin ? 'Pas encore de compte ? S\'inscrire' : 'Déjà un compte ? Se connecter'}
@@ -151,13 +151,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },  
+  },
   welcomeText: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#f4a261', 
+    color: '#f4a261',
     marginBottom: 20,
-    textAlign: 'center', 
+    textAlign: 'center',
   },
   errorText: {
     color: '#ef4444',
