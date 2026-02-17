@@ -28,10 +28,7 @@ export default function LoginScreen() {
         } else {
 
           if (user) {
-            setUser({
-              id: user.id,
-              email: user.email || '',
-            });
+            setUser(user);
 
             router.replace('/interests');
           }

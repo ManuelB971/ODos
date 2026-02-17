@@ -1,60 +1,74 @@
-import supabase  from './supabaseclient';
+import api, { safeStorage } from '@/scripts/api';
 
+/**
+ * Inscription d'un nouvel utilisateur
+ */
 export async function signUp(email: string, password: string) {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
+  try {
+    const response = await api.post('/api/users', {
+      email: email,
+      plainPassword: password, // Utilisation du champ plainPassword pour le processor Symfony
+    });
 
-  if (error) {
+    return {
+      success: true,
+      errorMessage: null,
+      user: response.data,
+    };
+  } catch (error: any) {
+    console.error('Erreur SignUp:', error.response?.data || error.message);
     return {
       success: false,
-      errorMessage: error.message,
+      errorMessage: error.response?.data?.['hydra:description'] || "Erreur lors de l'inscription",
       user: null,
     };
   }
-
-  return {
-    success: true,
-    errorMessage: null,
-    user: data.user,
-  };
 }
 
+/**
+ * Connexion de l'utilisateur
+ */
 export async function signIn(email: string, password: string) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  try {
+    const response = await api.post('/api/login', {
+      email,
+      password,
+    });
 
-  if (error) {
+    const { token } = response.data;
+
+    // Stockage sécurisé du token JWT
+    await safeStorage.setItem('user_token', token);
+
+    // Optionnel : Récupérer les infos de l'utilisateur (id, email) via /api/me
+    const userResponse = await api.get('/api/me');
+
+    return {
+      success: true,
+      errorMessage: null,
+      user: userResponse.data,
+    };
+  } catch (error: any) {
+    console.error('Erreur SignIn:', error.response?.data || error.message);
     return {
       success: false,
-      errorMessage: error.message,
+      errorMessage: "Email ou mot de passe incorrect",
       user: null,
     };
   }
-
-  return {
-    success: true,
-    errorMessage: null,
-    user: data.user,
-  };
 }
 
+/**
+ * Déconnexion de l'utilisateur
+ */
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
-  
-  if (error) {
-    return {
-      success: false,
-      errorMessage: error.message,
-    };
+  try {
+    // Suppression du token
+    await safeStorage.deleteItem('user_token');
+    return { success: true, errorMessage: null };
+  } catch (error: any) {
+    return { success: false, errorMessage: "Erreur lors de la déconnexion" };
   }
-
-  return {
-    success: true,
-    errorMessage: null,
-  };
 }
-export default supabase;
+
+export default api;

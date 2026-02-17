@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     paddingTop: 25,
   },
   categoriesBar: {
-    padding: 16,
+    padding: 5,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
   },
