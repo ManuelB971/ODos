@@ -1,6 +1,6 @@
 import { Tabs, useRouter, useSegments } from 'expo-router';
 
-import { Compass, Search, User, Grid2x2 as Grid } from 'lucide-react-native';
+import { Compass, Search, User, Heart } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect } from 'react';
 
@@ -46,10 +46,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="categories"
+        name="favorites"
         options={{
           title: '',
-          tabBarIcon: ({ color, size }) => <Grid color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <Heart color={color} size={size} />,
         }}
       />
       <Tabs.Screen

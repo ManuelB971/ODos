@@ -1,13 +1,7 @@
 import * as tf from '@tensorflow/tfjs';
-import { activities, Activity, interestToCategoryMap } from '../data/activities';
+import { activities, interestToCategoryMap } from '../data/activities';
 
-export type { Activity };
-
-export interface RecommendationModel {
-  predict: (interests: string[]) => Promise<Activity[]>;
-  load: () => Promise<boolean>;
-  isLoaded: boolean;
-}
+import { Activity, RecommendationModel } from '@/types';
 
 export const createRecommendationModel = (): RecommendationModel => {
   let isModelLoaded = false;
@@ -72,12 +66,12 @@ export const createRecommendationModel = (): RecommendationModel => {
       try {
         const input = encodeInterests(interests);
         const prediction = model.predict(input) as tf.Tensor;
-        await prediction.data(); 
+        await prediction.data();
 
         prediction.dispose();
         input.dispose();
 
-        return getFallbackRecommendations(interests); 
+        return getFallbackRecommendations(interests);
       } catch (error) {
         console.error('Erreur de prédiction, utilisation du fallback :', error);
         return getFallbackRecommendations(interests);

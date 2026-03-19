@@ -6,6 +6,8 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use App\Repository\ActivityRepository;
 use App\State\RecommendationStateProvider;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -58,6 +60,33 @@ class Activity
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(['activity:read', 'activity:write'])]
     private ?Category $category = null;
+
+    #[ORM\Column(nullable: true)]
+    #[Groups(['activity:read', 'activity:write'])]
+    private ?float $price = null;
+
+    #[ORM\Column(length: 512, nullable: true)]
+    #[Groups(['activity:read', 'activity:write'])]
+    private ?string $imageUrl = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['activity:read', 'activity:write'])]
+    private ?\DateTimeInterface $dateStart = null;
+
+    #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
+    #[Groups(['activity:read', 'activity:write'])]
+    private ?\DateTimeInterface $dateEnd = null;
+
+    /**
+     * @var Collection<int, User>
+     */
+    #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'favorites')]
+    private Collection $favoritedBy;
+
+    public function __construct()
+    {
+        $this->favoritedBy = new ArrayCollection();
+    }
 
     public function getId(): ?int
     {
@@ -134,5 +163,61 @@ class Activity
         $this->category = $category;
 
         return $this;
+    }
+
+    public function getPrice(): ?float
+    {
+        return $this->price;
+    }
+
+    public function setPrice(?float $price): static
+    {
+        $this->price = $price;
+
+        return $this;
+    }
+
+    public function getImageUrl(): ?string
+    {
+        return $this->imageUrl;
+    }
+
+    public function setImageUrl(?string $imageUrl): static
+    {
+        $this->imageUrl = $imageUrl;
+
+        return $this;
+    }
+
+    public function getDateStart(): ?\DateTimeInterface
+    {
+        return $this->dateStart;
+    }
+
+    public function setDateStart(?\DateTimeInterface $dateStart): static
+    {
+        $this->dateStart = $dateStart;
+
+        return $this;
+    }
+
+    public function getDateEnd(): ?\DateTimeInterface
+    {
+        return $this->dateEnd;
+    }
+
+    public function setDateEnd(?\DateTimeInterface $dateEnd): static
+    {
+        $this->dateEnd = $dateEnd;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getFavoritedBy(): Collection
+    {
+        return $this->favoritedBy;
     }
 }

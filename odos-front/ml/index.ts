@@ -1,39 +1,32 @@
 import * as tf from '@tensorflow/tfjs';
 
-import { Activity, activities, interestToCategoryMap } from '../data/activities';
-
-export type { Activity };
-
-export interface RecommendationModel {
-  predict: (interests: string[]) => Promise<Activity[]>;
-  load: () => Promise<boolean>;
-  isLoaded: boolean;
-}
+import { Activity, RecommendationModel } from '@/types';
+import { activities, interestToCategoryMap } from '../data/activities';
 ///mettre sur un serveur le model et le mettre a jours créer une api pour appel 
 
 export const createRecommendationModel = (): RecommendationModel => {
   let isModelLoaded = false;
   let model: tf.LayersModel | null = null;
-  let useFallbackMode = true; 
-  let tfInitialized = false; 
-  
+  let useFallbackMode = true;
+  let tfInitialized = false;
+
   const encodeInterests = (interests: string[]): tf.Tensor | null => {
     try {
       if (!tfInitialized || typeof tf === 'undefined') {
         console.warn('TensorFlow.js n\'est pas disponible, impossible d\'encoder les intérêts');
         return null;
       }
-      
+
       const allInterests = Object.keys(interestToCategoryMap);
       const encoded = new Array(allInterests.length).fill(0);
-      
+
       interests.forEach(interest => {
         const index = allInterests.indexOf(interest);
         if (index !== -1) {
           encoded[index] = 1;
         }
       });
-      
+
       try {
         if (typeof tf.tensor2d === 'function') {
           return tf.tensor2d([encoded]);
@@ -50,45 +43,45 @@ export const createRecommendationModel = (): RecommendationModel => {
       return null;
     }
   };
-  
+
   const createModel = (): tf.LayersModel | null => {
     try {
       if (!tf.layers || typeof tf.layers.dense !== 'function' || typeof tf.sequential !== 'function') {
         console.warn('Les fonctions TensorFlow.js nécessaires ne sont pas disponibles');
         return null;
       }
-      
+
       try {
         const inputLayer = tf.layers.dense({
           units: 30,
           activation: 'relu',
           inputShape: [30]
         });
-        
+
         const hiddenLayer = tf.layers.dense({
           units: 20,
           activation: 'relu'
         });
-        
+
         const outputLayer = tf.layers.dense({
-          units: 5, 
+          units: 5,
           activation: 'softmax'
         });
-        
+
         const newModel = tf.sequential();
-        
+
         if (newModel && typeof newModel.add === 'function') {
           newModel.add(inputLayer);
           newModel.add(hiddenLayer);
           newModel.add(outputLayer);
-          
+
           if (typeof newModel.compile === 'function') {
             newModel.compile({
               optimizer: 'adam',
               loss: 'categoricalCrossentropy',
               metrics: ['accuracy']
             });
-            
+
             return newModel;
           } else {
             console.warn('La fonction compile du modèle n\'est pas disponible');
@@ -146,7 +139,7 @@ export const createRecommendationModel = (): RecommendationModel => {
         if (!input) {
           return activities.slice(0, 5);
         }
-        
+
         const prediction = model.predict(input) as tf.Tensor;
         await prediction.data();
 

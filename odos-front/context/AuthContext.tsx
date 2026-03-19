@@ -1,19 +1,9 @@
-import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import api, { safeStorage } from '@/scripts/api';
+import api, { onAuthError, safeStorage } from '@/scripts/api';
 
-type User = {
-  id: number; // Changé de string à number pour correspondre à Symfony
-  email: string;
-} | null;
-
-type AuthContextType = {
-  user: User;
-  setUser: Dispatch<SetStateAction<User>>;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  checkAuth: () => Promise<void>;
-};
+import { User, AuthContextType } from '@/types';
+import { isJwtExpired } from '@/utils/jwt';
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -21,16 +11,22 @@ export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   isLoading: true,
   checkAuth: async () => { },
+  logout: async () => { },
 });
 
-type AuthProviderProps = {
-  children: ReactNode;
-};
+import { AuthProviderProps } from '@/types';
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+
+  const logout = async () => {
+    await safeStorage.deleteItem('user_token');
+    await safeStorage.deleteItem('refresh_token');
+    setUser(null);
+    router.replace('/login');
+  };
 
   const checkAuth = async () => {
     try {
@@ -48,11 +44,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser({
         id: response.data.id,
         email: response.data.email,
+        interests: response.data.interests ?? [],
       });
     } catch (error) {
       console.error('Erreur de vérification Auth:', error);
       // Si le token est invalide ou expiré, on nettoie
       await safeStorage.deleteItem('user_token');
+      await safeStorage.deleteItem('refresh_token');
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -63,6 +61,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkAuth();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = onAuthError(() => {
+      // 401 global: on purge la session et on force le retour login
+      logout().catch(() => { });
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -71,6 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isAuthenticated: !!user,
         isLoading,
         checkAuth,
+        logout,
       }}
     >
       {children}

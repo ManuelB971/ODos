@@ -1,5 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { ApiActivity, Category } from '@/types';
+import { isJwtExpired } from '@/utils/jwt';
 
 const isSecureStoreAvailable = async () => {
     try {
@@ -9,43 +11,223 @@ const isSecureStoreAvailable = async () => {
     }
 };
 
+// In-memory fallback for platforms where SecureStore is unavailable (web)
+const memoryStore: Record<string, string> = {};
+
 export const safeStorage = {
     getItem: async (key: string) => {
         if (await isSecureStoreAvailable()) {
             return await SecureStore.getItemAsync(key);
         }
-        return null; // Fallback ou localStorage ici si besoin
+        try {
+            if (typeof localStorage !== 'undefined') {
+                return localStorage.getItem(key);
+            }
+        } catch (_) { /* ignore */ }
+        return memoryStore[key] ?? null;
     },
     setItem: async (key: string, value: string) => {
         if (await isSecureStoreAvailable()) {
             await SecureStore.setItemAsync(key, value);
+            return;
         }
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem(key, value);
+                return;
+            }
+        } catch (_) { /* ignore */ }
+        memoryStore[key] = value;
     },
     deleteItem: async (key: string) => {
         if (await isSecureStoreAvailable()) {
             await SecureStore.deleteItemAsync(key);
+            return;
         }
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.removeItem(key);
+                return;
+            }
+        } catch (_) { /* ignore */ }
+        delete memoryStore[key];
     }
 };
 
-// REMPLACEZ PAR VOTRE IP LOCALE (ex: http://192.168.1.XX:8000)
-// localhost ne fonctionne pas sur un vrai téléphone/simulateur Android vers le PC.
-const BASE_URL = 'http://192.168.132.1:8000';
+type AuthErrorListener = (error: unknown) => void;
+const authErrorListeners = new Set<AuthErrorListener>();
+
+export function onAuthError(listener: AuthErrorListener) {
+    authErrorListeners.add(listener);
+    return () => authErrorListeners.delete(listener);
+}
+
+// Use EXPO_PUBLIC_API_URL so the variable is injected into the client build.
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
+
+try {
+    if (typeof navigator !== 'undefined' && (navigator as any).product === 'ReactNative') {
+        if (BASE_URL.includes('localhost') || BASE_URL.includes('127.0.0.1')) {
+            console.warn(`[api] BASE_URL is ${BASE_URL}. On a real device, set EXPO_PUBLIC_API_URL to your PC IP.`);
+        }
+    }
+} catch (e) {
+    // ignore
+}
 
 const api = axios.create({
     baseURL: BASE_URL,
     headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
     },
 });
 
 // Intercepteur pour ajouter le token JWT à chaque requête
 api.interceptors.request.use(async (config) => {
     const token = await safeStorage.getItem('user_token');
-    if (token) {
+    if (token && config.url !== '/api/token/refresh') {
         config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
 });
+
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (error: any) => void }> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error);
+        } else if (token) {
+            prom.resolve(token);
+        }
+    });
+    failedQueue = [];
+};
+
+api.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+        const originalRequest = error.config;
+
+        if (error?.response?.status === 401 && !originalRequest._retry) {
+            // Si l'appel au refresh a renvoyé une erreur, on évite les boucles
+            if (originalRequest.url === '/api/token/refresh') {
+                return Promise.reject(error);
+            }
+
+            if (isRefreshing) {
+                return new Promise(function(resolve, reject) {
+                    failedQueue.push({ resolve, reject });
+                })
+                .then(token => {
+                    originalRequest.headers['Authorization'] = 'Bearer ' + token;
+                    return api(originalRequest);
+                })
+                .catch(err => {
+                    return Promise.reject(err);
+                });
+            }
+
+            originalRequest._retry = true;
+            isRefreshing = true;
+
+            const refreshToken = await safeStorage.getItem('refresh_token');
+            if (refreshToken) {
+                try {
+                    // Appel direct avec axios pour éviter les intercepteurs en boucle (plus sûr)
+                    const response = await axios.post(`${BASE_URL}/api/token/refresh`, {
+                        refresh_token: refreshToken
+                    });
+
+                    const newToken = response.data.token;
+                    const newRefreshToken = response.data.refresh_token;
+
+                    await safeStorage.setItem('user_token', newToken);
+                    if (newRefreshToken) {
+                        await safeStorage.setItem('refresh_token', newRefreshToken);
+                    }
+
+                    // On met à jour le header par défaut
+                    api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+                    originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
+
+                    processQueue(null, newToken);
+
+                    return api(originalRequest);
+                } catch (refreshError) {
+                    processQueue(refreshError, null);
+                    
+                    await safeStorage.deleteItem('user_token');
+                    await safeStorage.deleteItem('refresh_token');
+                    for (const listener of authErrorListeners) {
+                        try { listener(refreshError); } catch { /* ignore */ }
+                    }
+                    return Promise.reject(refreshError);
+                } finally {
+                    isRefreshing = false;
+                }
+            } else {
+                // Pas de refresh token
+                isRefreshing = false;
+                await safeStorage.deleteItem('user_token');
+                for (const listener of authErrorListeners) {
+                    try { listener(error); } catch { /* ignore */ }
+                }
+                return Promise.reject(error);
+            }
+        }
+        return Promise.reject(error);
+    }
+);
+
+// ── API Helper Functions ──
+
+/** Fetch all categories */
+export async function fetchCategories(): Promise<Category[]> {
+    const response = await api.get('/api/categories');
+    return response.data['hydra:member'] ?? response.data;
+}
+
+/** Fetch all activities */
+export async function fetchActivities(): Promise<ApiActivity[]> {
+    const response = await api.get('/api/activities');
+    return response.data['hydra:member'] ?? response.data;
+}
+
+/** Fetch personalized recommendations (requires auth) */
+export async function fetchRecommendations(): Promise<ApiActivity[]> {
+    const response = await api.get('/api/recommendations');
+    return response.data['hydra:member'] ?? response.data;
+}
+
+/** Update the current user's interests */
+export async function updateUserInterests(userId: number, interestIris: string[]): Promise<void> {
+    await api.patch(`/api/users/${userId}`, {
+        interests: interestIris,
+    }, {
+        headers: { 'Content-Type': 'application/merge-patch+json' },
+    });
+}
+
+/**
+ * Toggle favorite status of an activity for the current user.
+ * Returns { isFavorite: boolean } — the new state after the toggle.
+ */
+export async function toggleFavoriteActivity(activityId: number): Promise<{ isFavorite: boolean }> {
+    const response = await api.post(`/api/activities/${activityId}/favorite`);
+    return response.data;
+}
+
+/**
+ * Fetch the list of activity IDs saved as favorites by the current user.
+ * Uses the /api/me endpoint and extracts the `favorites` field.
+ */
+export async function fetchFavoriteIds(): Promise<number[]> {
+    const response = await api.get('/api/me');
+    const favorites: Array<{ id: number }> = response.data.favorites ?? [];
+    return favorites.map((f) => f.id);
+}
 
 export default api;

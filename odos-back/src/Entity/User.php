@@ -17,10 +17,13 @@ use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
+#[UniqueEntity(fields: ['email'], message: 'Cet email est déjà lié à un compte existant.')]
 #[ApiResource(
     operations: [
         new GetCollection(security: "is_granted('ROLE_ADMIN')"),
@@ -51,6 +54,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 180)]
     #[Groups(['user:read', 'user:write'])]
+    #[Assert\NotBlank(message: 'L\'adresse email est obligatoire.')]
+    #[Assert\Email(message: 'L\'adresse email {{ value }} n\'est pas valide.')]
     private ?string $email = null;
 
     /**
@@ -67,6 +72,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?string $password = null;
 
     #[Groups(['user:write'])]
+    #[Assert\Length(
+        min: 8,
+        minMessage: 'Le mot de passe doit faire au moins {{ limit }} caractères.',
+        max: 4096
+    )]
+    #[Assert\Regex(
+        pattern: '/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&]).+$/',
+        message: 'Le mot de passe doit contenir au moins une majuscule, une minuscule, un chiffre et un caractère spécial.'
+    )]
     private ?string $plainPassword = null;
 
     /**
@@ -76,9 +90,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private Collection $interests;
 
+    /**
+     * @var Collection<int, Activity>
+     */
+    #[ORM\ManyToMany(targetEntity: Activity::class, inversedBy: 'favoritedBy')]
+    #[ORM\JoinTable(name: 'user_favorite_activity')]
+    #[Groups(['user:read'])]
+    private Collection $favorites;
+
     public function __construct()
     {
         $this->interests = new ArrayCollection();
+        $this->favorites = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -196,5 +219,34 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->interests->removeElement($interest);
 
         return $this;
+    }
+
+    /**
+     * @return Collection<int, Activity>
+     */
+    public function getFavorites(): Collection
+    {
+        return $this->favorites;
+    }
+
+    public function addFavorite(Activity $activity): static
+    {
+        if (!$this->favorites->contains($activity)) {
+            $this->favorites->add($activity);
+        }
+
+        return $this;
+    }
+
+    public function removeFavorite(Activity $activity): static
+    {
+        $this->favorites->removeElement($activity);
+
+        return $this;
+    }
+
+    public function hasFavorite(Activity $activity): bool
+    {
+        return $this->favorites->contains($activity);
     }
 }

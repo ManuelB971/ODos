@@ -1,110 +1,48 @@
-import { View, Text, StyleSheet, Image, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { Star, MapPin, Clock, ArrowLeft, Heart } from 'lucide-react-native';
-import { useState } from 'react';
+import { MapPin, ArrowLeft, Heart } from 'lucide-react-native';
+import { useState, useEffect } from 'react';
+import api from '@/scripts/api';
+import { ApiActivity } from '@/types';
 
-const activities = [
-  {
-    id: '1',
-    name: 'Chasse au trésor dans le Vieux Lyon',
-    images: [
-      'https://res.cloudinary.com/funbooker/image/upload/ar_4:3,c_fill,dpr_auto,f_auto,q_auto,w_900/v1/marketplace-listing/d67qhnutcu0luguvivhw',
-      'https://res.cloudinary.com/funbooker/image/upload/ar_4:3,c_fill,dpr_auto,f_auto,q_auto,w_900/v1/marketplace-listing/tmmvejdyuxspyiigphta',
-    ],
-    price: 89,
-    rating: 4.9,
-    reviews: 128,
-    duration: '3 heures',
-    address: 'Place Saint-Jean, 69005 Lyon',
-    category: 'Aventure',
-    description: "Explorez les traboules et ruelles secrètes du Vieux Lyon à travers une chasse au trésor interactive pleine de mystères et d'énigmes.",
-  },
-  {
-    id: '2',
-    name: 'Atelier de fabrication de pralines roses',
-    images: [
-      'https://chefsquare.fr/media/catalog/product/cache/ba664c13fa4d9dee95ca9c0cf96f6c50/p/r/praline-rose_base4.jpg',
-      'https://chefsquare.fr/media/catalog/product/cache/087d549c2b4579daf25a5e588756a955/p/r/praline-rose_base2.jpg',
-    ],
-    price: 39,
-    rating: 4.8,
-    reviews: 75,
-    duration: '2 heures',
-    address: 'Cours Lafayette, 69003 Lyon',
-    category: 'Gastronomie',
-    description: 'Apprenez à réaliser la célèbre spécialité lyonnaise : les pralines roses. Repartez avec vos créations sucrées à déguster chez vous !',
-  },
-  {
-    id: '3',
-    name: 'Croisière apéritive sur la Saône',
-    images: [
-      'https://res.cloudinary.com/funbooker/image/upload/ar_4:3,c_fill,dpr_auto,f_auto,q_auto,w_900/v1/marketplace-listing/zejjoqmi8nm50skovipt',
-      'https://res.cloudinary.com/funbooker/image/upload/ar_4:3,c_fill,dpr_auto,f_auto,q_auto,w_900/v1/marketplace-listing/roxcrlay3la8kwcomhdl',
-    ],
-    price: 49,
-    rating: 4.7,
-    reviews: 110,
-    duration: '1.5 heures',
-    address: 'Quai Rambaud, 69002 Lyon',
-    category: 'Détente',
-    description: "Profitez d'un apéro convivial à bord d'un bateau tout en découvrant Lyon depuis la Saône au coucher du soleil.",
-  },
-  {
-    id: '4',
-    name: 'Visite guidée des traboules du Vieux Lyon',
-    images: [
-      'https://www.visiterlyon.com/var/site/storage/images/1/3/9/5/395931-3-fre-FR/81584ae3d2e3-Trabouble-vieux-lyon_J-V-L-10_07_2021-credit-briceROBERT-97_1920.jpg',
-      'https://images.unsplash.com/photo-1581596541382-b2b08a112ee2?w=800https://www.visiterlyon.com/var/site/storage/images/2/4/8/7/767842-1-fre-FR/9e61a8948074-Maison-du-chamarier-2329-copyright-ONLYLYON-Tourisme-et-Congres_Tristan-Deschamps.jpg',
-    ],
-    price: 15,
-    rating: 4.9,
-    reviews: 200,
-    duration: '2 heures',
-    address: 'Cathédrale Saint-Jean, 69005 Lyon',
-    category: 'Culture',
-    description: "Découvrez l'histoire fascinante de Lyon à travers ses célèbres traboules accompagnés d'un guide passionné.",
-  },
-  {
-    id: '5',
-    name: 'Cours de cuisine bouchon lyonnais',
-    images: [
-      'https://chefsquare.com/media/catalog/product/cache/087d549c2b4579daf25a5e588756a955/c/u/cuisine-traditionnelle-lyonnaise_base1.jpg',
-      'https://chefsquare.com/media/catalog/product/cache/087d549c2b4579daf25a5e588756a955/c/u/cuisine-traditionnelle-lyonnaise_base2.jpg',
-    ],
-    price: 65,
-    rating: 4.6,
-    reviews: 68,
-    duration: '3 heures',
-    address: 'Rue Mercière, 69002 Lyon',
-    category: 'Gastronomie',
-    description: "Participez à un atelier culinaire pour apprendre à cuisiner les classiques lyonnais comme la quenelle ou l'andouillette.",
-  },
-  {
-    id: '6',
-    name: 'Escape Game sur la Résistance',
-    images: [
-      'https://whereez.com/media/cache/product_carousel_webp/uploads/images/product/escape-game-outdoor-a-la-croix-rousse-rejoignez-la-resistance/escape-game-outdoor-a-la-croix-rousse-rejoignez-la-resistance-0-67a6601337019691622140.webp',
-      'https://whereez.com/media/cache/product_carousel_webp/uploads/images/product/escape-game-outdoor-a-la-croix-rousse-rejoignez-la-resistance/escape-game-outdoor-a-la-croix-rousse-rejoignez-la-resistance-2-67a660133815d256834859.webp',
-    ],
-    price: 25,
-    rating: 4.5,
-    reviews: 91,
-    duration: '1 heure',
-    address: 'Rue Sainte-Hélène, 69002 Lyon',
-    category: 'Aventure',
-    description: "Vivez une expérience immersive en tentant d'échapper à la Gestapo dans un scénario historique captivant.",
-  },
-];
+/** Helper: get the category display name from the API response */
+const getCategoryName = (cat: ApiActivity['category']): string => {
+  if (typeof cat === 'string') return cat;
+  if (cat && typeof cat === 'object' && 'name' in cat) return cat.name;
+  return '';
+};
 
 export default function ActivityDetails() {
   const { id } = useLocalSearchParams();
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const activity = activities.find(a => a.id === id);
+  const [activity, setActivity] = useState<ApiActivity | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!activity) {
+  useEffect(() => {
+    api.get(`/api/activities/${id}`)
+      .then((res) => setActivity(res.data))
+      .catch((err) => {
+        console.error('[ActivityDetails] Erreur:', err);
+        setError("Impossible de charger l'activité.");
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
+  }
+
+  if (error || !activity) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>Activity not found</Text>
+        <Pressable style={styles.backButtonStandalone} onPress={() => router.back()}>
+          <ArrowLeft color="#1e293b" size={24} />
+        </Pressable>
+        <Text style={styles.errorText}>{error ?? 'Activité introuvable'}</Text>
       </View>
     );
   }
@@ -120,47 +58,31 @@ export default function ActivityDetails() {
         </Pressable>
       </View>
 
-      <Pressable
-        onPress={() => {
-          setCurrentImageIndex((prev) => 
-            prev === activity.images.length - 1 ? 0 : prev + 1
-          );
-        }}
-      >
-        <Image
-          source={{ uri: activity.images[currentImageIndex] }}
-          style={styles.image}
-        />
-      </Pressable>
-
       <View style={styles.content}>
         <Text style={styles.title}>{activity.name}</Text>
-        
-        <View style={styles.infoRow}>
-          <View style={styles.ratingContainer}>
-            <Star color="#f59e0b" size={16} />
-            <Text style={styles.rating}>{activity.rating}</Text>
-            <Text style={styles.reviews}>({activity.reviews} reviews)</Text>
-          </View>
-          <View style={styles.durationContainer}>
-            <Clock color="#64748b" size={16} />
-            <Text style={styles.duration}>{activity.duration}</Text>
-          </View>
+
+        <View style={styles.categoryBadge}>
+          <Text style={styles.categoryText}>{getCategoryName(activity.category)}</Text>
         </View>
 
-        <View style={styles.addressContainer}>
-          <MapPin color="#64748b" size={16} />
-          <Text style={styles.address}>{activity.address}</Text>
-        </View>
+        {activity.city && (
+          <View style={styles.addressContainer}>
+            <MapPin color="#64748b" size={16} />
+            <Text style={styles.address}>{activity.city}</Text>
+          </View>
+        )}
 
-        <Text style={styles.price}>${activity.price} per person</Text>
-
-        <Text style={styles.sectionTitle}>A propos de cette expérience</Text>
+        <Text style={styles.sectionTitle}>À propos de cette expérience</Text>
         <Text style={styles.description}>{activity.description}</Text>
 
-        <Pressable style={styles.bookButton}>
-          <Text style={styles.bookButtonText}>Réserver</Text>
-        </Pressable>
+        {(activity.latitude && activity.longitude) && (
+          <View style={styles.coordsContainer}>
+            <MapPin color="#3b82f6" size={14} />
+            <Text style={styles.coordsText}>
+              {activity.latitude.toFixed(4)}, {activity.longitude.toFixed(4)}
+            </Text>
+          </View>
+        )}
       </View>
     </ScrollView>
   );
@@ -172,17 +94,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   header: {
-    position: 'absolute',
-    top: 48,
-    left: 0,
-    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    zIndex: 1,
+    paddingTop: 48,
+    paddingBottom: 12,
   },
   backButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f1f5f9',
     borderRadius: 24,
     padding: 8,
     shadowColor: '#000',
@@ -190,9 +109,13 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  backButtonStandalone: {
+    padding: 16,
+    paddingTop: 48,
   },
   favoriteButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f1f5f9',
     borderRadius: 24,
     padding: 8,
     shadowColor: '#000',
@@ -200,11 +123,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  image: {
-    width: '100%',
-    height: 300,
-    resizeMode: 'cover',
   },
   content: {
     padding: 20,
@@ -215,47 +133,29 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 12,
   },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  categoryBadge: {
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
     marginBottom: 12,
   },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  rating: {
-    color: '#1e293b',
-    marginLeft: 4,
-    fontWeight: '500',
-  },
-  reviews: {
-    color: '#64748b',
-    marginLeft: 4,
-  },
-  durationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  duration: {
-    color: '#64748b',
-    marginLeft: 4,
+  categoryText: {
+    color: '#3b82f6',
+    fontWeight: '600',
+    fontSize: 14,
   },
   addressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   address: {
     color: '#64748b',
     marginLeft: 8,
     flex: 1,
-  },
-  price: {
-    fontSize: 20,
-    color: '#3b82f6',
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontSize: 15,
   },
   sectionTitle: {
     fontSize: 18,
@@ -269,16 +169,18 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 24,
   },
-  bookButton: {
-    backgroundColor: '#3b82f6',
-    borderRadius: 12,
-    padding: 16,
+  coordsContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f8fafc',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
   },
-  bookButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
+  coordsText: {
+    fontSize: 13,
+    color: '#64748b',
   },
   errorText: {
     fontSize: 18,

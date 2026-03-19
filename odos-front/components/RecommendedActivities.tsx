@@ -1,16 +1,17 @@
 import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
-import { useInterests } from '@/app/context/interestcontext';
+import { useInterests } from '@/context/InterestContext';
 import { useRecommendations } from '@/hooks/useRecommendations';
+import { Activity } from '@/types';
 
 interface RecommendedActivitiesProps {
   title?: string;
 }
 
 export const RecommendedActivities = ({ title = 'Recommandé pour vous' }: RecommendedActivitiesProps) => {
-  const { interests } = useInterests(); 
-  const { recommendations, loading, error } = useRecommendations(interests); 
+  const { interests } = useInterests();
+  const { recommendations, loading, error } = useRecommendations(interests);
 
   if (loading) {
     return (
@@ -43,9 +44,9 @@ export const RecommendedActivities = ({ title = 'Recommandé pour vous' }: Recom
         renderItem={({ item }) => (
           <Link href={`/activity/${item.id}`} asChild>
             <TouchableOpacity style={styles.activityCard}>
-              <Image 
-                source={{ uri: item.images[0] }} 
-                style={styles.activityImage} 
+              <Image
+                source={{ uri: item.images[0] }}
+                style={styles.activityImage}
                 resizeMode="cover"
               />
               <View style={styles.activityInfo}>

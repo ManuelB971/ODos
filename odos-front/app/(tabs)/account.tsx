@@ -1,19 +1,14 @@
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
 import { Settings, Heart, Clock, LogOut, Edit } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { signOut } from './database/auth';
 import { useAuth } from '@/context/AuthContext';
 
 export default function AccountScreen() {
   const router = useRouter();
-  const { user, setUser } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = async () => {
-    const { success } = await signOut();
-    if (success) {
-      setUser(null);
-      router.replace('/login');
-    }
+    await logout();
   };
 
   const handleChangeInterests = () => {

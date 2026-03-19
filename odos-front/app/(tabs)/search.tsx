@@ -1,28 +1,57 @@
-import { View, TextInput, StyleSheet, ScrollView, Text, Pressable, FlatList } from 'react-native';
-import { Search as SearchIcon } from 'lucide-react-native';
+import { View, TextInput, StyleSheet, ScrollView, Text, Pressable, FlatList, ActivityIndicator } from 'react-native';
+import { Search as SearchIcon, MapPin } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { router } from 'expo-router';
-import { activities, Activity } from '@/data/activities';
+import { fetchActivities } from '@/scripts/api';
+import { ApiActivity } from '@/types';
+
+/** Helper: get the category display name from the API response */
+const getCategoryName = (cat: ApiActivity['category']): string => {
+  if (typeof cat === 'string') return cat;
+  if (cat && typeof cat === 'object' && 'name' in cat) return cat.name;
+  return '';
+};
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [activities, setActivities] = useState<ApiActivity[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filteredActivities = activities.filter(activity =>
-    activity.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    activity.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    activity.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    fetchActivities()
+      .then(setActivities)
+      .catch((err) => console.error('[Search] Erreur chargement:', err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filteredActivities = activities.filter((activity) => {
+    const q = searchQuery.toLowerCase();
+    return (
+      activity.name.toLowerCase().includes(q) ||
+      getCategoryName(activity.category).toLowerCase().includes(q) ||
+      activity.description.toLowerCase().includes(q) ||
+      (activity.city ?? '').toLowerCase().includes(q)
+    );
+  });
 
   const handleSearch = () => {
     if (searchQuery.trim() && !recentSearches.includes(searchQuery)) {
-      setRecentSearches(prev => [searchQuery, ...prev].slice(0, 5));
+      setRecentSearches((prev) => [searchQuery, ...prev].slice(0, 5));
     }
   };
 
-  const navigateToActivity = (id: string) => {
+  const navigateToActivity = (id: number) => {
     router.push(`/activity/${id}`);
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -43,7 +72,7 @@ export default function SearchScreen() {
       {searchQuery ? (
         <FlatList
           data={filteredActivities}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => String(item.id)}
           renderItem={({ item }) => (
             <Pressable
               style={styles.resultItem}
@@ -51,8 +80,13 @@ export default function SearchScreen() {
             >
               <Text style={styles.resultTitle}>{item.name}</Text>
               <View style={styles.resultDetails}>
-                <Text style={styles.resultCategory}>{item.category}</Text>
-                <Text style={styles.resultPrice}>{item.price} €</Text>
+                <Text style={styles.resultCategory}>{getCategoryName(item.category)}</Text>
+                {item.city && (
+                  <View style={styles.locationRow}>
+                    <MapPin size={12} color="#64748b" />
+                    <Text style={styles.resultCity}>{item.city}</Text>
+                  </View>
+                )}
               </View>
               <Text numberOfLines={2} style={styles.resultDescription}>
                 {item.description}
@@ -138,10 +172,14 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontWeight: '500',
   },
-  resultPrice: {
-    fontSize: 14,
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  resultCity: {
+    fontSize: 13,
     color: '#64748b',
-    fontWeight: '500',
   },
   resultDescription: {
     fontSize: 14,

@@ -1,18 +1,13 @@
 import { createContext, useContext, useState, ReactNode, Dispatch, SetStateAction } from 'react';
 
-type InterestContextType = {
-  interests: string[];
-  setInterests: Dispatch<SetStateAction<string[]>>;
-};
+import { InterestContextType } from '@/types';
 
 export const InterestContext = createContext<InterestContextType>({
   interests: [],
-  setInterests: () => {},
+  setInterests: () => { },
 });
 
-type InterestProviderProps = {
-  children: ReactNode;
-};
+import { InterestProviderProps } from '@/types';
 
 export function InterestProvider({ children }: InterestProviderProps) {
   const [interests, setInterests] = useState<string[]>([]);

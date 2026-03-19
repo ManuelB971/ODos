@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { AlertCircle, Loader2 } from 'lucide-react-native';
-import { signUp, signIn } from '@/app/(tabs)/database/auth';
+import { signUp, signIn } from '@/services/AuthService';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -16,26 +20,36 @@ export default function LoginScreen() {
   const { setUser } = useAuth();
 
   const handleAuth = async () => {
+    const trimmedEmail = email.trim();
+    if (!isValidEmail(trimmedEmail)) {
+      setError("Email invalide.");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Le mot de passe doit contenir au moins 6 caractères.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
       if (isLogin) {
 
-        const { success, errorMessage, user } = await signIn(email, password);
+        const { success, errorMessage, user } = await signIn(trimmedEmail, password);
         if (!success) {
           setError(errorMessage ?? 'Erreur de connexion');
         } else {
 
           if (user) {
             setUser(user);
-
-            router.replace('/interests');
+            const hasInterests = Array.isArray(user.interests) && user.interests.length > 0;
+            router.replace(hasInterests ? '/' : '/interests');
           }
         }
       } else {
 
-        const { success, errorMessage } = await signUp(email, password);
+        const { success, errorMessage } = await signUp(trimmedEmail, password);
         if (!success) {
           setError(errorMessage ?? 'Une erreur est survenue');
         } else {
@@ -54,6 +68,9 @@ export default function LoginScreen() {
     }
   };
 
+  const trimmedEmail = email.trim();
+  const canSubmit = isValidEmail(trimmedEmail) && password.length >= 6 && !loading;
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={styles.formContainer}>
@@ -69,7 +86,7 @@ export default function LoginScreen() {
 
         {success && (
           <View style={styles.successContainer}>
-            <Text style={styles.successText}>Inscription réussie ! Vérifiez votre email.</Text>
+            <Text style={styles.successText}>Inscription réussie ! Vous pouvez vous connecter.</Text>
           </View>
         )}
 
@@ -94,7 +111,7 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           onPress={handleAuth}
-          disabled={loading}
+          disabled={!canSubmit}
           style={[styles.button, loading && styles.buttonDisabled]}
         >
           {loading ? (

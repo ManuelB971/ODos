@@ -1,10 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
-import { createRecommendationModel, Activity } from '@/ml/recommendationModel';
-
-const model = createRecommendationModel();
+import { fetchRecommendations } from '@/scripts/api';
+import { ApiActivity } from '@/types';
 
 export const useRecommendations = (interests: string[]) => {
-  const [recommendations, setRecommendations] = useState<Activity[]>([]);
+  const [recommendations, setRecommendations] = useState<ApiActivity[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -13,18 +12,16 @@ export const useRecommendations = (interests: string[]) => {
     setError(null);
 
     try {
-      if (!model.isLoaded) {
-        const success = await model.load();
-        if (!success) {
-          console.warn('Fallback mode activé dans le modèle.');
-        }
-      }
-
-      const results = await model.predict(interests);
+      const results = await fetchRecommendations();
       setRecommendations(results);
-    } catch (err) {
-      setError('Une erreur est survenue lors de la génération des recommandations.');
-      console.error(err);
+    } catch (err: any) {
+      // 401 means not authenticated — not an error per se
+      if (err?.response?.status === 401) {
+        setRecommendations([]);
+      } else {
+        setError('Impossible de charger les recommandations.');
+        console.error('[useRecommendations]', err);
+      }
     } finally {
       setLoading(false);
     }
