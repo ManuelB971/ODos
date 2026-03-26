@@ -1,7 +1,8 @@
 import { View, Text, StyleSheet, Pressable, Image } from 'react-native';
-import { Settings, Heart, Clock, LogOut, Edit } from 'lucide-react-native';
+import { Settings, Heart, LogOut, Edit, ChevronRight } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { Colors, Spacing } from '@/constants/theme';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -11,10 +12,6 @@ export default function AccountScreen() {
     await logout();
   };
 
-  const handleChangeInterests = () => {
-    router.push('/interests');
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -22,30 +19,31 @@ export default function AccountScreen() {
           source={{ uri: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200' }}
           style={styles.avatar}
         />
-
         <Text style={styles.email}>{user?.email || 'Email non disponible'}</Text>
       </View>
 
       <View style={styles.menuSection}>
-        <Pressable style={styles.menuItem}>
-          <Settings color="#3b82f6" size={24} />
-          <Text style={styles.menuText}>Parametres</Text>
+        <Pressable style={styles.menuItem} onPress={() => router.push('/settings')}>
+          <Settings color={Colors.light.primary} size={24} />
+          <Text style={styles.menuText}>Paramètres</Text>
+          <ChevronRight color={Colors.light.muted} size={20} style={styles.chevron} />
         </Pressable>
 
-        <Pressable style={styles.menuItem}>
-          <Heart color="#3b82f6" size={24} />
-          <Text style={styles.menuText}>Favorites</Text>
+        <Pressable style={styles.menuItem} onPress={() => router.push('/(tabs)/favorites')}>
+          <Heart color={Colors.light.primary} size={24} />
+          <Text style={styles.menuText}>Mes favoris</Text>
+          <ChevronRight color={Colors.light.muted} size={20} style={styles.chevron} />
         </Pressable>
 
-        <Pressable style={styles.menuItem} onPress={handleChangeInterests}>
-          <Edit color="#3b82f6" size={24} />
+        <Pressable style={styles.menuItem} onPress={() => router.push('/interests')}>
+          <Edit color={Colors.light.primary} size={24} />
           <Text style={styles.menuText}>Changer mes intérêts</Text>
+          <ChevronRight color={Colors.light.muted} size={20} style={styles.chevron} />
         </Pressable>
-
       </View>
 
       <Pressable style={styles.logoutButton} onPress={handleLogout}>
-        <LogOut color="#ef4444" size={24} />
+        <LogOut color={Colors.light.danger} size={24} />
         <Text style={styles.logoutText}>Déconnexion</Text>
       </Pressable>
     </View>
@@ -55,8 +53,8 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 16,
+    backgroundColor: Colors.light.background,
+    padding: Spacing.lg,
     paddingTop: 25,
   },
   header: {
@@ -69,15 +67,9 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     marginBottom: 16,
   },
-  name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 4,
-  },
   email: {
     fontSize: 16,
-    color: '#64748b',
+    color: Colors.light.muted,
   },
   menuSection: {
     marginTop: 32,
@@ -87,12 +79,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderBottomColor: Colors.light.border,
   },
   menuText: {
     marginLeft: 16,
     fontSize: 18,
-    color: '#1e293b',
+    color: Colors.light.text,
+    flex: 1,
+  },
+  chevron: {
+    marginLeft: 'auto',
   },
   logoutButton: {
     position: 'absolute',
@@ -110,6 +106,6 @@ const styles = StyleSheet.create({
     marginLeft: 12,
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#ef4444',
+    color: Colors.light.danger,
   },
 });

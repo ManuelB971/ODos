@@ -3,11 +3,18 @@ import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator, Style
 import { Link } from 'expo-router';
 import { useInterests } from '@/context/InterestContext';
 import { useRecommendations } from '@/hooks/useRecommendations';
-import { Activity } from '@/types';
+import { ApiActivity } from '@/types';
 
 interface RecommendedActivitiesProps {
   title?: string;
 }
+
+/** Helper: map category from API (Category | string) to displayable name */
+const getCategoryName = (cat: ApiActivity['category']): string => {
+  if (typeof cat === 'string') return cat;
+  if (cat && typeof cat === 'object' && 'name' in cat) return cat.name;
+  return '';
+};
 
 export const RecommendedActivities = ({ title = 'Recommandé pour vous' }: RecommendedActivitiesProps) => {
   const { interests } = useInterests();
@@ -40,23 +47,25 @@ export const RecommendedActivities = ({ title = 'Recommandé pour vous' }: Recom
         data={recommendations}
         horizontal
         showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => String(item.id)}
         renderItem={({ item }) => (
           <Link href={`/activity/${item.id}`} asChild>
             <TouchableOpacity style={styles.activityCard}>
-              <Image
-                source={{ uri: item.images[0] }}
-                style={styles.activityImage}
-                resizeMode="cover"
-              />
+              {item.imageUrl ? (
+                <Image
+                  source={{ uri: item.imageUrl }}
+                  style={styles.activityImage}
+                  resizeMode="cover"
+                />
+              ) : (
+                <View style={styles.activityImagePlaceholder} />
+              )}
               <View style={styles.activityInfo}>
                 <Text style={styles.activityName} numberOfLines={2}>{item.name}</Text>
-                <Text style={styles.activityCategory}>{item.category}</Text>
-                <View style={styles.ratingContainer}>
-                  <Text style={styles.activityRating}>{item.rating}★</Text>
-                  <Text style={styles.reviewCount}>({item.reviews} avis)</Text>
-                </View>
-                <Text style={styles.activityPrice}>{item.price} €</Text>
+                <Text style={styles.activityCategory}>{getCategoryName(item.category)}</Text>
+                {typeof item.price === 'number' ? (
+                  <Text style={styles.activityPrice}>{item.price} €</Text>
+                ) : null}
               </View>
             </TouchableOpacity>
           </Link>
@@ -104,6 +113,13 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
   },
+  activityImagePlaceholder: {
+    width: '100%',
+    height: 130,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+    backgroundColor: '#f1f5f9',
+  },
   activityInfo: {
     padding: 12,
   },
@@ -116,21 +132,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginBottom: 5,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 5,
-  },
-  activityRating: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#FF9529',
-    marginRight: 5,
-  },
-  reviewCount: {
-    fontSize: 11,
-    color: '#999',
   },
   activityPrice: {
     fontSize: 14,

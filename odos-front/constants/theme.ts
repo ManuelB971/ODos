@@ -16,6 +16,12 @@ export const Colors = {
     icon: '#687076',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
+    primary: '#3b82f6',
+    accent: '#f4a261',
+    surface: '#f8fafc',
+    border: '#e2e8f0',
+    muted: '#64748b',
+    danger: '#ef4444',
   },
   dark: {
     text: '#ECEDEE',
@@ -24,8 +30,23 @@ export const Colors = {
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    primary: '#60a5fa',
+    accent: '#f4a261',
+    surface: '#1e293b',
+    border: '#334155',
+    muted: '#94a3b8',
+    danger: '#f87171',
   },
 };
+
+export const Spacing = {
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 24,
+  xxl: 32,
+} as const;
 
 export const Fonts = Platform.select({
   ios: {

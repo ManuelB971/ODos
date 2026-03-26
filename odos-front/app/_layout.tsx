@@ -1,37 +1,38 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { InterestProvider } from '@/context/InterestContext';
 import { AuthProvider } from '@/context/AuthContext';
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
 export default function RootLayout() {
   useFrameworkReady();
-  // #region agent log
-  if (typeof fetch === 'function') fetch('http://127.0.0.1:7242/ingest/ab9914e8-3931-443d-a90f-83ea77909bac', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      location: 'app/_layout.tsx:RootLayout',
-      message: 'App root layout mounted',
-      data: { runId: 'post-fix' },
-      hypothesisId: 'H1',
-      timestamp: Date.now()
-    })
-  }).catch(() => { });
-  // #endregion
 
   return (
-    <AuthProvider>
-      <InterestProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="login" options={{ headerShown: false }} />
-          <Stack.Screen name="interests" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="auto" />
-      </InterestProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <InterestProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="interests" options={{ headerShown: false }} />
+            <Stack.Screen name="settings" options={{ headerShown: false }} />
+            <Stack.Screen name="legal" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <StatusBar style="auto" />
+        </InterestProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }

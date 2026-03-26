@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, FlatList, Pressable } from 'react-native';
 import { Link } from 'expo-router';
 import { MapPin, Heart } from 'lucide-react-native';
 import { ApiActivity } from '@/types';
-import { fetchActivities, fetchFavoriteIds } from '@/scripts/api';
+import { useFavorites } from '@/hooks/useFavorites';
+import { Colors, Spacing } from '@/constants/theme';
+import { toAppError } from '@/utils/errorHandling';
 
 const getCategoryName = (cat: ApiActivity['category']): string => {
   if (typeof cat === 'string') return cat;
@@ -12,46 +13,13 @@ const getCategoryName = (cat: ApiActivity['category']): string => {
 };
 
 export default function FavoritesScreen() {
-  const [activities, setActivities] = useState<ApiActivity[]>([]);
-  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { favorites, isLoading, error } = useFavorites();
+  const errorMessage = error ? toAppError(error, 'Impossible de charger vos activites favorites.').userMessage : null;
 
-  useEffect(() => {
-    let isMounted = true;
-    setLoading(true);
-    setError(null);
-
-    Promise.all([fetchActivities(), fetchFavoriteIds()])
-      .then(([acts, favIds]) => {
-        if (!isMounted) return;
-        setActivities(acts);
-        setFavoriteIds(favIds);
-      })
-      .catch((err) => {
-        console.error('[Favorites] Erreur chargement favoris:', err);
-        if (!isMounted) return;
-        setError("Impossible de charger vos activités favorites.");
-      })
-      .finally(() => {
-        if (!isMounted) return;
-        setLoading(false);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const favoriteActivities = useMemo(
-    () => activities.filter((a) => favoriteIds.includes(a.id)),
-    [activities, favoriteIds]
-  );
-
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={Colors.light.primary} />
       </View>
     );
   }
@@ -60,9 +28,9 @@ export default function FavoritesScreen() {
     <View style={styles.container}>
       <Text style={styles.title}>Mes favoris</Text>
 
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
 
-      {!error && favoriteActivities.length === 0 && (
+      {!errorMessage && favorites.length === 0 && (
         <View style={styles.emptyContainer}>
           <Heart size={32} color="#e5e7eb" />
           <Text style={styles.emptyTitle}>Aucune activité favorite pour le moment</Text>
@@ -72,9 +40,9 @@ export default function FavoritesScreen() {
         </View>
       )}
 
-      {!error && favoriteActivities.length > 0 && (
+      {!errorMessage && favorites.length > 0 && (
         <FlatList
-          data={favoriteActivities}
+          data={favorites}
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
@@ -83,12 +51,12 @@ export default function FavoritesScreen() {
                 <View style={styles.activityInfo}>
                   <View style={styles.activityHeaderRow}>
                     <Text style={styles.activityName}>{item.name}</Text>
-                    <Heart size={18} color="#f97316" />
+                    <Heart size={18} color={Colors.light.accent} />
                   </View>
                   <Text style={styles.activityCategory}>{getCategoryName(item.category)}</Text>
                   {item.city && (
                     <View style={styles.locationContainer}>
-                      <MapPin size={12} color="#64748b" />
+                      <MapPin size={12} color={Colors.light.muted} />
                       <Text style={styles.activityCity}>{item.city}</Text>
                     </View>
                   )}
@@ -108,7 +76,7 @@ export default function FavoritesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.light.background,
     paddingTop: 25,
   },
   center: {
@@ -118,18 +86,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1e293b',
-    paddingHorizontal: 16,
+    color: Colors.light.text,
+    paddingHorizontal: Spacing.lg,
     marginBottom: 16,
   },
   listContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: Spacing.lg,
     paddingBottom: 100,
   },
   activityCard: {
     marginBottom: 16,
     borderRadius: 12,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.light.background,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -153,7 +121,7 @@ const styles = StyleSheet.create({
   },
   activityCategory: {
     fontSize: 12,
-    color: '#64748b',
+    color: Colors.light.muted,
     marginBottom: 6,
   },
   locationContainer: {
@@ -164,15 +132,15 @@ const styles = StyleSheet.create({
   },
   activityCity: {
     fontSize: 12,
-    color: '#64748b',
+    color: Colors.light.muted,
   },
   activityDescription: {
     fontSize: 13,
-    color: '#475569',
+    color: Colors.light.muted,
     lineHeight: 18,
   },
   errorText: {
-    color: '#ef4444',
+    color: Colors.light.danger,
     marginHorizontal: 16,
     marginBottom: 12,
     textAlign: 'center',
@@ -187,7 +155,7 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#1e293b',
+    color: Colors.light.text,
     textAlign: 'center',
   },
   emptySubtitle: {

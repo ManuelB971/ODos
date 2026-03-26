@@ -4,6 +4,7 @@ import api, { onAuthError, safeStorage } from '@/scripts/api';
 
 import { User, AuthContextType } from '@/types';
 import { isJwtExpired } from '@/utils/jwt';
+import { logError } from '@/utils/errorHandling';
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -32,7 +33,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const token = await safeStorage.getItem('user_token');
 
-      if (!token) {
+      if (!token || isJwtExpired(token)) {
+        await safeStorage.deleteItem('user_token');
+        await safeStorage.deleteItem('refresh_token');
         setUser(null);
         setIsLoading(false);
         return;
@@ -46,8 +49,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         email: response.data.email,
         interests: response.data.interests ?? [],
       });
-    } catch (error) {
-      console.error('Erreur de vérification Auth:', error);
+    } catch (error: unknown) {
+      logError('AuthContext.checkAuth', error);
       // Si le token est invalide ou expiré, on nettoie
       await safeStorage.deleteItem('user_token');
       await safeStorage.deleteItem('refresh_token');

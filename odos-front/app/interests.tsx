@@ -6,6 +6,8 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
 import { fetchCategories, updateUserInterests } from '@/scripts/api';
 import { Category } from '@/types';
+import { Colors } from '@/constants/theme';
+import { logError } from '@/utils/errorHandling';
 
 const InterestsScreen = () => {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -19,7 +21,7 @@ const InterestsScreen = () => {
   useEffect(() => {
     fetchCategories()
       .then(setCategories)
-      .catch((err) => console.error('[Interests] Erreur chargement catégories:', err))
+      .catch((err) => logError('Interests.fetchCategories', err))
       .finally(() => setLoading(false));
   }, []);
 
@@ -49,7 +51,7 @@ const InterestsScreen = () => {
         const iris = selectedIds.map((id) => `/api/categories/${id}`);
         await updateUserInterests(user.id, iris);
       } catch (err) {
-        console.warn('[Interests] Erreur sauvegarde intérêts:', err);
+        logError('Interests.updateUserInterests', err, { userId: user.id });
         // Non bloquant : on continue quand même
       } finally {
         setSaving(false);
@@ -62,7 +64,7 @@ const InterestsScreen = () => {
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={Colors.light.primary} />
       </View>
     );
   }

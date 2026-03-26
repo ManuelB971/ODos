@@ -1,9 +1,11 @@
-import { View, TextInput, StyleSheet, ScrollView, Text, Pressable, FlatList, ActivityIndicator } from 'react-native';
+import { View, TextInput, StyleSheet, Text, Pressable, FlatList, ActivityIndicator } from 'react-native';
 import { Search as SearchIcon, MapPin } from 'lucide-react-native';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { router } from 'expo-router';
-import { fetchActivities } from '@/scripts/api';
 import { ApiActivity } from '@/types';
+import { useSearchActivities } from '@/hooks/useSearchActivities';
+import { Colors, Spacing } from '@/constants/theme';
+import { toAppError } from '@/utils/errorHandling';
 
 /** Helper: get the category display name from the API response */
 const getCategoryName = (cat: ApiActivity['category']): string => {
@@ -13,27 +15,9 @@ const getCategoryName = (cat: ApiActivity['category']): string => {
 };
 
 export default function SearchScreen() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const { searchQuery, setSearchQuery, filteredActivities, isLoading, error } = useSearchActivities();
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [activities, setActivities] = useState<ApiActivity[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchActivities()
-      .then(setActivities)
-      .catch((err) => console.error('[Search] Erreur chargement:', err))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const filteredActivities = activities.filter((activity) => {
-    const q = searchQuery.toLowerCase();
-    return (
-      activity.name.toLowerCase().includes(q) ||
-      getCategoryName(activity.category).toLowerCase().includes(q) ||
-      activity.description.toLowerCase().includes(q) ||
-      (activity.city ?? '').toLowerCase().includes(q)
-    );
-  });
+  const errorMessage = error ? toAppError(error, 'Impossible de charger les activites.').userMessage : null;
 
   const handleSearch = () => {
     if (searchQuery.trim() && !recentSearches.includes(searchQuery)) {
@@ -45,10 +29,10 @@ export default function SearchScreen() {
     router.push(`/activity/${id}`);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#3b82f6" />
+        <ActivityIndicator size="large" color={Colors.light.primary} />
       </View>
     );
   }
@@ -57,11 +41,11 @@ export default function SearchScreen() {
     <View style={styles.container}>
 
       <View style={styles.searchContainer}>
-        <SearchIcon color="#64748b" size={20} style={styles.searchIcon} />
+        <SearchIcon color={Colors.light.muted} size={20} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Rechercher des activités..."
-          placeholderTextColor="#94a3b8"
+          placeholderTextColor={Colors.light.muted}
           value={searchQuery}
           onChangeText={setSearchQuery}
           onSubmitEditing={handleSearch}
@@ -69,6 +53,7 @@ export default function SearchScreen() {
         />
       </View>
 
+      {errorMessage && <Text style={styles.noResults}>{errorMessage}</Text>}
       {searchQuery ? (
         <FlatList
           data={filteredActivities}
@@ -83,7 +68,7 @@ export default function SearchScreen() {
                 <Text style={styles.resultCategory}>{getCategoryName(item.category)}</Text>
                 {item.city && (
                   <View style={styles.locationRow}>
-                    <MapPin size={12} color="#64748b" />
+                    <MapPin size={12} color={Colors.light.muted} />
                     <Text style={styles.resultCity}>{item.city}</Text>
                   </View>
                 )}
@@ -109,7 +94,7 @@ export default function SearchScreen() {
                 style={styles.recentItem}
                 onPress={() => setSearchQuery(search)}
               >
-                <SearchIcon size={16} color="#64748b" style={styles.recentIcon} />
+                <SearchIcon size={16} color={Colors.light.muted} style={styles.recentIcon} />
                 <Text style={styles.recentText}>{search}</Text>
               </Pressable>
             ))
@@ -125,14 +110,14 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 16,
+    backgroundColor: Colors.light.background,
+    padding: Spacing.lg,
     paddingTop: 25,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f1f5f9',
+    backgroundColor: Colors.light.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
@@ -142,24 +127,24 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#1e293b',
+    color: Colors.light.text,
     fontSize: 16,
   },
   resultsContainer: {
     paddingBottom: 16,
   },
   resultItem: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: Colors.light.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: Colors.light.border,
   },
   resultTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: Colors.light.text,
     marginBottom: 4,
   },
   resultDetails: {
@@ -169,7 +154,7 @@ const styles = StyleSheet.create({
   },
   resultCategory: {
     fontSize: 14,
-    color: '#3b82f6',
+    color: Colors.light.primary,
     fontWeight: '500',
   },
   locationRow: {
@@ -179,17 +164,17 @@ const styles = StyleSheet.create({
   },
   resultCity: {
     fontSize: 13,
-    color: '#64748b',
+    color: Colors.light.muted,
   },
   resultDescription: {
     fontSize: 14,
-    color: '#64748b',
+    color: Colors.light.muted,
     lineHeight: 20,
   },
   noResults: {
     textAlign: 'center',
     fontSize: 16,
-    color: '#64748b',
+    color: Colors.light.muted,
     marginTop: 24,
   },
   recentContainer: {
@@ -199,7 +184,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: Colors.light.text,
     marginBottom: 16,
   },
   recentItem: {
@@ -207,18 +192,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: Colors.light.border,
   },
   recentIcon: {
     marginRight: 12,
   },
   recentText: {
     fontSize: 16,
-    color: '#1e293b',
+    color: Colors.light.text,
   },
   noRecent: {
     fontSize: 16,
-    color: '#94a3b8',
+    color: Colors.light.muted,
     textAlign: 'center',
     marginTop: 24,
   },

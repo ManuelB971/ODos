@@ -1,7 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { ApiActivity, Category } from '@/types';
-import { isJwtExpired } from '@/utils/jwt';
 
 const isSecureStoreAvailable = async () => {
     try {
@@ -66,7 +65,7 @@ export function onAuthError(listener: AuthErrorListener) {
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
 try {
-    if (typeof navigator !== 'undefined' && (navigator as any).product === 'ReactNative') {
+    if (typeof navigator !== 'undefined' && (navigator as { product?: string }).product === 'ReactNative') {
         if (BASE_URL.includes('localhost') || BASE_URL.includes('127.0.0.1')) {
             console.warn(`[api] BASE_URL is ${BASE_URL}. On a real device, set EXPO_PUBLIC_API_URL to your PC IP.`);
         }
@@ -77,6 +76,7 @@ try {
 
 const api = axios.create({
     baseURL: BASE_URL,
+    timeout: 12000,
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -93,9 +93,9 @@ api.interceptors.request.use(async (config) => {
 });
 
 let isRefreshing = false;
-let failedQueue: Array<{ resolve: (token: string) => void; reject: (error: any) => void }> = [];
+let failedQueue: Array<{ resolve: (token: string) => void; reject: (error: unknown) => void }> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
     failedQueue.forEach(prom => {
         if (error) {
             prom.reject(error);
@@ -190,10 +190,47 @@ export async function fetchCategories(): Promise<Category[]> {
     return response.data['hydra:member'] ?? response.data;
 }
 
+/**
+ * Extrait les IDs d'activités depuis le champ `favorites` de /api/me.
+ * L'API peut renvoyer des objets { id }, des IRIs JSON-LD, ou des chaînes.
+ */
+export function extractFavoriteActivityIds(favorites: unknown): number[] {
+    if (!Array.isArray(favorites)) return [];
+    const ids: number[] = [];
+    for (const item of favorites) {
+        if (typeof item === 'number' && Number.isFinite(item)) {
+            ids.push(item);
+            continue;
+        }
+        if (typeof item === 'string') {
+            const m = item.match(/\/activities\/(\d+)/) ?? item.match(/\/(\d+)\/?$/);
+            if (m) ids.push(Number.parseInt(m[1], 10));
+            continue;
+        }
+        if (item && typeof item === 'object') {
+            const o = item as Record<string, unknown>;
+            if (typeof o.id === 'number' && Number.isFinite(o.id)) {
+                ids.push(o.id);
+                continue;
+            }
+            if (typeof o['@id'] === 'string') {
+                const m = o['@id'].match(/\/activities\/(\d+)/) ?? o['@id'].match(/\/(\d+)\/?$/);
+                if (m) ids.push(Number.parseInt(m[1], 10));
+            }
+        }
+    }
+    return [...new Set(ids)];
+}
+
 /** Fetch all activities */
 export async function fetchActivities(): Promise<ApiActivity[]> {
-    const response = await api.get('/api/activities');
-    return response.data['hydra:member'] ?? response.data;
+    const response = await api.get('/api/activities', {
+        params: { itemsPerPage: 200 },
+    });
+    const raw = response.data;
+    if (Array.isArray(raw)) return raw as ApiActivity[];
+    const member = raw['hydra:member'] ?? raw.member;
+    return Array.isArray(member) ? member : [];
 }
 
 /** Fetch personalized recommendations (requires auth) */
@@ -215,7 +252,12 @@ export async function updateUserInterests(userId: number, interestIris: string[]
  * Toggle favorite status of an activity for the current user.
  * Returns { isFavorite: boolean } — the new state after the toggle.
  */
-export async function toggleFavoriteActivity(activityId: number): Promise<{ isFavorite: boolean }> {
+export async function toggleFavoriteActivity(activityId: number, isCurrentlyFavorite: boolean): Promise<{ isFavorite: boolean }> {
+    if (isCurrentlyFavorite) {
+        const response = await api.delete(`/api/activities/${activityId}/favorite`);
+        return response.data;
+    }
+
     const response = await api.post(`/api/activities/${activityId}/favorite`);
     return response.data;
 }
@@ -226,8 +268,19 @@ export async function toggleFavoriteActivity(activityId: number): Promise<{ isFa
  */
 export async function fetchFavoriteIds(): Promise<number[]> {
     const response = await api.get('/api/me');
-    const favorites: Array<{ id: number }> = response.data.favorites ?? [];
-    return favorites.map((f) => f.id);
+    return extractFavoriteActivityIds(response.data.favorites);
+}
+
+/** Update profile fields (alias, avatarUrl) for the current user. */
+export async function updateProfile(userId: number, data: { alias?: string; avatarUrl?: string }): Promise<void> {
+    await api.patch(`/api/users/${userId}`, data, {
+        headers: { 'Content-Type': 'application/merge-patch+json' },
+    });
+}
+
+/** Delete the current user's account. */
+export async function deleteAccount(userId: number): Promise<void> {
+    await api.delete(`/api/users/${userId}`);
 }
 
 export default api;

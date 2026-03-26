@@ -1,8 +1,9 @@
 import { Tabs, useRouter, useSegments } from 'expo-router';
 
-import { Compass, Search, User, Heart } from 'lucide-react-native';
+import { Compass, Search, User } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect } from 'react';
+import { Colors } from '@/constants/theme';
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -21,13 +22,13 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopColor: '#e5e7eb',
+          backgroundColor: Colors.light.background,
+          borderTopColor: Colors.light.border,
           height: 50,
           paddingBottom: 8,
         },
-        tabBarActiveTintColor: '#3b82f6',
-        tabBarInactiveTintColor: '#94a3b8',
+        tabBarActiveTintColor: Colors.light.primary,
+        tabBarInactiveTintColor: Colors.light.muted,
       }}
 
     >
@@ -48,8 +49,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="favorites"
         options={{
-          title: '',
-          tabBarIcon: ({ color, size }) => <Heart color={color} size={size} />,
+          href: null,
         }}
       />
       <Tabs.Screen
@@ -57,12 +57,6 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="database"
-        options={{
-          href: null,
         }}
       />
       <Tabs.Screen

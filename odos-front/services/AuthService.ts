@@ -1,4 +1,5 @@
 import api, { safeStorage } from '@/scripts/api';
+import { toAppError, logError } from '@/utils/errorHandling';
 
 /**
  * Inscription d'un nouvel utilisateur
@@ -15,14 +16,15 @@ export async function signUp(email: string, password: string) {
       errorMessage: null,
       user: response.data,
     };
-  } catch (error: any) {
-    console.error('Erreur SignUp:', error.message, error.response?.data || error.toJSON?.() || error);
-    const isNetworkError = error?.message === 'Network Error';
+  } catch (error: unknown) {
+    const appError = toAppError(error, "Erreur lors de l'inscription");
+    logError('AuthService.signUp', error, { email });
     return {
       success: false,
       errorMessage:
-        error.response?.data?.['hydra:description']
-        || (isNetworkError ? `Impossible de joindre le serveur (${api.defaults.baseURL}) — vérifier l'URL/réseau` : "Erreur lors de l'inscription"),
+        appError.userMessage === "Erreur lors de l'inscription"
+          ? `Impossible de joindre le serveur (${api.defaults.baseURL}) - verifier l'URL/reseau`
+          : appError.userMessage,
       user: null,
     };
   }
@@ -58,15 +60,30 @@ export async function signIn(email: string, password: string) {
         interests: userResponse.data.interests ?? [],
       },
     };
-  } catch (error: any) {
-    console.error('Erreur SignIn:', error.message, error.response?.data || error.toJSON?.() || error);
-    const isNetworkError = error?.message === 'Network Error';
+  } catch (error: unknown) {
+    const appError = toAppError(error, 'Email ou mot de passe incorrect');
+    logError('AuthService.signIn', error, { email });
     return {
       success: false,
-      errorMessage: isNetworkError ? `Impossible de joindre le serveur (${api.defaults.baseURL}) — vérifier l'URL/réseau` : "Email ou mot de passe incorrect",
+      errorMessage: appError.userMessage,
       user: null,
     };
   }
+}
+
+/**
+ * Connexion avec Google (placeholder).
+ *
+ * Pour que cela marche réellement, il faut ajouter :
+ * - un endpoint backend du type `POST /api/login/google` qui valide l'id_token Google
+ * - la configuration des client IDs Google (iOS/Android/Web) sur le front
+ */
+export async function signInWithGoogle() {
+  return {
+    success: false,
+    errorMessage: 'Connexion Google non disponible pour le moment.',
+    user: null,
+  };
 }
 
 /**
@@ -78,7 +95,8 @@ export async function signOut() {
     await safeStorage.deleteItem('user_token');
     await safeStorage.deleteItem('refresh_token');
     return { success: true, errorMessage: null };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    logError('AuthService.signOut', error);
     return { success: false, errorMessage: "Erreur lors de la déconnexion" };
   }
 }
