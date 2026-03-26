@@ -1,0 +1,61 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}Recommandations & métriques{% endblock %}
+
+{% block main %}
+    <div class="alert alert-secondary">
+        <strong>Algorithme actuel (API <code>/api/recommendations</code>)</strong>
+        <ul class="mb-0 mt-2">
+            <li>Si l’utilisateur a des <strong>centres d’intérêt</strong> (catégories), on retourne les activités <strong>publiées</strong> dont la catégorie est dans ces intérêts.</li>
+            <li>Sinon, on retourne toutes les activités <strong>publiées</strong> (fallback).</li>
+            <li>Les utilisateurs non-admin ne voient que les activités publiées via l’API (<code>isPublished = true</code>).</li>
+        </ul>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Utilisateurs (total)</div>
+                    <div class="fs-3 fw-semibold">{{ metrics.total_users }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Avec au moins un intérêt</div>
+                    <div class="fs-3 fw-semibold text-primary">{{ metrics.users_with_interests }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Sans intérêt (fallback « toutes les publiées »)</div>
+                    <div class="fs-3 fw-semibold text-warning">{{ metrics.users_without_interests }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Activités publiées</div>
+                    <div class="fs-3 fw-semibold">{{ metrics.published_activities }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Catégories</div>
+                    <div class="fs-3 fw-semibold">{{ metrics.categories }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-muted small mt-4 mb-0">
+        Améliorations possibles : scoring pondéré, historique de clics, A/B test, métriques de qualité (CTR, diversité des catégories).
+    </p>
+{% endblock %}

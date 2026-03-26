@@ -1,9 +1,178 @@
 {% extends '@EasyAdmin/page/content.html.twig' %}
 
-{% block content_title %}Bienvenue sur le Back-Office ODOS{% endblock %}
+{% block content_title %}Tableau de bord ODos{% endblock %}
 
 {% block main %}
-    <div class="alert alert-info">
-        Gérez ici les utilisateurs, les activités et les catégories de l'application.
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Utilisateurs</div>
+                    <div class="fs-3 fw-semibold">{{ stats.users }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Activités</div>
+                    <div class="fs-3 fw-semibold">{{ stats.activities }}</div>
+                    <div class="small text-success">{{ stats.activities_published }} publiées</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Catégories</div>
+                    <div class="fs-3 fw-semibold">{{ stats.categories }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Favoris (liens)</div>
+                    <div class="fs-3 fw-semibold">{{ stats.favorite_links }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Tél. renseigné</div>
+                    <div class="fs-3 fw-semibold">{{ stats.users_with_phone }}</div>
+                    <div class="small text-muted">users</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-2">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Événements admin</div>
+                    <div class="fs-3 fw-semibold">{{ stats.admin_events }}</div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white fw-semibold">Activités récentes</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nom</th>
+                                    <th>Ville</th>
+                                    <th>Publié</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for a in recent_activities %}
+                                    <tr>
+                                        <td>{{ a.id }}</td>
+                                        <td>{{ a.name }}</td>
+                                        <td>{{ a.city ?? '—' }}</td>
+                                        <td>
+                                            {% if a.isPublished %}
+                                                <span class="badge text-bg-success">oui</span>
+                                            {% else %}
+                                                <span class="badge text-bg-secondary">non</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="4" class="text-muted px-3 py-2">Aucune activité.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white fw-semibold">Top favoris</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nom</th>
+                                    <th>Favoris</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in top_favorited %}
+                                    <tr>
+                                        <td>{{ row.id }}</td>
+                                        <td>{{ row.name }}</td>
+                                        <td>{{ row.favorites_count }}</td>
+                                    </tr>
+                                {% else %}
+                                    <tr><td colspan="3" class="text-muted px-3 py-2">Pas encore de données.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm mt-4">
+        <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+            Derniers événements admin
+            <a class="btn btn-sm btn-outline-primary" href="{{ path('admin_logs_export_csv') }}">
+                Export CSV
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Horodatage</th>
+                            <th>Admin</th>
+                            <th>Action</th>
+                            <th>Entité</th>
+                            <th>Résumé</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for e in recent_admin_events %}
+                            <tr>
+                                <td>{{ e.createdAt|date('Y-m-d H:i:s') }}</td>
+                                <td>{{ e.adminEmail ?? 'System' }}</td>
+                                <td>
+                                    <span class="badge {{ e.action == 'DELETE' ? 'text-bg-warning' : 'text-bg-secondary' }}">
+                                        {{ e.action }}
+                                    </span>
+                                </td>
+                                <td>{{ e.entityClass }}{% if e.entityId %} #{{ e.entityId }}{% endif %}</td>
+                                <td>{{ e.summary }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="5" class="text-muted px-3 py-2">Aucun événement admin pour le moment.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {% if log_snippet is not empty %}
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-white fw-semibold">Dernières lignes du log dev <code>var/log/dev.log</code></div>
+            <div class="card-body">
+                <pre class="small mb-0 text-wrap" style="max-height: 280px; overflow: auto; background: #f8f9fa; padding: 1rem;">{% for line in log_snippet %}{{ line }}
+{% endfor %}</pre>
+            </div>
+        </div>
+    {% endif %}
 {% endblock %}

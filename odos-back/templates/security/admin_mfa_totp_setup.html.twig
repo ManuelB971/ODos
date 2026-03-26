@@ -1,0 +1,55 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Setup Google Authenticator{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <h1 class="h3 mb-3 font-weight-normal">Configuration Google Authenticator</h1>
+
+            <div class="alert alert-secondary">
+                1) Scannez le QR avec Google Authenticator.<br>
+                2) Entrez le code a 6 chiffres pour verifier la configuration.
+            </div>
+
+            {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
+
+            {% if info %}
+                <div class="alert alert-success">{{ info }}</div>
+            {% endif %}
+
+            {% if otpauth_uri %}
+                <div class="mb-3">
+                    <p class="mb-2"><strong>Compte:</strong> {{ account }}</p>
+                    <img
+                        src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data={{ otpauth_uri|url_encode }}"
+                        alt="QR code TOTP"
+                        width="240"
+                        height="240"
+                    >
+                </div>
+
+                <div class="mb-3">
+                    <label for="otpauthUri" class="form-label">URI TOTP (copie manuelle si besoin)</label>
+                    <input type="text" id="otpauthUri" class="form-control" value="{{ otpauth_uri }}" readonly>
+                </div>
+            {% endif %}
+
+            <form method="post">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin_mfa_totp_setup') }}">
+                <div class="mb-3">
+                    <label for="inputTotpCode" class="form-label">Code Google Authenticator</label>
+                    <input type="text" name="totp_code" id="inputTotpCode" class="form-control" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="6 chiffres">
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" type="submit">Verifier la configuration</button>
+                    <a class="btn btn-outline-secondary" href="{{ path('app_admin_mfa') }}">Retour MFA</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

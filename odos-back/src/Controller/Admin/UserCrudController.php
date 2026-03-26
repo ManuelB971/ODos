@@ -29,6 +29,12 @@ class UserCrudController extends AbstractCrudController
         return [
             IdField::new('id')->hideOnForm(),
             EmailField::new('email'),
+            TextField::new('phoneNumber', 'Téléphone (MFA SMS)')
+                ->setRequired(false)
+                ->setHelp('E.164 recommandé, ex. +33612345678'),
+            AssociationField::new('favorites', 'Favoris')
+                ->onlyOnDetail()
+                ->setHelp('Lecture seule : activités mises en favori par cet utilisateur.'),
             FormField::addPanel('Sécurité'),
             TextField::new('plainPassword', 'Mot de passe')
                 ->onlyOnForms()

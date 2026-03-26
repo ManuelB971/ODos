@@ -77,6 +77,10 @@ class Activity
     #[Groups(['activity:read', 'activity:write'])]
     private ?\DateTimeInterface $dateEnd = null;
 
+    #[ORM\Column(options: ['default' => true])]
+    #[Groups(['activity:read', 'activity:write'])]
+    private bool $isPublished = true;
+
     /**
      * @var Collection<int, User>
      */
@@ -209,6 +213,18 @@ class Activity
     public function setDateEnd(?\DateTimeInterface $dateEnd): static
     {
         $this->dateEnd = $dateEnd;
+
+        return $this;
+    }
+
+    public function isPublished(): bool
+    {
+        return $this->isPublished;
+    }
+
+    public function setIsPublished(bool $isPublished): static
+    {
+        $this->isPublished = $isPublished;
 
         return $this;
     }

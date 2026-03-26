@@ -38,6 +38,14 @@ class FavoriteActivityController extends AbstractController
             ], Response::HTTP_NOT_FOUND);
         }
 
+        if (!$activity->isPublished() && !$this->security->isGranted('ROLE_ADMIN')) {
+            return $this->json([
+                'message' => 'Activité non disponible.',
+                'code' => Response::HTTP_NOT_FOUND,
+                'details' => []
+            ], Response::HTTP_NOT_FOUND);
+        }
+
         $user = $this->security->getUser();
 
         if (!$user->hasFavorite($activity)) {
@@ -58,6 +66,14 @@ class FavoriteActivityController extends AbstractController
         if (!$activity) {
             return $this->json([
                 'message' => 'Activité introuvable.',
+                'code' => Response::HTTP_NOT_FOUND,
+                'details' => []
+            ], Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$activity->isPublished() && !$this->security->isGranted('ROLE_ADMIN')) {
+            return $this->json([
+                'message' => 'Activité non disponible.',
                 'code' => Response::HTTP_NOT_FOUND,
                 'details' => []
             ], Response::HTTP_NOT_FOUND);

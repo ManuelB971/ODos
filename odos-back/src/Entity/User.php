@@ -39,7 +39,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             security: "is_granted('ROLE_ADMIN') or object == user",
             processor: UserPasswordHasherProcessor::class
         ),
-        new Delete(security: "is_granted('ROLE_ADMIN')"),
+        new Delete(security: "is_granted('ROLE_ADMIN') or object == user"),
     ],
     normalizationContext: ['groups' => ['user:read']],
     denormalizationContext: ['groups' => ['user:write']]
@@ -57,6 +57,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\NotBlank(message: 'L\'adresse email est obligatoire.')]
     #[Assert\Email(message: 'L\'adresse email {{ value }} n\'est pas valide.')]
     private ?string $email = null;
+
+    #[ORM\Column(length: 32, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $phoneNumber = null;
+
+    #[ORM\Column(length: 60, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $alias = null;
+
+    #[ORM\Column(length: 512, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    private ?string $avatarUrl = null;
 
     /**
      * @var list<string> The user roles
@@ -98,10 +110,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read'])]
     private Collection $favorites;
 
+    /**
+     * @var Collection<int, AdminWebauthnCredential>
+     */
+    #[ORM\OneToMany(mappedBy: 'user', targetEntity: AdminWebauthnCredential::class, orphanRemoval: true)]
+    private Collection $webauthnCredentials;
+
     public function __construct()
     {
         $this->interests = new ArrayCollection();
         $this->favorites = new ArrayCollection();
+        $this->webauthnCredentials = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -117,6 +136,42 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEmail(string $email): static
     {
         $this->email = $email;
+
+        return $this;
+    }
+
+    public function getPhoneNumber(): ?string
+    {
+        return $this->phoneNumber;
+    }
+
+    public function setPhoneNumber(?string $phoneNumber): static
+    {
+        $this->phoneNumber = $phoneNumber;
+
+        return $this;
+    }
+
+    public function getAlias(): ?string
+    {
+        return $this->alias;
+    }
+
+    public function setAlias(?string $alias): static
+    {
+        $this->alias = $alias;
+
+        return $this;
+    }
+
+    public function getAvatarUrl(): ?string
+    {
+        return $this->avatarUrl;
+    }
+
+    public function setAvatarUrl(?string $avatarUrl): static
+    {
+        $this->avatarUrl = $avatarUrl;
 
         return $this;
     }
@@ -248,5 +303,34 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function hasFavorite(Activity $activity): bool
     {
         return $this->favorites->contains($activity);
+    }
+
+    /**
+     * @return Collection<int, AdminWebauthnCredential>
+     */
+    public function getWebauthnCredentials(): Collection
+    {
+        return $this->webauthnCredentials;
+    }
+
+    public function addWebauthnCredential(AdminWebauthnCredential $credential): static
+    {
+        if (!$this->webauthnCredentials->contains($credential)) {
+            $this->webauthnCredentials->add($credential);
+            $credential->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeWebauthnCredential(AdminWebauthnCredential $credential): static
+    {
+        if ($this->webauthnCredentials->removeElement($credential)) {
+            if ($credential->getUser() === $this) {
+                $credential->setUser(null);
+            }
+        }
+
+        return $this;
     }
 }
