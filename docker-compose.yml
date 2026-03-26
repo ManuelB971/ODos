@@ -1,0 +1,85 @@
+services:
+  # ── PostgreSQL ──
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: odos
+      POSTGRES_PASSWORD: odos_secret
+      POSTGRES_DB: odos
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odos"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - app_network
+
+  # ── PHP-FPM (Symfony) ──
+  php:
+    build:
+      context: ./odos-back
+      dockerfile: Dockerfile
+      target: dev
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      APP_ENV: dev
+      DATABASE_URL: "postgresql://odos:odos_secret@postgres:5432/odos?serverVersion=16&charset=utf8"
+      REDIS_URL: "redis://redis:6379"
+      LLM_PROVIDER: ollama
+      LLM_BASE_URL: "http://llm:11434"
+      LLM_MODEL: qwen2.5:1.5b
+      LLM_TIMEOUT: "3"
+      LLM_TOP_K: "15"
+      LLM_CANDIDATE_MAX: "20"
+      LLM_ENABLED: "true"
+      LLM_CACHE_TTL_SECONDS: "1800"
+    working_dir: /app
+    networks:
+      - app_network
+
+  # ── Nginx ──
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - php
+    ports:
+      - "8000:80"
+    volumes:
+      - ./odos-back/public:/app/public:ro
+      - ./odos-back/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - app_network
+
+  # ── Redis (cache) ──
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - app_network
+
+  # ── Ollama (LLM local) ──
+  llm:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - app_network
+
+volumes:
+  pgdata:
+  php_vendor:
+  ollama_data:
+
+networks:
+  app_network:
+    driver: bridge

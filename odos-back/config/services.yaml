@@ -7,6 +7,13 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    app.llm.base_url: '%env(LLM_BASE_URL)%'
+    app.llm.model: '%env(LLM_MODEL)%'
+    app.llm.timeout: '%env(int:LLM_TIMEOUT)%'
+    app.llm.top_k: '%env(int:LLM_TOP_K)%'
+    app.llm.candidate_max: '%env(int:LLM_CANDIDATE_MAX)%'
+    app.llm.enabled: '%env(bool:LLM_ENABLED)%'
+    app.llm.cache_ttl_seconds: '%env(int:LLM_CACHE_TTL_SECONDS)%'
 
 services:
     # default configuration for services in *this* file
@@ -24,3 +31,13 @@ services:
     App\State\UserPasswordHasherProcessor:
         arguments:
             $innerProcessor: '@api_platform.doctrine.orm.state.persist_processor'
+
+    App\Service\LlmRankingService:
+        arguments:
+            $cacheTtlSeconds: '%app.llm.cache_ttl_seconds%'
+            $llmBaseUrl: '%app.llm.base_url%'
+            $llmModel: '%app.llm.model%'
+            $llmTimeout: '%app.llm.timeout%'
+            $topK: '%app.llm.top_k%'
+            $candidateMax: '%app.llm.candidate_max%'
+            $llmEnabled: '%app.llm.enabled%'

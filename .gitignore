@@ -21,3 +21,11 @@ build/
 # Python
 __pycache__/
 *.pyc
+
+# Local test artifacts
+body.txt
+headers.txt
+response.json
+err.txt
+ollama-test.json
+ollama-chat.json

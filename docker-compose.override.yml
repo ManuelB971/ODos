@@ -1,0 +1,30 @@
+# Dev-only overrides (loaded automatically by docker compose)
+# This file is NOT used in production.
+#
+# To run in prod mode: docker compose -f docker-compose.yml up -d
+# (skips this override file)
+
+services:
+  php:
+    build:
+      target: dev
+    environment:
+      APP_ENV: dev
+      APP_DEBUG: 1
+      XDEBUG_MODE: "off"
+      REDIS_URL: "redis://redis:6379"
+      LLM_PROVIDER: ollama
+      LLM_BASE_URL: "http://llm:11434"
+      LLM_MODEL: "qwen2.5:1.5b"
+      LLM_TIMEOUT: "3"
+      LLM_TOP_K: "15"
+      LLM_CANDIDATE_MAX: "20"
+      LLM_ENABLED: "true"
+      LLM_CACHE_TTL_SECONDS: "1800"
+    volumes:
+      - ./odos-back:/app
+      - php_vendor:/app/vendor
+
+  postgres:
+    ports:
+      - "5432:5432"

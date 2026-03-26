@@ -1,0 +1,14 @@
+.git
+.env.local
+.env.*.local
+var/cache/
+var/log/
+var/share/
+vendor/
+node_modules/
+docker/
+config/jwt/*.pem
+config/cacert.pem
+config/secrets/prod/
+.phpunit.cache/
+phpunit.xml

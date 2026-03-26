@@ -1,5 +1,7 @@
 
 ###> symfony/framework-bundle ###
+# CA bundle for Twilio TLS (Windows / PHP). Refresh: https://curl.se/ca/cacert.pem
+/config/cacert.pem
 /.env.local
 /.env
 /.env.dev
