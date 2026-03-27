@@ -29,3 +29,10 @@ response.json
 err.txt
 ollama-test.json
 ollama-chat.json
+
+# Coverage outputs
+odos-front/coverage/
+odos-back/var/coverage/
+
+# Accidental duplicate deliverables folder
+deliverables/liverables/
