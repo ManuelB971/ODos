@@ -2,57 +2,90 @@
 
 namespace App\Tests;
 
-use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
-use App\Entity\User;
-use Hautelook\AliceBundle\PhpUnit\RefreshDatabaseTrait;
+use App\Entity\Activity;
+use App\Entity\Category;
+use App\Service\LlmRankingService;
+use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 
-class RecommendationTest extends ApiTestCase
+class RecommendationTest extends TestCase
 {
-    // usage of RefreshDatabaseTrait is good practice but might require further setup
-    // let's stick to simple API calls for now assuming database is ready or we just use current state
-
-    public function testGetRecommendationsAnonymous(): void
+    public function testReturnsTopKWithoutLlmWhenDisabled(): void
     {
-        $client = static::createClient();
-        $client->request('GET', '/api/recommendations');
+        $service = new LlmRankingService(
+            new ArrayAdapter(),
+            $this->createMock(HttpClientInterface::class),
+            new NullLogger(),
+            'http://llm:11434',
+            'test-model',
+            3,
+            2,
+            20,
+            false,
+            60
+        );
 
-        $this->assertResponseStatusCodeSame(401);
+        $first = $this->makeActivity(1, 'A');
+        $second = $this->makeActivity(2, 'B');
+        $third = $this->makeActivity(3, 'C');
+
+        $ranked = $service->rank(['Music'], [$first, $second, $third]);
+
+        self::assertCount(2, $ranked);
+        self::assertSame(1, $ranked[0]->getId());
+        self::assertSame(2, $ranked[1]->getId());
     }
 
-    public function testGetRecommendationsAsUser(): void
+    public function testUsesLlmRankingOrderWhenResponseIsValid(): void
     {
-        $client = static::createClient();
-        
-        // 1. Login to get token
-        $response = $client->request('POST', '/api/login', [
-            'headers' => ['Content-Type' => 'application/json'],
-            'json' => [
-                'email' => 'user@odos.com',
-                'password' => 'password',
-            ],
+        $response = $this->createMock(ResponseInterface::class);
+        $response->method('toArray')->willReturn([
+            'message' => ['content' => '{"ranked_ids":[2,1]}'],
         ]);
+        $httpClient = $this->createMock(HttpClientInterface::class);
+        $httpClient->method('request')->willReturn($response);
 
-        $this->assertResponseIsSuccessful();
-        $data = $response->toArray();
-        $token = $data['token'];
+        $service = new LlmRankingService(
+            new ArrayAdapter(),
+            $httpClient,
+            new NullLogger(),
+            'http://llm:11434',
+            'test-model',
+            3,
+            2,
+            20,
+            true,
+            60
+        );
 
-        // 2. Get recommendations with token
-        $client->request('GET', '/api/recommendations', [
-            'auth_bearer' => $token,
-        ]);
+        $first = $this->makeActivity(1, 'A');
+        $second = $this->makeActivity(2, 'B');
 
-        $this->assertResponseIsSuccessful();
-        $this->assertJsonContains([
-            '@context' => '/api/contexts/Activity',
-            '@id' => '/api/recommendations',
-            '@type' => 'hydra:Collection',
-        ]);
-        
-        // Verify we get results
-        $collection = $response->toArray()['hydra:member'] ?? [];
-        // We expect at least some activities since we seeded 50 and user has interests
-        // But verifying exact count is hard due to randomness. 
-        // We can verify that returned activities belong to user's interest categories if we fetched them.
-        // For now, basic success is enough.
+        $ranked = $service->rank(['Music'], [$first, $second]);
+
+        self::assertCount(2, $ranked);
+        self::assertSame(2, $ranked[0]->getId());
+        self::assertSame(1, $ranked[1]->getId());
+    }
+
+    private function makeActivity(int $id, string $name): Activity
+    {
+        $category = (new Category())->setName('Category');
+        $activity = (new Activity())
+            ->setName($name)
+            ->setDescription('Description')
+            ->setLatitude(48.0)
+            ->setLongitude(2.0)
+            ->setCategory($category)
+            ->setIsPublished(true);
+
+        $ref = new \ReflectionProperty(Activity::class, 'id');
+        $ref->setAccessible(true);
+        $ref->setValue($activity, $id);
+
+        return $activity;
     }
 }

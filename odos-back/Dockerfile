@@ -24,6 +24,10 @@ WORKDIR /app
 # ---------- Dev target (default) ----------
 FROM base AS dev
 
+RUN apk add --no-cache $PHPIZE_DEPS linux-headers \
+    && pecl install xdebug \
+    && docker-php-ext-enable xdebug
+
 COPY composer.json composer.lock ./
 RUN composer install --no-scripts --no-interaction --prefer-dist
 
