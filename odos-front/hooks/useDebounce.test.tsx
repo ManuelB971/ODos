@@ -1,5 +1,22 @@
-import { renderHook, act } from '@testing-library/react-native';
+import React from 'react';
+import { act, create } from 'react-test-renderer';
 import { useDebounce } from '@/hooks/useDebounce';
+
+function HookProbe({
+  value,
+  delay,
+  onChange,
+}: {
+  value: string;
+  delay: number;
+  onChange: (v: string) => void;
+}) {
+  const debounced = useDebounce(value, delay);
+  React.useEffect(() => {
+    onChange(debounced);
+  }, [debounced, onChange]);
+  return null;
+}
 
 describe('useDebounce', () => {
   beforeEach(() => {
@@ -11,18 +28,24 @@ describe('useDebounce', () => {
   });
 
   it('delays value updates', () => {
-    const { result, rerender } = renderHook(({ value }) => useDebounce(value, 200), {
-      initialProps: { value: 'a' },
+    const onChange = jest.fn();
+
+    let renderer: ReturnType<typeof create>;
+    act(() => {
+      renderer = create(<HookProbe value="a" delay={200} onChange={onChange} />);
     });
+    expect(onChange).toHaveBeenLastCalledWith('a');
 
-    expect(result.current).toBe('a');
-
-    rerender({ value: 'ab' });
-    expect(result.current).toBe('a');
+    act(() => {
+      renderer!.update(<HookProbe value="ab" delay={200} onChange={onChange} />);
+    });
+    expect(onChange).toHaveBeenLastCalledWith('a');
 
     act(() => {
       jest.advanceTimersByTime(210);
     });
-    expect(result.current).toBe('ab');
+    expect(onChange).toHaveBeenLastCalledWith('ab');
+
+    renderer!.unmount();
   });
 });

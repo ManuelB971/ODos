@@ -1,9 +1,20 @@
 module.exports = {
-  preset: 'jest-expo',
+  testEnvironment: 'node',
+  transform: {
+    '^.+\\.[jt]sx?$': 'babel-jest',
+  },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
-  transformIgnorePatterns: [
-    'node_modules/(?!(react-native|@react-native|expo(nent)?|@expo(nent)?/.*|expo-router|@expo-google-fonts/.*|@unimodules/.*|unimodules|@react-navigation/.*|@tanstack/react-query)/)',
+  collectCoverageFrom: [
+    '**/*.{ts,tsx,js,jsx}',
+    '!**/*.d.ts',
+    '!**/node_modules/**',
+    '!**/coverage/**',
+    '!**/.expo/**',
+    '!**/babel.config.js',
+    '!**/jest.config.js',
   ],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html', 'clover'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
