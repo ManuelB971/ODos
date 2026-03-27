@@ -1,0 +1,12 @@
+cluster.name: wazuh-cluster
+node.name: wazuh.indexer
+network.host: 0.0.0.0
+discovery.type: single-node
+
+bootstrap.memory_lock: true
+
+# Dev/local mode: disable security plugin to avoid cert bootstrap.
+plugins.security.disabled: true
+
+# Make OpenSearch look like ES 7.x to legacy clients (Wazuh filebeat).
+compatibility.override_main_response_version: true

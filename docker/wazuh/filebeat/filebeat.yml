@@ -1,0 +1,39 @@
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/odos/symfony/*.log
+    fields:
+      source: symfony
+      app: odos
+    fields_under_root: false
+
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/odos/nginx/odos_access.log
+    fields:
+      source: nginx-access
+      app: odos
+    fields_under_root: false
+
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/odos/nginx/odos_error.log
+    fields:
+      source: nginx-error
+      app: odos
+    fields_under_root: false
+
+setup.ilm.enabled: false
+setup.template.name: "odos-logs"
+setup.template.pattern: "odos-logs-*"
+
+output.elasticsearch:
+  hosts: ["http://wazuh.indexer:9200"]
+  ssl.verification_mode: none
+  index: "odos-logs-%{[fields.source]}-%{+yyyy.MM.dd}"
+
+logging.level: info
+logging.to_files: false

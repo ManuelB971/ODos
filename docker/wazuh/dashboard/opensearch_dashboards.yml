@@ -1,0 +1,7 @@
+server.host: "0.0.0.0"
+server.port: 5601
+server.ssl.enabled: false
+opensearch_security.enabled: false
+
+opensearch.hosts: ["http://wazuh.indexer:9200"]
+opensearch.ssl.verificationMode: none

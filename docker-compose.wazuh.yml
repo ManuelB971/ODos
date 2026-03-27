@@ -1,0 +1,91 @@
+services:
+  wazuh.indexer:
+    image: wazuh/wazuh-indexer:4.12.0
+    container_name: wazuh.indexer
+    user: root
+    restart: unless-stopped
+    environment:
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - wazuh_indexer_data:/var/lib/wazuh-indexer
+      - ./docker/wazuh/indexer/opensearch.yml:/usr/share/wazuh-indexer/opensearch.yml:ro
+    ports:
+      - "9200:9200"
+
+  wazuh.manager:
+    image: wazuh/wazuh-manager:4.12.0
+    container_name: wazuh.manager
+    restart: unless-stopped
+    environment:
+      - INDEXER_URL=http://wazuh.indexer:9200
+      - FILEBEAT_SSL_VERIFICATION_MODE=none
+      - WAZUH_CLUSTER_KEY=ODOS_LOCAL_WAZUH_KEY_32CHARS
+    depends_on:
+      - wazuh.indexer
+    volumes:
+      - wazuh_manager_api_configuration:/var/ossec/api/configuration
+      - wazuh_manager_etc:/var/ossec/etc
+      - wazuh_manager_logs:/var/ossec/logs
+      - wazuh_manager_queue:/var/ossec/queue
+      - wazuh_manager_var_multigroups:/var/ossec/var/multigroups
+      - wazuh_manager_integrations:/var/ossec/integrations
+      - wazuh_manager_active_response:/var/ossec/active-response/bin
+      - wazuh_manager_agentless:/var/ossec/agentless
+      - wazuh_manager_wodles:/var/ossec/wodles
+      - wazuh_filebeat_etc:/etc/filebeat
+      - wazuh_filebeat_var:/var/lib/filebeat
+    ports:
+      - "1514:1514/udp"
+      - "1515:1515"
+      - "55000:55000"
+
+  wazuh.dashboard:
+    image: wazuh/wazuh-dashboard:4.12.0
+    container_name: wazuh.dashboard
+    restart: unless-stopped
+    environment:
+      - WAZUH_API_URL=https://wazuh.manager
+      - DASHBOARD_USERNAME=admin
+      - DASHBOARD_PASSWORD=SecretPassword
+    depends_on:
+      - wazuh.manager
+    volumes:
+      - ./docker/wazuh/dashboard/opensearch_dashboards.yml:/usr/share/wazuh-dashboard/config/opensearch_dashboards.yml:ro
+    ports:
+      - "5601:5601"
+
+  odos.filebeat:
+    image: docker.elastic.co/beats/filebeat-oss:7.10.2
+    container_name: odos.filebeat
+    user: root
+    restart: unless-stopped
+    command: ["filebeat", "-e", "-strict.perms=false"]
+    depends_on:
+      - wazuh.indexer
+      - nginx
+    volumes:
+      - ./docker/wazuh/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./odos-back/var/log:/var/log/odos/symfony:ro
+      - nginx_logs:/var/log/odos/nginx:ro
+      - odos_filebeat_data:/usr/share/filebeat/data
+
+volumes:
+  wazuh_indexer_data:
+  wazuh_manager_api_configuration:
+  wazuh_manager_etc:
+  wazuh_manager_logs:
+  wazuh_manager_queue:
+  wazuh_manager_var_multigroups:
+  wazuh_manager_integrations:
+  wazuh_manager_active_response:
+  wazuh_manager_agentless:
+  wazuh_manager_wodles:
+  wazuh_filebeat_etc:
+  wazuh_filebeat_var:
+  odos_filebeat_data:
+  nginx_logs:
+
