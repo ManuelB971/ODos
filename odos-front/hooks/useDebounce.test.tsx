@@ -46,6 +46,8 @@ describe('useDebounce', () => {
     });
     expect(onChange).toHaveBeenLastCalledWith('ab');
 
-    renderer!.unmount();
+    act(() => {
+      renderer!.unmount();
+    });
   });
 });
