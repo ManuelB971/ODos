@@ -1,0 +1,194 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      infra: ${{ steps.filter.outputs.infra }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            backend:
+              - 'odos-back/**'
+            frontend:
+              - 'odos-front/**'
+            infra:
+              - 'docker-compose*.yml'
+              - '.github/workflows/**'
+
+  backend:
+    name: Backend tests (Symfony/PHPUnit)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: odos-back
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: odos
+          POSTGRES_PASSWORD: odos_secret
+          POSTGRES_DB: odos_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U odos -d odos_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      APP_ENV: test
+      APP_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      DATABASE_URL: postgresql://odos:odos_secret@127.0.0.1:5432/odos_test?serverVersion=16&charset=utf8
+      REDIS_URL: redis://127.0.0.1:6379
+      LLM_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: intl, pdo_pgsql
+          coverage: none
+      - name: Validate composer metadata
+        run: composer validate --strict --no-check-publish
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+      - name: Run PHPUnit
+        run: composer test
+
+  backend-coverage:
+    name: Backend coverage
+    needs: [changes, backend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.changes.outputs.backend == 'true' || needs.changes.outputs.infra == 'true')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: odos-back
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: odos
+          POSTGRES_PASSWORD: odos_secret
+          POSTGRES_DB: odos_test
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    env:
+      APP_ENV: test
+      APP_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      DATABASE_URL: postgresql://odos:odos_secret@127.0.0.1:5432/odos_test?serverVersion=16&charset=utf8
+      REDIS_URL: redis://127.0.0.1:6379
+      LLM_ENABLED: "false"
+      XDEBUG_MODE: coverage
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP with Xdebug
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: intl, pdo_pgsql
+          coverage: xdebug
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+      - name: Generate coverage
+        run: composer test:coverage
+      - name: Upload backend coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-html
+          path: odos-back/var/coverage/html
+          if-no-files-found: error
+
+  frontend:
+    name: Frontend tests (Expo/Jest)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: odos-front
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: odos-front/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm run lint
+      - name: Run tests
+        run: pnpm run test:ci
+
+  frontend-coverage:
+    name: Frontend coverage
+    needs: [changes, frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.infra == 'true')
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: odos-front
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: odos-front/pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate coverage
+        run: pnpm run test:coverage
+      - name: Upload frontend coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-html
+          path: odos-front/coverage
+          if-no-files-found: error
+
+  docker-backend-prod:
+    name: Build backend prod image
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker image (prod target)
+        run: docker build --target prod -t odos-back:ci ./odos-back
