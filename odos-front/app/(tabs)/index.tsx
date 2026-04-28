@@ -1,5 +1,14 @@
-import { View, Text, StyleSheet, Pressable, FlatList, ActivityIndicator, Platform } from 'react-native';
-import { MapPin } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  FlatList,
+  Platform,
+  Image,
+  ScrollView,
+} from 'react-native';
+import { MapPin as MapPinIcon, Star, ArrowRight } from 'lucide-react-native';
 import { Link, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { useInterests } from '@/context/InterestContext';
@@ -9,6 +18,10 @@ import { ApiActivity } from '@/types';
 import { Colors, Spacing } from '@/constants/theme';
 import { toAppError } from '@/utils/errorHandling';
 import { AppLogo } from '@/components/AppLogo';
+import { resolveImageUrl } from '@/utils/imageUrl';
+import { odosMapStyle } from '@/constants/mapStyle';
+import { MapPin as MapPinMarker } from '@/components/map/MapPin';
+import { SkeletonActivityRow, SkeletonRecommendationCard } from '@/components/ui/Skeleton';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 /** Helper: get the category display name from the API response */
@@ -18,20 +31,117 @@ const getCategoryName = (cat: ApiActivity['category']): string => {
   return '';
 };
 
+const formatPrice = (price: number | null | undefined): string => {
+  if (price == null) return '';
+  if (price === 0) return 'Gratuit';
+  return `À partir de ${Math.round(price)}€`;
+};
+
+/** Carte verticale horizontale (liste "Toutes les activités") — image arrondie + infos. */
+function ActivityRow({ item }: { item: ApiActivity }) {
+  const img = resolveImageUrl(item.imageUrl);
+  const priceLabel = formatPrice(item.price);
+  return (
+    <Link href={`/activity/${item.id}`} asChild>
+      <Pressable style={styles.rowCard} android_ripple={{ color: '#00000010' }}>
+        {img ? (
+          <Image source={{ uri: img }} style={styles.rowImage} resizeMode="cover" />
+        ) : (
+          <View style={[styles.rowImage, styles.rowImagePlaceholder]} />
+        )}
+        <View style={styles.rowInfo}>
+          <View style={styles.rowTopLine}>
+            <Text numberOfLines={1} style={styles.rowCategory}>
+              {getCategoryName(item.category).toUpperCase()}
+            </Text>
+            {priceLabel ? <Text style={styles.rowPrice}>{priceLabel}</Text> : null}
+          </View>
+          <Text numberOfLines={1} style={styles.rowName}>{item.name}</Text>
+          {item.city ? (
+            <View style={styles.rowMetaLine}>
+              <MapPinIcon size={11} color={Colors.light.muted} />
+              <Text style={styles.rowMeta}>{item.city}</Text>
+            </View>
+          ) : null}
+          <Text numberOfLines={2} style={styles.rowDescription}>{item.description}</Text>
+        </View>
+      </Pressable>
+    </Link>
+  );
+}
+
+/** Grande carte "Recommandation" (carrousel horizontal) — grosse image + badge note + texte. */
+function RecommendationCard({ item }: { item: ApiActivity }) {
+  const img = resolveImageUrl(item.imageUrl);
+  const rating = item.ratingAverage;
+  return (
+    <Link href={`/activity/${item.id}`} asChild>
+      <Pressable style={styles.recoCard} android_ripple={{ color: '#00000010' }}>
+        <View style={styles.recoImageWrap}>
+          {img ? (
+            <Image source={{ uri: img }} style={styles.recoImage} resizeMode="cover" />
+          ) : (
+            <View style={[styles.recoImage, styles.recoImagePlaceholder]} />
+          )}
+          {rating != null && rating > 0 ? (
+            <View style={styles.recoBadge}>
+              <Star size={12} color="#fff" fill="#fff" />
+              <Text style={styles.recoBadgeText}>{rating.toFixed(1)}</Text>
+            </View>
+          ) : null}
+        </View>
+        <View style={styles.recoBody}>
+          {item.city ? (
+            <View style={styles.rowMetaLine}>
+              <MapPinIcon size={11} color={Colors.light.muted} />
+              <Text style={styles.recoCity}>{item.city.toUpperCase()}</Text>
+            </View>
+          ) : null}
+          <Text numberOfLines={1} style={styles.recoName}>{item.name}</Text>
+          <Text numberOfLines={2} style={styles.recoDescription}>{item.description}</Text>
+        </View>
+      </Pressable>
+    </Link>
+  );
+}
+
+/**
+ * Nombre max d'activités affichées dans la section "Toutes les activités" de la home.
+ * Au-delà, l'utilisateur bascule vers `/search` via le bouton "Voir tout".
+ */
+const HOME_ACTIVITIES_LIMIT = 5;
+
 export default function HomeScreen() {
   const { interests } = useInterests();
   const { recommendations, loading, error } = useRecommendations(interests);
   const activitiesQuery = useActivities();
-  const activities = useMemo(() => activitiesQuery.data ?? [], [activitiesQuery.data]);
+  const rawActivities = useMemo(() => activitiesQuery.data ?? [], [activitiesQuery.data]);
   const activitiesError = activitiesQuery.error
     ? toAppError(activitiesQuery.error, 'Impossible de charger les activites.').userMessage
     : null;
   const router = useRouter();
 
+  /**
+   * Côté back, l'extension `ActivityPublishedExtension` filtre déjà les brouillons
+   * pour les non-admins. On re-filtre côté client pour que les admins connectés ne
+   * voient pas non plus les brouillons sur le feed public (home + map).
+   */
+  const activities = useMemo(
+    () => rawActivities.filter((a) => a.isPublished !== false),
+    [rawActivities],
+  );
+
   const geoActivities = useMemo(
     () => activities.filter((a) => a.latitude != null && a.longitude != null),
     [activities],
   );
+
+  /** Extrait limité à HOME_ACTIVITIES_LIMIT éléments pour la liste de la home. */
+  const homeActivities = useMemo(
+    () => activities.slice(0, HOME_ACTIVITIES_LIMIT),
+    [activities],
+  );
+  const hasMoreActivities = activities.length > HOME_ACTIVITIES_LIMIT;
 
   const initialRegion = useMemo(() => {
     if (geoActivities.length === 0) {
@@ -54,84 +164,139 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <FlatList
-        data={activities}
+        data={homeActivities}
         keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => (
-          <Link href={`/activity/${item.id}`} asChild>
-            <Pressable style={styles.activityCard}>
-              <View style={styles.activityInfo}>
-                <Text style={styles.activityName}>{item.name}</Text>
-                <Text style={styles.activityCategory}>{getCategoryName(item.category)}</Text>
-                {item.city && (
-                  <View style={styles.locationContainer}>
-                    <MapPin size={12} color={Colors.light.muted} />
-                    <Text style={styles.activityCity}>{item.city}</Text>
-                  </View>
-                )}
-                <Text numberOfLines={2} style={styles.activityDescription}>{item.description}</Text>
-              </View>
+        renderItem={({ item }) => <ActivityRow item={item} />}
+        ListFooterComponent={
+          hasMoreActivities ? (
+            <Pressable
+              onPress={() => router.push('/search')}
+              style={styles.seeMoreBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Voir toutes les activités"
+            >
+              <Text style={styles.seeMoreText}>
+                Voir les {activities.length - HOME_ACTIVITIES_LIMIT} autres
+              </Text>
+              <ArrowRight size={14} color={Colors.light.primary} />
             </Pressable>
-          </Link>
-        )}
+          ) : null
+        }
         ListHeaderComponent={
           <View>
             <View style={styles.logoWrap}>
               <AppLogo width={64} height={64} />
             </View>
             <Text style={styles.welcomeText}>Bienvenue sur ODOS</Text>
+            <Text style={styles.welcomeSubtitle}>L&apos;AVENTURE MODERNE COMMENCE ICI</Text>
 
-            {/* ── Carte des activités ── */}
+            {/* ── Carte des activités (preview + CTA vers /map) ── */}
             <View style={styles.mapSection}>
-              <Text style={styles.sectionTitle}>Carte des activites</Text>
-              <View style={styles.mapContainer}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>Carte des activités</Text>
+                <Pressable onPress={() => router.push('/map')} hitSlop={8}>
+                  <Text style={styles.seeAllText}>EXPLORER</Text>
+                </Pressable>
+              </View>
+              <Pressable
+                onPress={() => router.push('/map')}
+                style={styles.mapContainer}
+                accessibilityRole="button"
+                accessibilityLabel="Ouvrir la carte immersive"
+              >
                 <MapView
                   style={styles.map}
                   initialRegion={initialRegion}
                   provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
+                  customMapStyle={odosMapStyle}
+                  pointerEvents="none"
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                  rotateEnabled={false}
+                  pitchEnabled={false}
+                  toolbarEnabled={false}
+                  showsCompass={false}
+                  showsMyLocationButton={false}
                 >
-                  {geoActivities.map((activity) => (
+                  {geoActivities.slice(0, 40).map((activity) => (
                     <Marker
                       key={`marker-${activity.id}`}
                       coordinate={{ latitude: activity.latitude, longitude: activity.longitude }}
-                      title={activity.name}
-                      description={activity.city ?? undefined}
-                      onCalloutPress={() => router.push(`/activity/${activity.id}`)}
-                    />
+                      anchor={{ x: 0.5, y: 1 }}
+                      tracksViewChanges={false}
+                    >
+                      <MapPinMarker variant="dot" />
+                    </Marker>
                   ))}
                 </MapView>
-              </View>
+                <View pointerEvents="none" style={styles.mapBadgeCount}>
+                  <Text style={styles.mapBadgeCountText}>
+                    {geoActivities.length} lieu{geoActivities.length > 1 ? 'x' : ''}
+                  </Text>
+                </View>
+                <View pointerEvents="none" style={styles.mapCta}>
+                  <Text style={styles.mapCtaText}>Explorer la carte</Text>
+                  <ArrowRight size={14} color="#fff" />
+                </View>
+              </Pressable>
             </View>
 
+            {/* ── Recommandations (carrousel horizontal) ── */}
             <View style={styles.recommendationsContainer}>
-              <Text style={styles.recommendationsTitle}>Recommandations</Text>
-              {loading && <ActivityIndicator size="large" color={Colors.light.primary} style={styles.loader} />}
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>Recommandations</Text>
+                {recommendations.length > 0 ? (
+                  <Pressable onPress={() => router.push('/search')}>
+                    <Text style={styles.seeAllText}>VOIR TOUT</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              {loading && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.recoScroller}
+                >
+                  <SkeletonRecommendationCard />
+                  <SkeletonRecommendationCard />
+                  <SkeletonRecommendationCard />
+                </ScrollView>
+              )}
               {error && <Text style={styles.errorText}>{error}</Text>}
               {!loading && !error && recommendations.length === 0 && interests.length > 0 && (
                 <Text style={styles.emptyText}>Aucune recommandation pour le moment.</Text>
               )}
               {!loading && !error && recommendations.length === 0 && interests.length === 0 && (
-                <Text style={styles.emptyText}>Selectionnez vos centres d&apos;interet pour obtenir des recommandations.</Text>
+                <Text style={styles.emptyText}>Sélectionnez vos centres d&apos;intérêt pour obtenir des recommandations.</Text>
               )}
-              {!loading && !error && recommendations.map((item) => (
-                <Link key={`rec-${item.id}`} href={`/activity/${item.id}`} asChild>
-                  <Pressable style={styles.activityCard}>
-                    <View style={styles.activityInfo}>
-                      <Text style={styles.activityName}>{item.name}</Text>
-                      <Text style={styles.activityCategory}>{getCategoryName(item.category)}</Text>
-                      {item.city && (
-                        <View style={styles.locationContainer}>
-                          <MapPin size={12} color={Colors.light.muted} />
-                          <Text style={styles.activityCity}>{item.city}</Text>
-                        </View>
-                      )}
-                      <Text numberOfLines={2} style={styles.activityDescription}>{item.description}</Text>
-                    </View>
-                  </Pressable>
-                </Link>
-              ))}
+              {!loading && !error && recommendations.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.recoScroller}
+                >
+                  {recommendations.map((item) => (
+                    <RecommendationCard key={`rec-${item.id}`} item={item} />
+                  ))}
+                </ScrollView>
+              )}
             </View>
-            <Text style={styles.sectionTitle}>Toutes les activites</Text>
-            {activitiesQuery.isLoading && <ActivityIndicator size="large" color={Colors.light.primary} style={styles.loader} />}
+
+            <View style={[styles.sectionHeaderRow, styles.sectionTitleSpaced]}>
+              <Text style={styles.sectionTitle}>Toutes les activités</Text>
+              {hasMoreActivities ? (
+                <Pressable onPress={() => router.push('/search')} hitSlop={8}>
+                  <Text style={styles.seeAllText}>VOIR TOUT</Text>
+                </Pressable>
+              ) : null}
+            </View>
+            {activitiesQuery.isLoading && (
+              <View style={styles.skeletonListWrap}>
+                <SkeletonActivityRow />
+                <SkeletonActivityRow />
+                <SkeletonActivityRow />
+              </View>
+            )}
             {activitiesError && <Text style={styles.errorText}>{activitiesError}</Text>}
           </View>
         }
@@ -155,24 +320,59 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: Colors.light.accent,
-    marginBottom: 24,
+    marginBottom: 4,
     textAlign: 'center',
+  },
+  welcomeSubtitle: {
+    fontSize: 12,
+    letterSpacing: 1.5,
+    color: Colors.light.muted,
+    textAlign: 'center',
+    marginBottom: 20,
   },
   logoWrap: {
     alignItems: 'center',
     marginBottom: 8,
   },
   recommendationsContainer: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
-  recommendationsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.light.text,
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
+  },
+  seeAllText: {
+    color: Colors.light.primary,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  seeMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    backgroundColor: '#fff',
+  },
+  seeMoreText: {
+    color: Colors.light.primary,
+    fontWeight: '700',
+    fontSize: 13,
+    letterSpacing: 0.3,
   },
   loader: {
     marginVertical: 20,
+  },
+  skeletonListWrap: {
+    gap: 4,
+    marginBottom: 20,
   },
   errorText: {
     color: Colors.light.danger,
@@ -189,20 +389,62 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   mapContainer: {
-    borderRadius: 12,
+    borderRadius: 20,
     overflow: 'hidden',
     elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    backgroundColor: Colors.light.surface,
+    position: 'relative',
   },
   map: {
     width: '100%',
-    height: 220,
+    height: 240,
   },
-  activitiesSection: {
-    marginBottom: 20,
+  mapBadgeCount: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  mapBadgeCountText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.light.text,
+    letterSpacing: 0.4,
+  },
+  mapCta: {
+    position: 'absolute',
+    right: 14,
+    bottom: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: Colors.light.mapPrimaryCta,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  mapCtaText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
+    letterSpacing: 0.3,
   },
   sectionTitle: {
     fontSize: 20,
@@ -210,43 +452,143 @@ const styles = StyleSheet.create({
     color: Colors.light.text,
     marginBottom: 12,
   },
-  activityCard: {
-    marginBottom: 16,
-    borderRadius: 12,
+  sectionTitleSpaced: {
+    marginTop: 8,
+  },
+
+  // ── Recommandation card (carrousel horizontal) ──
+  recoScroller: {
+    paddingRight: 8,
+  },
+  recoCard: {
+    width: 260,
+    marginRight: 14,
+    borderRadius: 16,
     backgroundColor: Colors.light.background,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 3,
-    overflow: 'hidden',
   },
-  activityInfo: {
-    padding: 12,
+  recoImageWrap: {
+    position: 'relative',
+    width: '100%',
+    height: 160,
   },
-  activityName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
+  recoImage: {
+    width: '100%',
+    height: '100%',
   },
-  activityCategory: {
-    fontSize: 12,
-    color: Colors.light.muted,
-    marginBottom: 8,
+  recoImagePlaceholder: {
+    backgroundColor: Colors.light.surface,
   },
-  locationContainer: {
+  recoBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginBottom: 6,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 14,
   },
-  activityCity: {
+  recoBadgeText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  recoBody: {
+    padding: 12,
+  },
+  recoCity: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.light.muted,
+    letterSpacing: 0.5,
+  },
+  recoName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  recoDescription: {
     fontSize: 12,
     color: Colors.light.muted,
+    fontStyle: 'italic',
+    lineHeight: 16,
   },
-  activityDescription: {
-    fontSize: 13,
+
+  // ── Row card (liste verticale "Toutes les activités") ──
+  rowCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    marginBottom: 12,
+    borderRadius: 14,
+    backgroundColor: Colors.light.background,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  rowImage: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    marginRight: 12,
+  },
+  rowImagePlaceholder: {
+    backgroundColor: Colors.light.surface,
+  },
+  rowInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  rowTopLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+    gap: 8,
+  },
+  rowCategory: {
+    fontSize: 10,
+    fontWeight: '700',
     color: Colors.light.muted,
-    lineHeight: 18,
+    letterSpacing: 0.7,
+    flexShrink: 1,
+  },
+  rowPrice: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.light.accent,
+  },
+  rowName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.light.text,
+    marginBottom: 2,
+  },
+  rowMetaLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  rowMeta: {
+    fontSize: 11,
+    color: Colors.light.muted,
+  },
+  rowDescription: {
+    fontSize: 12,
+    color: Colors.light.muted,
+    lineHeight: 16,
   },
 });

@@ -4,6 +4,7 @@ import { Link } from 'expo-router';
 import { useInterests } from '@/context/InterestContext';
 import { useRecommendations } from '@/hooks/useRecommendations';
 import { ApiActivity } from '@/types';
+import { resolveImageUrl } from '@/utils/imageUrl';
 
 interface RecommendedActivitiesProps {
   title?: string;
@@ -51,15 +52,18 @@ export const RecommendedActivities = ({ title = 'Recommandé pour vous' }: Recom
         renderItem={({ item }) => (
           <Link href={`/activity/${item.id}`} asChild>
             <TouchableOpacity style={styles.activityCard}>
-              {item.imageUrl ? (
-                <Image
-                  source={{ uri: item.imageUrl }}
-                  style={styles.activityImage}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.activityImagePlaceholder} />
-              )}
+              {(() => {
+                const resolved = resolveImageUrl(item.imageUrl);
+                return resolved ? (
+                  <Image
+                    source={{ uri: resolved }}
+                    style={styles.activityImage}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <View style={styles.activityImagePlaceholder} />
+                );
+              })()}
               <View style={styles.activityInfo}>
                 <Text style={styles.activityName} numberOfLines={2}>{item.name}</Text>
                 <Text style={styles.activityCategory}>{getCategoryName(item.category)}</Text>

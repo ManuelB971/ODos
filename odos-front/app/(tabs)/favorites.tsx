@@ -1,74 +1,189 @@
-import { View, Text, StyleSheet, ActivityIndicator, FlatList, Pressable } from 'react-native';
-import { Link } from 'expo-router';
-import { MapPin, Heart } from 'lucide-react-native';
-import { ApiActivity } from '@/types';
+import React, { useCallback } from 'react';
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Compass, Heart } from 'lucide-react-native';
+
 import { useFavorites } from '@/hooks/useFavorites';
-import { Colors, Spacing } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
+import { Colors, Fonts, Spacing } from '@/constants/theme';
 import { toAppError } from '@/utils/errorHandling';
+import { toggleFavoriteActivity } from '@/scripts/api';
+import { FavoriteCard } from '@/components/FavoriteCard';
+import { SkeletonFavoriteCard } from '@/components/ui/Skeleton';
+import { CTAButton } from '@/components/ui/CTAButton';
 
-const getCategoryName = (cat: ApiActivity['category']): string => {
-  if (typeof cat === 'string') return cat;
-  if (cat && typeof cat === 'object' && 'name' in cat) return cat.name;
-  return '';
-};
-
+/**
+ * Écran "Mes favoris".
+ *
+ * - Grille 2 colonnes de `<FavoriteCard>`.
+ * - Toggle favori via mutation react-query + optimistic update : on retire
+ *   visuellement la card dès le clic (rollback automatique en cas d'erreur API).
+ * - Skeletons pendant le chargement initial.
+ * - État vide éditorial (titre serif, sous-texte, CTA vers la découverte).
+ */
 export default function FavoritesScreen() {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { isAuthenticated } = useAuth();
   const { favorites, isLoading, error } = useFavorites();
-  const errorMessage = error ? toAppError(error, 'Impossible de charger vos activites favorites.').userMessage : null;
 
-  if (isLoading) {
+  const errorMessage = error
+    ? toAppError(error, 'Impossible de charger vos favoris.').userMessage
+    : null;
+
+  const toggleMutation = useMutation({
+    mutationFn: ({ activityId, currentlyFavorite }: { activityId: number; currentlyFavorite: boolean }) =>
+      toggleFavoriteActivity(activityId, currentlyFavorite),
+    onMutate: async ({ activityId, currentlyFavorite }) => {
+      await queryClient.cancelQueries({ queryKey: ['favoriteIds'] });
+      const previous = queryClient.getQueryData<number[]>(['favoriteIds']);
+      queryClient.setQueryData<number[]>(['favoriteIds'], (old) => {
+        const list = old ?? [];
+        if (currentlyFavorite) return list.filter((i) => i !== activityId);
+        return list.includes(activityId) ? list : [...list, activityId];
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.previous !== undefined) {
+        queryClient.setQueryData(['favoriteIds'], ctx.previous);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['favoriteIds'] });
+    },
+  });
+
+  const handleToggle = useCallback(
+    (activityId: number) => {
+      toggleMutation.mutate({ activityId, currentlyFavorite: true });
+    },
+    [toggleMutation]
+  );
+
+  // ── Non authentifié ──
+  if (!isAuthenticated) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color={Colors.light.primary} />
+      <View style={styles.container}>
+        <Header count={null} />
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIconWrap}>
+            <Heart size={28} color={Colors.light.muted} />
+          </View>
+          <Text style={styles.emptyTitle}>Connectez-vous pour commencer</Text>
+          <Text style={styles.emptySubtitle}>
+            Vos lieux favoris vous suivent d&apos;un appareil à l&apos;autre.
+          </Text>
+          <CTAButton
+            label="Se connecter"
+            onPress={() => router.push('/login')}
+            size="md"
+            style={{ marginTop: 18 }}
+          />
+        </View>
       </View>
     );
   }
 
+  // ── Loading initial : grille de skeletons ──
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <Header count={null} />
+        <View style={styles.gridPad}>
+          <View style={styles.row}>
+            <SkeletonFavoriteCard />
+            <SkeletonFavoriteCard />
+          </View>
+          <View style={styles.row}>
+            <SkeletonFavoriteCard />
+            <SkeletonFavoriteCard />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ── Erreur ──
+  if (errorMessage) {
+    return (
+      <View style={styles.container}>
+        <Header count={null} />
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyTitle}>Une erreur est survenue</Text>
+          <Text style={styles.emptySubtitle}>{errorMessage}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  // ── Liste vide ──
+  if (favorites.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Header count={0} />
+        <View style={styles.emptyState}>
+          <View style={styles.emptyIconWrap}>
+            <Heart size={28} color={Colors.light.muted} />
+          </View>
+          <Text style={styles.emptyTitle}>Votre première étape commence ici</Text>
+          <Text style={styles.emptySubtitle}>
+            Aucun favori pour l&apos;instant. Explorez les activités et tapez
+            le cœur pour les retrouver sur cette page.
+          </Text>
+          <Pressable style={styles.exploreBtn} onPress={() => router.push('/')}>
+            <Compass size={16} color="#fff" />
+            <Text style={styles.exploreBtnText}>Explorer les activités</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  // ── Grille normale ──
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Mes favoris</Text>
+      <FlatList
+        data={favorites}
+        keyExtractor={(item) => String(item.id)}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.gridContent}
+        ListHeaderComponent={<Header count={favorites.length} />}
+        renderItem={({ item }) => (
+          <FavoriteCard
+            item={item}
+            isFavorite
+            isPending={toggleMutation.isPending}
+            onPress={() => router.push(`/activity/${item.id}`)}
+            onToggleFavorite={() => handleToggle(item.id)}
+          />
+        )}
+      />
+    </View>
+  );
+}
 
-      {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
-
-      {!errorMessage && favorites.length === 0 && (
-        <View style={styles.emptyContainer}>
-          <Heart size={32} color="#e5e7eb" />
-          <Text style={styles.emptyTitle}>Aucune activité favorite pour le moment</Text>
-          <Text style={styles.emptySubtitle}>
-            Ajoutez des activités en favoris depuis les listes et les détails pour les retrouver ici.
-          </Text>
-        </View>
-      )}
-
-      {!errorMessage && favorites.length > 0 && (
-        <FlatList
-          data={favorites}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <Link href={`/activity/${item.id}`} asChild>
-              <Pressable style={styles.activityCard}>
-                <View style={styles.activityInfo}>
-                  <View style={styles.activityHeaderRow}>
-                    <Text style={styles.activityName}>{item.name}</Text>
-                    <Heart size={18} color={Colors.light.accent} />
-                  </View>
-                  <Text style={styles.activityCategory}>{getCategoryName(item.category)}</Text>
-                  {item.city && (
-                    <View style={styles.locationContainer}>
-                      <MapPin size={12} color={Colors.light.muted} />
-                      <Text style={styles.activityCity}>{item.city}</Text>
-                    </View>
-                  )}
-                  <Text numberOfLines={2} style={styles.activityDescription}>
-                    {item.description}
-                  </Text>
-                </View>
-              </Pressable>
-            </Link>
-          )}
-        />
-      )}
+/**
+ * Header éditorial de la page, avec compteur (ou rien quand non-authentifié / loading).
+ */
+function Header({ count }: { count: number | null }) {
+  return (
+    <View style={styles.header}>
+      <Text style={styles.subtitleEyebrow}>MA COLLECTION</Text>
+      <Text style={styles.pageTitle}>Mes favoris</Text>
+      {typeof count === 'number' ? (
+        <Text style={styles.countText}>
+          {count} lieu{count > 1 ? 'x' : ''} sauvegardé{count > 1 ? 's' : ''}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -77,91 +192,83 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
-    paddingTop: 25,
+    paddingTop: 28,
   },
-  center: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.light.text,
+  header: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: 16,
+    paddingBottom: 16,
   },
-  listContent: {
+  subtitleEyebrow: {
+    fontSize: 11,
+    letterSpacing: 2,
+    color: Colors.light.muted,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: Colors.light.text,
+    fontFamily: Fonts?.serif,
+  },
+  countText: {
+    marginTop: 6,
+    fontSize: 13,
+    color: Colors.light.muted,
+  },
+  gridPad: {
+    paddingHorizontal: Spacing.lg,
+  },
+  gridContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: 100,
   },
-  activityCard: {
-    marginBottom: 16,
-    borderRadius: 12,
-    backgroundColor: Colors.light.background,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    overflow: 'hidden',
+  row: {
+    gap: 14,
   },
-  activityInfo: {
-    padding: 12,
-  },
-  activityHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  activityName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    flexShrink: 1,
-  },
-  activityCategory: {
-    fontSize: 12,
-    color: Colors.light.muted,
-    marginBottom: 6,
-  },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 6,
-  },
-  activityCity: {
-    fontSize: 12,
-    color: Colors.light.muted,
-  },
-  activityDescription: {
-    fontSize: 13,
-    color: Colors.light.muted,
-    lineHeight: 18,
-  },
-  errorText: {
-    color: Colors.light.danger,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  emptyContainer: {
+  emptyState: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
     paddingHorizontal: 32,
-    gap: 12,
+    paddingTop: 40,
+    gap: 10,
+  },
+  emptyIconWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.light.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 19,
+    fontWeight: '700',
     color: Colors.light.text,
     textAlign: 'center',
+    fontFamily: Fonts?.serif,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: '#6b7280',
+    color: Colors.light.muted,
     textAlign: 'center',
+    lineHeight: 20,
+    maxWidth: 320,
+  },
+  exploreBtn: {
+    marginTop: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: Colors.light.accent,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+  },
+  exploreBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });
-

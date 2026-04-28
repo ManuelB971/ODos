@@ -1,35 +1,59 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
-import { AlertCircle, Loader2, Eye, EyeOff } from 'lucide-react-native';
-import { signUp, signIn } from '@/services/AuthService';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
-import { Colors, Spacing } from '@/constants/theme';
-import { AppLogo } from '@/components/AppLogo';
+import { AlertCircle, CheckCircle2, Mail } from 'lucide-react-native';
 
-function isValidEmail(email: string) {
+import { signUp, signIn } from '@/services/AuthService';
+import { useAuth } from '@/context/AuthContext';
+import { Colors, Fonts, Spacing } from '@/constants/theme';
+import { AppLogo } from '@/components/AppLogo';
+import { CTAButton } from '@/components/ui/CTAButton';
+import { InputField } from '@/components/ui/InputField';
+
+/**
+ * Écran Auth unifié : login <-> signup via un switch, fortement designé pour
+ * l'arrivée "première impression". Toute la logique métier d'auth est
+ * inchangée — on ne retouche que l'UX.
+ *
+ * UX :
+ * - Centré, grand logo + baseline éditoriale en serif.
+ * - Inputs via le composant `<InputField>` (focus orange, password toggle).
+ * - CTA principal via `<CTAButton>` → loading inline (pas de layout shift, bouton bloqué).
+ * - Erreurs dans un banner rouge animé, succès en vert.
+ * - Le mode signup n'affiche pas les connexions sociales (plus clair).
+ */
+function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [isLogin, setIsLogin] = useState(true);
   const router = useRouter();
   const { setUser } = useAuth();
 
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  const trimmedEmail = email.trim();
+  const emailValid = isValidEmail(trimmedEmail);
+  const passwordValid = password.length >= 6;
+  const canSubmit = emailValid && passwordValid && !loading;
+
   const handleAuth = async () => {
-    const trimmedEmail = email.trim();
-    if (!isValidEmail(trimmedEmail)) {
-      setError("Email invalide.");
-      return;
-    }
-    if (password.length < 6) {
-      setError("Le mot de passe doit contenir au moins 6 caractères.");
+    if (!canSubmit) {
+      if (!emailValid) setError('Email invalide.');
+      else if (!passwordValid) setError('Le mot de passe doit contenir au moins 6 caractères.');
       return;
     }
 
@@ -38,34 +62,30 @@ export default function LoginScreen() {
 
     try {
       if (isLogin) {
-
-        const { success, errorMessage, user } = await signIn(trimmedEmail, password);
-        if (!success) {
-          setError(errorMessage ?? 'Erreur de connexion');
-        } else {
-
-          if (user) {
-            setUser(user);
-            const hasInterests = Array.isArray(user.interests) && user.interests.length > 0;
-            router.replace(hasInterests ? '/' : '/interests');
-          }
+        const { success: ok, errorMessage, user } = await signIn(trimmedEmail, password);
+        if (!ok) {
+          setError(errorMessage ?? 'Erreur de connexion.');
+          return;
+        }
+        if (user) {
+          setUser(user);
+          const hasInterests = Array.isArray(user.interests) && user.interests.length > 0;
+          router.replace(hasInterests ? '/' : '/interests');
         }
       } else {
-
-        const { success, errorMessage } = await signUp(trimmedEmail, password);
-        if (!success) {
-          setError(errorMessage ?? 'Une erreur est survenue');
-        } else {
-          setSuccess(true);
-
-          setTimeout(() => {
-            setSuccess(false);
-            setIsLogin(true);
-          }, 2000);
+        const { success: ok, errorMessage } = await signUp(trimmedEmail, password);
+        if (!ok) {
+          setError(errorMessage ?? 'Une erreur est survenue.');
+          return;
         }
+        setSuccess(true);
+        setTimeout(() => {
+          setSuccess(false);
+          setIsLogin(true);
+        }, 1800);
       }
     } catch {
-      setError(isLogin ? "Erreur de connexion" : "Une erreur est survenue lors de l'inscription");
+      setError(isLogin ? 'Erreur de connexion.' : 'Une erreur est survenue lors de l’inscription.');
     } finally {
       setLoading(false);
     }
@@ -75,294 +95,253 @@ export default function LoginScreen() {
     setError('Connexion sociale temporairement indisponible.');
   };
 
-  const trimmedEmail = email.trim();
-  const canSubmit = isValidEmail(trimmedEmail) && password.length >= 6 && !loading;
-
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.screenCard}>
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.brandHeader}>
           <View style={styles.logoCircle}>
             <AppLogo width={44} height={44} />
           </View>
-          <Text style={styles.subtitle}>Découvrez Lyon autrement</Text>
+          <Text style={styles.wordmark}>ODOS</Text>
+          <Text style={styles.tagline}>L&apos;aventure moderne commence ici</Text>
         </View>
 
-        <Text style={styles.title}>{isLogin ? 'Connexion' : 'Inscription'}</Text>
+        <View style={styles.card}>
+          <Text style={styles.title}>{isLogin ? 'Heureux de vous revoir' : 'Bienvenue'}</Text>
+          <Text style={styles.subtitle}>
+            {isLogin
+              ? 'Connectez-vous pour continuer votre exploration.'
+              : 'Créez un compte pour commencer votre voyage.'}
+          </Text>
 
-        {error && (
-          <View style={styles.errorContainer}>
-            <AlertCircle size={16} color={Colors.light.danger} />
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
+          {error ? (
+            <View style={styles.banner}>
+              <AlertCircle size={16} color={Colors.light.danger} />
+              <Text style={styles.bannerError}>{error}</Text>
+            </View>
+          ) : null}
 
-        {success && (
-          <View style={styles.successContainer}>
-            <Text style={styles.successText}>Inscription réussie ! Vous pouvez vous connecter.</Text>
-          </View>
-        )}
+          {success ? (
+            <View style={[styles.banner, styles.bannerSuccess]}>
+              <CheckCircle2 size={16} color="#16a34a" />
+              <Text style={styles.bannerSuccessText}>
+                Inscription réussie — vous pouvez vous connecter.
+              </Text>
+            </View>
+          ) : null}
 
-        <View style={styles.field}>
-          <Text style={styles.label}>Adresse email</Text>
-          <TextInput
-            placeholder="exemple@email.com"
-            value={email}
-            onChangeText={setEmail}
-            style={styles.input}
-            placeholderTextColor={Colors.light.muted}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-        </View>
+          <View style={styles.fields}>
+            <InputField
+              label="Adresse email"
+              placeholder="exemple@email.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              autoComplete="email"
+              textContentType="emailAddress"
+              leftIcon={<Mail size={18} color={Colors.light.muted} />}
+              error={error && !emailValid ? 'Vérifiez votre email.' : null}
+            />
 
-        <View style={styles.field}>
-          <Text style={styles.label}>Mot de passe</Text>
-          <View style={styles.passwordRow}>
-            <TextInput
-              placeholder="••••••••"
+            <InputField
+              label="Mot de passe"
+              placeholder="Au moins 6 caractères"
               value={password}
               onChangeText={setPassword}
-              style={[styles.input, { flex: 1 }]}
-              placeholderTextColor={Colors.light.muted}
-              secureTextEntry={!showPassword}
-              autoCorrect={false}
+              secureTextEntry
+              autoComplete={isLogin ? 'password' : 'password-new'}
+              textContentType={isLogin ? 'password' : 'newPassword'}
+              hint={!isLogin ? '6 caractères minimum.' : undefined}
             />
-            <TouchableOpacity
-              onPress={() => setShowPassword((s) => !s)}
-              accessibilityRole="button"
-              style={styles.eyeButton}
-              hitSlop={10}
-            >
-              {showPassword ? <EyeOff size={18} color={Colors.light.text} /> : <Eye size={18} color={Colors.light.text} />}
-            </TouchableOpacity>
+
+            {isLogin ? (
+              <Pressable
+                onPress={() => setError('Fonction « mot de passe oublié » à venir.')}
+                style={styles.forgotBtn}
+                hitSlop={6}
+              >
+                <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+              </Pressable>
+            ) : null}
           </View>
-          {isLogin && (
-            <TouchableOpacity
-              onPress={() => setError('Fonction “mot de passe oublié” à ajouter')}
-              style={styles.forgotLink}
-            >
-              <Text style={styles.forgotLinkText}>Mot de passe oublié ?</Text>
-            </TouchableOpacity>
-          )}
+
+          <CTAButton
+            label={isLogin ? 'Continuer' : 'Créer mon compte'}
+            onPress={handleAuth}
+            loading={loading}
+            disabled={!canSubmit}
+            fullWidth
+            size="lg"
+          />
+
+          {isLogin ? (
+            <>
+              <View style={styles.separatorRow}>
+                <View style={styles.separatorLine} />
+                <Text style={styles.separatorText}>Ou continuer avec</Text>
+                <View style={styles.separatorLine} />
+              </View>
+
+              <View style={styles.socialRow}>
+                <Pressable onPress={socialAuthNotAvailable} disabled={loading} style={styles.socialBtn}>
+                  <Text style={styles.socialText}>G</Text>
+                </Pressable>
+                <Pressable onPress={socialAuthNotAvailable} disabled={loading} style={styles.socialBtn}>
+                  <Text style={styles.socialText}></Text>
+                </Pressable>
+                <Pressable onPress={socialAuthNotAvailable} disabled={loading} style={styles.socialBtn}>
+                  <Text style={styles.socialText}>f</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : null}
         </View>
 
-        <TouchableOpacity
-          onPress={handleAuth}
-          disabled={!canSubmit}
-          style={[styles.button, loading && styles.buttonDisabled]}
+        <Pressable
+          onPress={() => {
+            setError(null);
+            setIsLogin((v) => !v);
+          }}
+          style={styles.switchBtn}
+          hitSlop={6}
         >
-          {loading ? (
-            <View style={styles.buttonContent}>
-              <Loader2 size={20} color={Colors.light.background} style={styles.spinner} />
-              <Text style={styles.buttonText}>Chargement...</Text>
-            </View>
-          ) : (
-            <Text style={styles.buttonText}>{isLogin ? 'Continuer' : 'Créer un compte'}</Text>
-          )}
-        </TouchableOpacity>
-
-        {isLogin && (
-          <>
-            <View style={styles.separatorRow}>
-              <View style={styles.separatorLine} />
-              <Text style={styles.separatorText}>Ou continuer avec</Text>
-              <View style={styles.separatorLine} />
-            </View>
-
-            <View style={styles.socialRow}>
-              <TouchableOpacity
-                onPress={socialAuthNotAvailable}
-                disabled={loading}
-                style={[styles.socialButton, styles.socialGoogle]}
-              >
-                <Text style={styles.socialButtonText}>G</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={socialAuthNotAvailable}
-                disabled={loading}
-                style={[styles.socialButton, styles.socialApple]}
-              >
-                <Text style={styles.socialButtonText}></Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={socialAuthNotAvailable}
-                disabled={loading}
-                style={[styles.socialButton, styles.socialFacebook]}
-              >
-                <Text style={styles.socialButtonText}>f</Text>
-              </TouchableOpacity>
-            </View>
-          </>
-        )}
-
-        <TouchableOpacity onPress={() => setIsLogin(!isLogin)} style={styles.switchModeBlock}>
-          <Text style={styles.switchModeText}>
-            {isLogin ? "Pas encore de membre ? Créer un compte" : 'Déjà un compte ? Se connecter'}
+          <Text style={styles.switchText}>
+            {isLogin ? 'Pas encore de compte ? ' : 'Déjà un compte ? '}
+            <Text style={styles.switchAction}>
+              {isLogin ? 'Créer un compte' : 'Se connecter'}
+            </Text>
           </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        </Pressable>
+
+        <Text style={styles.legal}>
+          En continuant, vous acceptez nos{' '}
+          <Text style={styles.legalLink} onPress={() => router.push('/legal')}>
+            conditions d&apos;utilisation
+          </Text>
+          .
+        </Text>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flexGrow: 1,
+  screen: {
+    flex: 1,
     backgroundColor: Colors.light.surface,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    padding: Spacing.lg,
-    paddingTop: 40,
   },
-  screenCard: {
-    width: '100%',
-    maxWidth: 460,
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 56,
+    paddingBottom: 48,
     alignItems: 'center',
-    gap: 14,
   },
   brandHeader: {
     alignItems: 'center',
-    marginBottom: 4,
+    marginBottom: 24,
   },
   logoCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 72,
+    height: 72,
+    borderRadius: 24,
     backgroundColor: Colors.light.accent,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 14,
+    shadowColor: '#f4a261',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 18,
+    elevation: 6,
   },
-  logoText: {
-    color: Colors.light.background,
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  title: {
+  wordmark: {
     fontSize: 26,
     fontWeight: '800',
     color: Colors.light.text,
-    marginTop: 8,
+    letterSpacing: 6,
+    marginBottom: 4,
+    fontFamily: Fonts?.serif,
+  },
+  tagline: {
+    fontSize: 12,
+    letterSpacing: 1.2,
+    color: Colors.light.muted,
+    textTransform: 'uppercase',
+  },
+  card: {
+    width: '100%',
+    maxWidth: 480,
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    padding: 24,
+    gap: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 28,
+    elevation: 4,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: Colors.light.text,
+    fontFamily: Fonts?.serif,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.light.muted,
-    fontWeight: '600',
-    marginBottom: 2,
-    textAlign: 'center',
+    marginTop: -12,
   },
-  errorContainer: {
-    width: '100%',
-    maxWidth: 420,
-    padding: 12,
-    backgroundColor: '#fee2e2',
-    borderWidth: 1,
-    borderColor: '#fca5a5',
-    borderRadius: 6,
+  banner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  welcomeText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: Colors.light.accent,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  errorText: {
-    color: Colors.light.danger,
-    fontSize: 14,
-  },
-  successContainer: {
-    width: '100%',
-    maxWidth: 420,
-    padding: 12,
-    backgroundColor: '#dcfce7',
+    backgroundColor: '#fef2f2',
     borderWidth: 1,
-    borderColor: '#86efac',
-    borderRadius: 6,
-  },
-  successText: {
-    color: '#16a34a',
-    fontSize: 14,
-  },
-  input: {
-    padding: 12,
-    backgroundColor: Colors.light.background,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
+    borderColor: '#fecaca',
     borderRadius: 12,
-    color: Colors.light.text,
-  },
-  button: {
-    width: '100%',
-    backgroundColor: Colors.light.accent,
-    padding: 12,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    color: Colors.light.background,
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  spinner: {
-    marginRight: 8,
-  },
-  switchModeText: {
-    color: Colors.light.primary,
-    fontSize: 14,
-  },
-  switchModeBlock: {
-    marginTop: 6,
-  },
-  field: {
-    width: '100%',
-    maxWidth: 420,
-    gap: 8,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.light.text,
-  },
-  passwordRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.08)',
-    overflow: 'hidden',
-  },
-  eyeButton: {
-    paddingHorizontal: 10,
     paddingVertical: 10,
-    backgroundColor: Colors.light.background,
+    paddingHorizontal: 12,
   },
-  forgotLink: {
+  bannerError: {
+    flex: 1,
+    color: Colors.light.danger,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  bannerSuccess: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#86efac',
+  },
+  bannerSuccessText: {
+    flex: 1,
+    color: '#047857',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  fields: {
+    gap: 14,
+  },
+  forgotBtn: {
     alignSelf: 'flex-end',
-    marginTop: -6,
+    marginTop: -4,
   },
-  forgotLinkText: {
+  forgotText: {
+    fontSize: 13,
     color: Colors.light.accent,
-    fontSize: 14,
     fontWeight: '700',
   },
   separatorRow: {
-    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -371,43 +350,54 @@ const styles = StyleSheet.create({
   separatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: 'rgba(17,24,39,0.1)',
+    backgroundColor: Colors.light.border,
   },
   separatorText: {
+    fontSize: 12,
     color: Colors.light.muted,
-    fontWeight: '700',
-    fontSize: 13,
+    fontWeight: '600',
   },
   socialRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-    maxWidth: 320,
-    marginTop: 2,
+    justifyContent: 'center',
+    gap: 12,
   },
-  socialButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+  socialBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: 'rgba(17,24,39,0.12)',
-    backgroundColor: Colors.light.background,
+    borderColor: Colors.light.border,
   },
-  socialButtonText: {
+  socialText: {
     fontSize: 18,
     fontWeight: '800',
     color: Colors.light.text,
   },
-  socialGoogle: {
-    // no-op for now
+  switchBtn: {
+    marginTop: 20,
   },
-  socialApple: {
-    // no-op for now
+  switchText: {
+    fontSize: 14,
+    color: Colors.light.muted,
   },
-  socialFacebook: {
-    // no-op for now
+  switchAction: {
+    color: Colors.light.accent,
+    fontWeight: '700',
+  },
+  legal: {
+    marginTop: 14,
+    fontSize: 12,
+    color: Colors.light.muted,
+    textAlign: 'center',
+    maxWidth: 320,
+  },
+  legalLink: {
+    color: Colors.light.primary,
+    fontWeight: '600',
   },
 });

@@ -18,10 +18,15 @@ export const Colors = {
     tabIconSelected: tintColorLight,
     primary: '#3b82f6',
     accent: '#f4a261',
+    turquoise: '#5fc2d8',
     surface: '#f8fafc',
     border: '#e2e8f0',
     muted: '#64748b',
     danger: '#ef4444',
+    /** Couleurs sémantiques de la map (design system ODOS). */
+    mapPrimaryCta: '#f4a261',
+    mapSecondary: '#3b82f6',
+    mapAccent: '#5fc2d8',
   },
   dark: {
     text: '#ECEDEE',
@@ -32,10 +37,14 @@ export const Colors = {
     tabIconSelected: tintColorDark,
     primary: '#60a5fa',
     accent: '#f4a261',
+    turquoise: '#5fc2d8',
     surface: '#1e293b',
     border: '#334155',
     muted: '#94a3b8',
     danger: '#f87171',
+    mapPrimaryCta: '#f4a261',
+    mapSecondary: '#60a5fa',
+    mapAccent: '#5fc2d8',
   },
 };
 

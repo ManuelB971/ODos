@@ -1,33 +1,113 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  Alert,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+  Linking,
+} from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { MapPin, ArrowLeft, Heart } from 'lucide-react-native';
+import { MapPin, ArrowLeft, Heart, Star, Navigation } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
-import api, { fetchFavoriteIds, toggleFavoriteActivity } from '@/scripts/api';
-import { ApiActivity } from '@/types';
+import { CTAButton } from '@/components/ui/CTAButton';
+import { Skeleton } from '@/components/ui/Skeleton';
+import api, {
+  fetchFavoriteIds,
+  toggleFavoriteActivity,
+  fetchActivityRating,
+  putActivityRating,
+  deleteActivityRating,
+  fetchActivityComments,
+  postActivityComment,
+  patchActivityComment,
+  deleteActivityComment,
+} from '@/scripts/api';
+import { ApiActivity, ActivityComment } from '@/types';
 import { Colors, Spacing } from '@/constants/theme';
-import { logError, toAppError } from '@/utils/errorHandling';
+import { logError, toAppError, AppError } from '@/utils/errorHandling';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
+import { resolveImageUrl } from '@/utils/imageUrl';
+import { InlineToast, InlineToastVariant } from '@/components/InlineToast';
 
-/** Expo Router peut fournir `id` comme string ou string[] */
 function routeParamToString(param: string | string[] | undefined): string | undefined {
   if (param === undefined) return undefined;
   return Array.isArray(param) ? param[0] : param;
 }
 
-/** Helper: get the category display name from the API response */
 const getCategoryName = (cat: ApiActivity['category']): string => {
   if (typeof cat === 'string') return cat;
   if (cat && typeof cat === 'object' && 'name' in cat) return cat.name;
   return '';
 };
 
+type ToastState = {
+  variant: InlineToastVariant;
+  message: string;
+  retryAfterSeconds?: number;
+  retry?: () => void;
+};
+
+/**
+ * Convertit une erreur axios en {@link ToastState} prêt à afficher.
+ *
+ * Distingue le cas 429 (rate-limit anti-abus) — auquel cas on propose un
+ * compte à rebours + un bouton "Réessayer" — des erreurs génériques.
+ */
+function buildToast(
+  err: unknown,
+  fallback: string,
+  retry?: () => void
+): ToastState {
+  const appError: AppError = toAppError(err, fallback);
+  if (appError.code === 'RATE_LIMITED') {
+    return {
+      variant: 'warning',
+      message: appError.userMessage,
+      retryAfterSeconds: appError.retryAfterSeconds,
+      retry,
+    };
+  }
+  return {
+    variant: 'error',
+    message: appError.userMessage,
+    retry,
+  };
+}
+
+function StarsDisplay({ value, max = 5, size = 18 }: { value: number; max?: number; size?: number }) {
+  const full = Math.round(value);
+  return (
+    <View style={styles.starsRow}>
+      {Array.from({ length: max }, (_, i) => (
+        <Star
+          key={`star-${i}`}
+          size={size}
+          color={i < full ? '#f59e0b' : Colors.light.muted}
+          fill={i < full ? '#f59e0b' : 'none'}
+        />
+      ))}
+    </View>
+  );
+}
+
 export default function ActivityDetails() {
   const { id } = useLocalSearchParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [activity, setActivity] = useState<ApiActivity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState('');
+  const [editingCommentId, setEditingCommentId] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState('');
+  const [ratingToast, setRatingToast] = useState<ToastState | null>(null);
+  const [commentToast, setCommentToast] = useState<ToastState | null>(null);
   const queryClient = useQueryClient();
   const idFromRoute = routeParamToString(id as string | string[] | undefined);
   const activityIdFromRoute = Number.parseInt(String(idFromRoute ?? ''), 10);
@@ -42,6 +122,20 @@ export default function ActivityDetails() {
     staleTime: 1000 * 60 * 2,
     gcTime: 1000 * 60 * 10,
     retry: 1,
+  });
+
+  const ratingQuery = useQuery({
+    queryKey: ['activityRating', activityId],
+    queryFn: () => fetchActivityRating(activityId),
+    enabled: Number.isFinite(activityId) && activityId > 0,
+    staleTime: 1000 * 30,
+  });
+
+  const commentsQuery = useQuery({
+    queryKey: ['activityComments', activityId],
+    queryFn: () => fetchActivityComments(activityId, 1),
+    enabled: Number.isFinite(activityId) && activityId > 0,
+    staleTime: 1000 * 20,
   });
 
   const toggleFavoriteMutation = useMutation({
@@ -73,6 +167,115 @@ export default function ActivityDetails() {
     },
   });
 
+  const putRatingMutation = useMutation({
+    mutationFn: (score: number) => putActivityRating(activityId, score),
+    onMutate: async (score) => {
+      await queryClient.cancelQueries({ queryKey: ['activityRating', activityId] });
+      const prev = queryClient.getQueryData(['activityRating', activityId]);
+      queryClient.setQueryData(['activityRating', activityId], (old: { average: number | null; count: number; userScore: number | null } | undefined) => {
+        if (!old) return old;
+        return { ...old, userScore: score };
+      });
+      return { prev };
+    },
+    onError: (err, score, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['activityRating', activityId], ctx.prev);
+      logError('ActivityDetails.putRating', err, { activityId });
+      setRatingToast(
+        buildToast(err, 'Impossible d’enregistrer la note.', () => {
+          setRatingToast(null);
+          putRatingMutation.mutate(score);
+        })
+      );
+    },
+    onSuccess: (data) => {
+      setRatingToast(null);
+      queryClient.setQueryData(['activityRating', activityId], data);
+      setActivity((a) =>
+        a ? { ...a, ratingAverage: data.average ?? undefined, ratingCount: data.count } : a
+      );
+    },
+  });
+
+  const deleteRatingMutation = useMutation({
+    mutationFn: () => deleteActivityRating(activityId),
+    onSuccess: (data) => {
+      setRatingToast(null);
+      queryClient.setQueryData(['activityRating', activityId], data);
+      setActivity((a) =>
+        a ? { ...a, ratingAverage: data.average ?? undefined, ratingCount: data.count } : a
+      );
+    },
+    onError: (err) => {
+      logError('ActivityDetails.deleteRating', err, { activityId });
+      setRatingToast(
+        buildToast(err, 'Impossible de retirer la note.', () => {
+          setRatingToast(null);
+          deleteRatingMutation.mutate();
+        })
+      );
+    },
+  });
+
+  const postCommentMutation = useMutation({
+    mutationFn: () => postActivityComment(activityId, commentDraft.trim()),
+    onSuccess: () => {
+      setCommentDraft('');
+      setCommentToast(null);
+      queryClient.invalidateQueries({ queryKey: ['activityComments', activityId] });
+    },
+    onError: (err) => {
+      logError('ActivityDetails.postComment', err, { activityId });
+      setCommentToast(
+        buildToast(err, 'Envoi impossible.', () => {
+          if (commentDraft.trim().length < 2) {
+            setCommentToast(null);
+            return;
+          }
+          setCommentToast(null);
+          postCommentMutation.mutate();
+        })
+      );
+    },
+  });
+
+  const patchCommentMutation = useMutation({
+    mutationFn: ({ commentId, text }: { commentId: number; text: string }) =>
+      patchActivityComment(commentId, text),
+    onSuccess: () => {
+      setEditingCommentId(null);
+      setEditingText('');
+      setCommentToast(null);
+      queryClient.invalidateQueries({ queryKey: ['activityComments', activityId] });
+    },
+    onError: (err, vars) => {
+      logError('ActivityDetails.patchComment', err, { activityId, commentId: vars.commentId });
+      setCommentToast(
+        buildToast(err, 'Modification impossible.', () => {
+          setCommentToast(null);
+          patchCommentMutation.mutate(vars);
+        })
+      );
+    },
+  });
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: (commentId: number) => deleteActivityComment(commentId),
+    onSuccess: () => {
+      setCommentToast(null);
+      queryClient.invalidateQueries({ queryKey: ['activityComments', activityId] });
+    },
+    onError: (err, commentId) => {
+      logError('ActivityDetails.deleteComment', err, { activityId, commentId });
+      setCommentToast(
+        buildToast(err, 'Suppression impossible.', () => {
+          setCommentToast(null);
+          deleteCommentMutation.mutate(commentId);
+        })
+      );
+    },
+  });
+
   const isFavorite =
     isAuthenticated && (favoriteIdsQuery.data ?? []).includes(activityId);
 
@@ -95,8 +298,30 @@ export default function ActivityDetails() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={Colors.light.primary} />
+      <View style={styles.container}>
+        {/* Hero skeleton */}
+        <View style={styles.heroWrap}>
+          <Skeleton width="100%" height="100%" radius={0} />
+          <View style={styles.heroOverlay}>
+            <Pressable style={styles.heroButton} onPress={() => router.back()} hitSlop={8}>
+              <ArrowLeft color={Colors.light.text} size={22} />
+            </Pressable>
+          </View>
+        </View>
+        {/* Body skeleton */}
+        <View style={styles.content}>
+          <Skeleton width="75%" height={24} radius={6} />
+          <View style={{ height: 10 }} />
+          <Skeleton width={110} height={22} radius={11} />
+          <View style={{ height: 14 }} />
+          <Skeleton width="50%" height={14} radius={4} />
+          <View style={{ height: 28 }} />
+          <Skeleton width="100%" height={14} radius={4} />
+          <View style={{ height: 8 }} />
+          <Skeleton width="95%" height={14} radius={4} />
+          <View style={{ height: 8 }} />
+          <Skeleton width="80%" height={14} radius={4} />
+        </View>
       </View>
     );
   }
@@ -113,6 +338,15 @@ export default function ActivityDetails() {
   }
 
   const canToggleFavorite = Number.isFinite(activityId) && activityId > 0;
+  const avgRating =
+    ratingQuery.data?.average ??
+    activity.ratingAverage ??
+    null;
+  const countRating =
+    ratingQuery.data?.count ??
+    activity.ratingCount ??
+    0;
+  const userScore = ratingQuery.data?.userScore ?? null;
 
   const onFavoritePress = () => {
     if (!isAuthenticated) {
@@ -126,56 +360,355 @@ export default function ActivityDetails() {
     toggleFavoriteMutation.mutate({ targetActivityId: activityId, currentlyFavorite: isFavorite });
   };
 
+  const onPickStar = (score: number) => {
+    if (!isAuthenticated) {
+      Alert.alert('Connexion requise', 'Connectez-vous pour noter cette activité.', [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Se connecter', onPress: () => router.push('/login') },
+      ]);
+      return;
+    }
+    putRatingMutation.mutate(score);
+  };
+
+  const comments = commentsQuery.data?.member ?? [];
+  const commentsLoading = commentsQuery.isLoading;
+  const commentsError = commentsQuery.error
+    ? toAppError(commentsQuery.error, 'Commentaires indisponibles.').userMessage
+    : null;
+
+  const heroImage = resolveImageUrl(activity.imageUrl);
+
   return (
-    <View style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft color={Colors.light.text} size={24} />
-        </Pressable>
-        <Pressable
-          style={({ pressed }) => [styles.favoriteButton, pressed && styles.favoriteButtonPressed]}
-          onPress={onFavoritePress}
-          disabled={toggleFavoriteMutation.isPending || !canToggleFavorite}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-        >
-          <Heart
-            color={isFavorite ? Colors.light.danger : Colors.light.primary}
-            fill={isFavorite ? Colors.light.danger : 'none'}
-            size={24}
-          />
-        </Pressable>
-      </View>
-
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={88}
+    >
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-      <View style={styles.content}>
-        <Text style={styles.title}>{activity.name}</Text>
-
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{getCategoryName(activity.category)}</Text>
+        <View style={styles.heroWrap}>
+          {heroImage ? (
+            <Image source={{ uri: heroImage }} style={styles.heroImage} resizeMode="cover" />
+          ) : (
+            <View style={[styles.heroImage, styles.heroPlaceholder]} />
+          )}
+          <View style={styles.heroOverlay}>
+            <Pressable style={styles.heroButton} onPress={() => router.back()} hitSlop={8}>
+              <ArrowLeft color={Colors.light.text} size={22} />
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.heroButton, pressed && styles.favoriteButtonPressed]}
+              onPress={onFavoritePress}
+              disabled={toggleFavoriteMutation.isPending || !canToggleFavorite}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            >
+              <Heart
+                color={isFavorite ? Colors.light.danger : Colors.light.primary}
+                fill={isFavorite ? Colors.light.danger : 'none'}
+                size={22}
+              />
+            </Pressable>
+          </View>
         </View>
 
-        {activity.city && (
-          <View style={styles.addressContainer}>
-            <MapPin color={Colors.light.muted} size={16} />
-            <Text style={styles.address}>{activity.city}</Text>
+        <View style={styles.content}>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{activity.name}</Text>
+            {typeof activity.price === 'number' ? (
+              <Text style={styles.priceTag}>
+                {activity.price === 0 ? 'Gratuit' : `${Math.round(activity.price)}€`}
+              </Text>
+            ) : null}
           </View>
-        )}
 
-        <Text style={styles.sectionTitle}>À propos de cette expérience</Text>
-        <Text style={styles.description}>{activity.description}</Text>
-
-        {(activity.latitude && activity.longitude) && (
-          <View style={styles.coordsContainer}>
-            <MapPin color={Colors.light.primary} size={14} />
-            <Text style={styles.coordsText}>
-              {activity.latitude.toFixed(4)}, {activity.longitude.toFixed(4)}
-            </Text>
+          <View style={styles.categoryBadge}>
+            <Text style={styles.categoryText}>{getCategoryName(activity.category)}</Text>
           </View>
-        )}
-      </View>
+
+          {activity.city && (
+            <View style={styles.addressContainer}>
+              <MapPin color={Colors.light.muted} size={16} />
+              <Text style={styles.address}>{activity.city}</Text>
+            </View>
+          )}
+
+          <Text style={styles.sectionTitle}>Note moyenne</Text>
+          {ratingToast && (
+            <InlineToast
+              variant={ratingToast.variant}
+              message={ratingToast.message}
+              countdownSeconds={ratingToast.retryAfterSeconds}
+              action={
+                ratingToast.retry
+                  ? {
+                      label: 'Réessayer',
+                      onPress: ratingToast.retry,
+                      disabled: putRatingMutation.isPending || deleteRatingMutation.isPending,
+                    }
+                  : undefined
+              }
+              onDismiss={() => setRatingToast(null)}
+            />
+          )}
+          <View style={styles.ratingBlock}>
+            {avgRating != null && countRating > 0 ? (
+              <>
+                <StarsDisplay value={avgRating} />
+                <Text style={styles.ratingMeta}>
+                  {avgRating.toFixed(1)} / 5 — {countRating} avis
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.muted}>Pas encore d&apos;avis.</Text>
+            )}
+          </View>
+
+          {isAuthenticated && (
+            <View style={styles.userRatingRow}>
+              <Text style={styles.subLabel}>Votre note</Text>
+              <View style={styles.starsRow}>
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Pressable
+                    key={s}
+                    onPress={() => onPickStar(s)}
+                    disabled={putRatingMutation.isPending}
+                    hitSlop={6}
+                  >
+                    <Star
+                      size={28}
+                      color={userScore != null && s <= userScore ? '#f59e0b' : Colors.light.muted}
+                      fill={userScore != null && s <= userScore ? '#f59e0b' : 'none'}
+                    />
+                  </Pressable>
+                ))}
+              </View>
+              {userScore != null && (
+                <Pressable
+                  onPress={() => deleteRatingMutation.mutate()}
+                  disabled={deleteRatingMutation.isPending}
+                  style={styles.removeRatingBtn}
+                >
+                  <Text style={styles.removeRatingText}>Retirer ma note</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+
+          <Text style={styles.sectionTitle}>À propos de cette expérience</Text>
+          <Text style={styles.description}>{activity.description}</Text>
+
+          {activity.latitude != null && activity.longitude != null && (
+            <View style={styles.coordsContainer}>
+              <MapPin color={Colors.light.primary} size={14} />
+              <Text style={styles.coordsText}>
+                {activity.latitude.toFixed(4)}, {activity.longitude.toFixed(4)}
+              </Text>
+            </View>
+          )}
+
+          <Text style={styles.sectionTitle}>Commentaires</Text>
+          {commentToast && (
+            <InlineToast
+              variant={commentToast.variant}
+              message={commentToast.message}
+              countdownSeconds={commentToast.retryAfterSeconds}
+              action={
+                commentToast.retry
+                  ? {
+                      label: 'Réessayer',
+                      onPress: commentToast.retry,
+                      disabled:
+                        postCommentMutation.isPending ||
+                        patchCommentMutation.isPending ||
+                        deleteCommentMutation.isPending,
+                    }
+                  : undefined
+              }
+              onDismiss={() => setCommentToast(null)}
+            />
+          )}
+          {commentsLoading && <ActivityIndicator color={Colors.light.primary} />}
+          {commentsError && <Text style={styles.warnText}>{commentsError}</Text>}
+          {!commentsLoading &&
+            comments.map((c: ActivityComment) => {
+              const isMine = user != null && c.author.id === user.id;
+              const isHiddenForAdmin = c.isHidden === true;
+              return (
+                <View
+                  key={c.id}
+                  style={[styles.commentCard, isHiddenForAdmin && styles.commentCardHidden]}
+                >
+                  {isHiddenForAdmin && (
+                    <View style={styles.hiddenBadge}>
+                      <Text style={styles.hiddenBadgeText}>Masqué (visible admin uniquement)</Text>
+                    </View>
+                  )}
+                  {editingCommentId === c.id ? (
+                    <>
+                      <TextInput
+                        style={styles.commentInput}
+                        value={editingText}
+                        onChangeText={setEditingText}
+                        multiline
+                        maxLength={1000}
+                      />
+                      <View style={styles.commentActions}>
+                        <Pressable
+                          onPress={() =>
+                            patchCommentMutation.mutate({ commentId: c.id, text: editingText.trim() })
+                          }
+                        >
+                          <Text style={styles.linkText}>Enregistrer</Text>
+                        </Pressable>
+                        <Pressable onPress={() => setEditingCommentId(null)}>
+                          <Text style={styles.muted}>Annuler</Text>
+                        </Pressable>
+                      </View>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={styles.commentAuthor}>{c.author.displayName}</Text>
+                      <Text style={styles.commentBody}>{c.content}</Text>
+                      <Text style={styles.commentDate}>
+                        {new Date(c.createdAt).toLocaleString()}
+                        {c.isEdited ? ' · modifié' : ''}
+                      </Text>
+                      {isMine && (
+                        <View style={styles.commentActions}>
+                          <Pressable
+                            onPress={() => {
+                              setEditingCommentId(c.id);
+                              setEditingText(c.content);
+                            }}
+                          >
+                            <Text style={styles.linkText}>Modifier</Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() =>
+                              Alert.alert('Supprimer', 'Masquer ce commentaire ?', [
+                                { text: 'Annuler', style: 'cancel' },
+                                {
+                                  text: 'Supprimer',
+                                  style: 'destructive',
+                                  onPress: () => deleteCommentMutation.mutate(c.id),
+                                },
+                              ])
+                            }
+                          >
+                            <Text style={styles.dangerText}>Supprimer</Text>
+                          </Pressable>
+                        </View>
+                      )}
+                    </>
+                  )}
+                </View>
+              );
+            })}
+          {!commentsLoading && comments.length === 0 && !commentsError && (
+            <Text style={styles.muted}>Aucun commentaire pour le moment.</Text>
+          )}
+
+          {isAuthenticated && (
+            <View style={styles.newCommentBox}>
+              <Text style={styles.subLabel}>Ajouter un commentaire</Text>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Votre message (2–1000 caractères)"
+                value={commentDraft}
+                onChangeText={setCommentDraft}
+                multiline
+                maxLength={1000}
+              />
+              <CTAButton
+                label="Publier"
+                loading={postCommentMutation.isPending}
+                disabled={commentDraft.trim().length < 2}
+                onPress={() => {
+                  const t = commentDraft.trim();
+                  if (t.length < 2) {
+                    Alert.alert('Commentaire', 'Le texte est trop court.');
+                    return;
+                  }
+                  postCommentMutation.mutate();
+                }}
+                size="md"
+                fullWidth
+                style={{ marginTop: 10 }}
+              />
+            </View>
+          )}
+        </View>
       </ScrollView>
+
+      {/* ── Sticky CTA bottom : itinéraire ── */}
+      {activity.latitude != null && activity.longitude != null ? (
+        <StickyCTABar
+          latitude={activity.latitude}
+          longitude={activity.longitude}
+          name={activity.name}
+        />
+      ) : null}
+    </KeyboardAvoidingView>
+  );
+}
+
+/**
+ * Barre CTA sticky en bas de l'écran détail : ouvre les directions natives
+ * (Apple Maps sur iOS, Google Maps sur Android) vers l'activité.
+ *
+ * Gère son propre state "loading" pour le feedback bref (Linking.openURL est
+ * asynchrone, on affiche le spinner jusqu'à la résolution).
+ */
+function StickyCTABar({
+  latitude,
+  longitude,
+  name,
+}: {
+  latitude: number;
+  longitude: number;
+  name: string;
+}) {
+  const [launching, setLaunching] = useState(false);
+
+  const openDirections = async () => {
+    if (launching) return;
+    setLaunching(true);
+    const label = encodeURIComponent(name);
+    const url =
+      Platform.OS === 'ios'
+        ? `http://maps.apple.com/?daddr=${latitude},${longitude}&q=${label}`
+        : `google.navigation:q=${latitude},${longitude}`;
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        await Linking.openURL(
+          `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
+        );
+      }
+    } catch {
+      // silent fail — on rend la main à l'utilisateur
+    } finally {
+      // léger délai pour que le spinner reste visible ~1 frame après le switch d'app
+      setTimeout(() => setLaunching(false), 800);
+    }
+  };
+
+  return (
+    <View style={styles.stickyBar} pointerEvents="box-none">
+      <View style={styles.stickyInner}>
+        <CTAButton
+          label="Y aller"
+          onPress={openDirections}
+          loading={launching}
+          size="lg"
+          fullWidth
+          leftIcon={<Navigation size={18} color="#fff" />}
+        />
+      </View>
     </View>
   );
 }
@@ -190,45 +723,48 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 120, // espace pour la sticky CTA bar
   },
   container: {
     flex: 1,
     backgroundColor: Colors.light.background,
   },
-  header: {
+  heroWrap: {
+    position: 'relative',
+    width: '100%',
+    height: 280,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  heroPlaceholder: {
+    backgroundColor: Colors.light.surface,
+  },
+  heroOverlay: {
+    position: 'absolute',
+    top: 48,
+    left: Spacing.lg,
+    right: Spacing.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: 48,
-    paddingBottom: 12,
   },
-  backButton: {
-    backgroundColor: Colors.light.surface,
-    borderRadius: 24,
-    padding: 8,
-    shadowColor: Colors.light.text,
+  heroButton: {
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 22,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.15,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 4,
   },
   backButtonStandalone: {
     padding: Spacing.lg,
     paddingTop: 48,
-  },
-  favoriteButton: {
-    backgroundColor: Colors.light.surface,
-    borderRadius: 24,
-    padding: 8,
-    minWidth: 44,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: Colors.light.text,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   favoriteButtonPressed: {
     opacity: 0.7,
@@ -236,11 +772,24 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 12,
+  },
   title: {
+    flex: 1,
     fontSize: 24,
     fontWeight: 'bold',
     color: Colors.light.text,
-    marginBottom: 12,
+  },
+  priceTag: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.light.accent,
+    marginTop: 2,
   },
   categoryBadge: {
     backgroundColor: Colors.light.surface,
@@ -270,6 +819,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: Colors.light.text,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  subLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.text,
     marginBottom: 8,
   },
   description: {
@@ -296,5 +852,127 @@ const styles = StyleSheet.create({
     color: Colors.light.danger,
     textAlign: 'center',
     marginTop: 24,
+  },
+  ratingBlock: {
+    marginBottom: 16,
+  },
+  ratingMeta: {
+    marginTop: 6,
+    fontSize: 14,
+    color: Colors.light.muted,
+  },
+  starsRow: {
+    flexDirection: 'row',
+    gap: 4,
+    alignItems: 'center',
+  },
+  userRatingRow: {
+    marginBottom: 20,
+    padding: 12,
+    backgroundColor: Colors.light.surface,
+    borderRadius: 12,
+  },
+  removeRatingBtn: {
+    marginTop: 8,
+  },
+  removeRatingText: {
+    color: Colors.light.muted,
+    fontSize: 13,
+  },
+  muted: {
+    color: Colors.light.muted,
+    fontSize: 14,
+  },
+  warnText: {
+    color: Colors.light.danger,
+    marginBottom: 8,
+  },
+  commentCard: {
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 10,
+  },
+  commentCardHidden: {
+    backgroundColor: '#fff7ed',
+    borderColor: '#fed7aa',
+    opacity: 0.85,
+  },
+  hiddenBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#fed7aa',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  hiddenBadgeText: {
+    color: '#7c2d12',
+    fontWeight: '700',
+    fontSize: 11,
+    textTransform: 'uppercase',
+  },
+  commentAuthor: {
+    fontWeight: '600',
+    color: Colors.light.text,
+    marginBottom: 4,
+  },
+  commentBody: {
+    color: Colors.light.text,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  commentDate: {
+    fontSize: 12,
+    color: Colors.light.muted,
+    marginTop: 6,
+  },
+  commentActions: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 8,
+  },
+  linkText: {
+    color: Colors.light.primary,
+    fontWeight: '600',
+  },
+  dangerText: {
+    color: Colors.light.danger,
+    fontWeight: '600',
+  },
+  commentInput: {
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 80,
+    textAlignVertical: 'top',
+    backgroundColor: '#fff',
+  },
+  newCommentBox: {
+    marginTop: 16,
+  },
+  stickyBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 18,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  stickyInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
 });
