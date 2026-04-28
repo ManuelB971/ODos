@@ -6,6 +6,7 @@ use App\Entity\Activity;
 use App\Entity\AdminAuditLog;
 use App\Entity\AdminWebauthnCredential;
 use App\Entity\Category;
+use App\Entity\Comment;
 use App\Entity\RefreshToken;
 use App\Entity\User;
 use App\Repository\AdminAuditLogRepository;
@@ -89,6 +90,8 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Utilisateurs', 'fas fa-users', User::class);
         yield MenuItem::linkToCrud('Catégories', 'fas fa-list', Category::class);
         yield MenuItem::linkToCrud('Activités', 'fas fa-map-marker-alt', Activity::class);
+        yield MenuItem::linkToRoute('Importer activités', 'fas fa-file-import', 'admin_activities_import');
+        yield MenuItem::linkToCrud('Commentaires', 'fas fa-comments', Comment::class);
         yield MenuItem::linkToCrud('Jetons refresh (JWT)', 'fas fa-key', RefreshToken::class);
         yield MenuItem::linkToCrud('WebAuthn (admin)', 'fas fa-fingerprint', AdminWebauthnCredential::class);
         yield MenuItem::linkToCrud('Logs admin', 'fas fa-clipboard-list', AdminAuditLog::class);

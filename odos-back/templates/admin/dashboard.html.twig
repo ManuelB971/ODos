@@ -56,6 +56,51 @@
         </div>
     </div>
 
+    <div class="row g-3 mb-4">
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Notes (1–5 étoiles)</div>
+                    <div class="fs-3 fw-semibold">{{ stats.ratings }}</div>
+                    {% if stats.rating_average_global is not null %}
+                        <div class="small text-muted">moy. globale {{ stats.rating_average_global }}/5</div>
+                    {% else %}
+                        <div class="small text-muted">aucune note pour l’instant</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Commentaires</div>
+                    <div class="fs-3 fw-semibold">{{ stats.comments }}</div>
+                    <div class="small text-muted">total publiés et masqués</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="text-muted small">Commentaires masqués</div>
+                    <div class="fs-3 fw-semibold">
+                        {{ stats.comments_hidden }}
+                        {% if stats.comments > 0 %}
+                            <span class="small text-muted">/ {{ stats.comments }}</span>
+                        {% endif %}
+                    </div>
+                    {% if stats.comments_hidden > 0 %}
+                        <div class="small text-warning">
+                            <i class="fas fa-eye-slash"></i> modération active
+                        </div>
+                    {% else %}
+                        <div class="small text-success">aucun commentaire masqué</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4">
         <div class="col-lg-6">
             <div class="card border-0 shadow-sm">

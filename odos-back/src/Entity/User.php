@@ -62,13 +62,60 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private ?string $phoneNumber = null;
 
+    /**
+     * Alias / pseudo public de l'utilisateur (affiché à la place de l'email).
+     *
+     * Contraintes de sécurité :
+     * - Longueur maxi 60 (cohérent avec la colonne).
+     * - Regex ASCII-lettres + chiffres + espaces + tirets / underscores / apostrophes /
+     *   points, pour éviter tout contenu interprétable (balises, unicode de contrôle…).
+     */
     #[ORM\Column(length: 60, nullable: true)]
     #[Groups(['user:read', 'user:write'])]
+    #[Assert\Length(
+        min: 2,
+        max: 60,
+        minMessage: "L'alias doit contenir au moins {{ limit }} caractères.",
+        maxMessage: "L'alias ne peut pas dépasser {{ limit }} caractères."
+    )]
+    #[Assert\Regex(
+        pattern: "/^[\p{L}\p{N}\s\-_'.]+$/u",
+        message: "L'alias contient des caractères non autorisés."
+    )]
     private ?string $alias = null;
 
+    /**
+     * URL publique de l'avatar utilisateur (ex. /uploads/avatars/xxx.webp).
+     *
+     * Cette valeur est écrite uniquement via {@see \App\Controller\UserAvatarController}
+     * après upload contrôlé (whitelist MIME, taille max, nom randomisé).
+     * Le client ne doit jamais pouvoir la setter directement → retirée du groupe `user:write`.
+     */
     #[ORM\Column(length: 512, nullable: true)]
-    #[Groups(['user:read', 'user:write'])]
+    #[Groups(['user:read'])]
     private ?string $avatarUrl = null;
+
+    /**
+     * Bio publique affichée sur le profil.
+     *
+     * Contraintes de sécurité :
+     * - Max 500 caractères (colonne TEXT).
+     * - Strip HTML dans le setter → protection XSS même si le front ne sanitize pas.
+     * - Regex interdit `<` et `>` (double filet de sécurité, empêche aussi les balises
+     *   encodées via \u003c côté API si un décodeur les ré-injecte).
+     */
+    #[ORM\Column(type: 'text', nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    #[Assert\Length(
+        max: 500,
+        maxMessage: 'La bio ne peut pas dépasser {{ limit }} caractères.'
+    )]
+    #[Assert\Regex(
+        pattern: '/<|>/',
+        match: false,
+        message: 'La bio ne peut pas contenir de balises HTML.'
+    )]
+    private ?string $bio = null;
 
     /**
      * @var list<string> The user roles
@@ -116,11 +163,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: AdminWebauthnCredential::class, orphanRemoval: true)]
     private Collection $webauthnCredentials;
 
+    /**
+     * @var Collection<int, Comment>
+     */
+    #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'author', orphanRemoval: true)]
+    private Collection $authoredComments;
+
+    /**
+     * @var Collection<int, ActivityRating>
+     */
+    #[ORM\OneToMany(targetEntity: ActivityRating::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $activityRatings;
+
     public function __construct()
     {
         $this->interests = new ArrayCollection();
         $this->favorites = new ArrayCollection();
         $this->webauthnCredentials = new ArrayCollection();
+        $this->authoredComments = new ArrayCollection();
+        $this->activityRatings = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -159,7 +220,14 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function setAlias(?string $alias): static
     {
-        $this->alias = $alias;
+        // Sanitize : supprime les balises potentielles + trim. La validation
+        // Assert\Regex s'occupe du reste (caractères autorisés uniquement).
+        if (null !== $alias) {
+            $clean = trim(strip_tags($alias));
+            $this->alias = '' === $clean ? null : $clean;
+        } else {
+            $this->alias = null;
+        }
 
         return $this;
     }
@@ -172,6 +240,33 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setAvatarUrl(?string $avatarUrl): static
     {
         $this->avatarUrl = $avatarUrl;
+
+        return $this;
+    }
+
+    public function getBio(): ?string
+    {
+        return $this->bio;
+    }
+
+    /**
+     * Setter avec sanitization automatique :
+     * - `strip_tags` : retire toute balise HTML (XSS).
+     * - Normalisation des retours à la ligne (\r\n → \n) + trim.
+     * - Chaîne vide → null pour garder une base propre.
+     */
+    public function setBio(?string $bio): static
+    {
+        if (null === $bio) {
+            $this->bio = null;
+
+            return $this;
+        }
+
+        $clean = strip_tags($bio);
+        $clean = str_replace(["\r\n", "\r"], "\n", $clean);
+        $clean = trim($clean);
+        $this->bio = '' === $clean ? null : $clean;
 
         return $this;
     }
@@ -332,5 +427,39 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         }
 
         return $this;
+    }
+
+    /**
+     * Public display name for comments / profile snippets (alias or email local-part).
+     *
+     * Exposé en lecture seule sur l'API sous le nom `displayName`, afin que le
+     * client n'ait plus besoin de calculer le fallback à partir de l'email.
+     */
+    #[Groups(['user:read'])]
+    public function getDisplayName(): string
+    {
+        if (null !== $this->alias && '' !== trim($this->alias)) {
+            return trim($this->alias);
+        }
+        $email = $this->email ?? '';
+        $at = strpos($email, '@');
+
+        return false !== $at ? substr($email, 0, $at) : $email;
+    }
+
+    /**
+     * @return Collection<int, Comment>
+     */
+    public function getAuthoredComments(): Collection
+    {
+        return $this->authoredComments;
+    }
+
+    /**
+     * @return Collection<int, ActivityRating>
+     */
+    public function getActivityRatings(): Collection
+    {
+        return $this->activityRatings;
     }
 }

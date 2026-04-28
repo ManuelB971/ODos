@@ -24,6 +24,8 @@ services:
     volumes:
       - ./odos-back:/app
       - php_vendor:/app/vendor
+      - php_var_cache:/app/var/cache
+      - php_var_log:/app/var/log
 
   postgres:
     ports:

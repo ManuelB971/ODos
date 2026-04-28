@@ -7,6 +7,10 @@
 # Put parameters here that don't need to change on each machine where the app is deployed
 # https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
+    app.uploads.activities.dir: '%kernel.project_dir%/public/uploads/activities'
+    app.uploads.activities.public_prefix: '/uploads/activities'
+    app.uploads.avatars.dir: '%kernel.project_dir%/public/uploads/avatars'
+    app.uploads.avatars.public_prefix: '/uploads/avatars'
     app.llm.base_url: '%env(LLM_BASE_URL)%'
     app.llm.model: '%env(LLM_MODEL)%'
     app.llm.timeout: '%env(int:LLM_TIMEOUT)%'
@@ -31,6 +35,21 @@ services:
     App\State\UserPasswordHasherProcessor:
         arguments:
             $innerProcessor: '@api_platform.doctrine.orm.state.persist_processor'
+
+    App\Service\ActivityPhotoUploader:
+        arguments:
+            $uploadDir: '%app.uploads.activities.dir%'
+            $publicPathPrefix: '%app.uploads.activities.public_prefix%'
+
+    App\Service\UserAvatarUploader:
+        arguments:
+            $uploadDir: '%app.uploads.avatars.dir%'
+            $publicPathPrefix: '%app.uploads.avatars.public_prefix%'
+
+    App\Controller\UserAvatarController:
+        arguments:
+            $uploadDir: '%app.uploads.avatars.dir%'
+            $publicPrefix: '%app.uploads.avatars.public_prefix%'
 
     App\Service\LlmRankingService:
         arguments:
