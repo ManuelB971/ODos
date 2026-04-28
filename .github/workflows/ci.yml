@@ -47,13 +47,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: odos
-          POSTGRES_PASSWORD: odos_secret
+          POSTGRES_USER: postgres
           POSTGRES_DB: odos_test
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U odos -d odos_test"
+          --health-cmd "pg_isready -U postgres -d odos_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
@@ -63,12 +63,13 @@ jobs:
           - 6379:6379
     env:
       APP_ENV: test
-      APP_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-      DATABASE_URL: postgresql://odos:odos_secret@127.0.0.1:5432/odos_test?serverVersion=16&charset=utf8
+      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/odos_test?serverVersion=16&charset=utf8
       REDIS_URL: redis://127.0.0.1:6379
       LLM_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
+      - name: Generate APP_SECRET for CI runtime
+        run: echo "APP_SECRET=$(php -r 'echo bin2hex(random_bytes(32));')" >> "$GITHUB_ENV"
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -94,9 +95,9 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: odos
-          POSTGRES_PASSWORD: odos_secret
+          POSTGRES_USER: postgres
           POSTGRES_DB: odos_test
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
       redis:
@@ -105,13 +106,14 @@ jobs:
           - 6379:6379
     env:
       APP_ENV: test
-      APP_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-      DATABASE_URL: postgresql://odos:odos_secret@127.0.0.1:5432/odos_test?serverVersion=16&charset=utf8
+      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/odos_test?serverVersion=16&charset=utf8
       REDIS_URL: redis://127.0.0.1:6379
       LLM_ENABLED: "false"
       XDEBUG_MODE: coverage
     steps:
       - uses: actions/checkout@v4
+      - name: Generate APP_SECRET for CI runtime
+        run: echo "APP_SECRET=$(php -r 'echo bin2hex(random_bytes(32));')" >> "$GITHUB_ENV"
       - name: Setup PHP with Xdebug
         uses: shivammathur/setup-php@v2
         with:
