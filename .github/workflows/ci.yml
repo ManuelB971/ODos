@@ -100,6 +100,11 @@ jobs:
           POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d odos_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
       redis:
         image: redis:7-alpine
         ports:
