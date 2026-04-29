@@ -98,6 +98,11 @@ jobs:
     defaults:
       run:
         working-directory: odos-back
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/odos_test?serverVersion=16&charset=utf8
+      REDIS_URL: redis://127.0.0.1:6379
+      LLM_ENABLED: "false"
     steps:
       - uses: actions/checkout@v6
       - name: Prepare backend .env for CI
