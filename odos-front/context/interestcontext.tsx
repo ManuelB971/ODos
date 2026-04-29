@@ -1,3 +1,4 @@
+export { InterestContext, InterestProvider, useInterests } from './interestcontext';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 import { InterestContextType, InterestProviderProps } from '@/types';

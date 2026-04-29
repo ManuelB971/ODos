@@ -22,7 +22,7 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
       infra: ${{ steps.filter.outputs.infra }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - id: filter
         uses: dorny/paths-filter@v3
         with:
@@ -67,7 +67,13 @@ jobs:
       REDIS_URL: redis://127.0.0.1:6379
       LLM_ENABLED: "false"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - name: Prepare backend .env for CI
+        run: |
+          cat > .env <<'EOF'
+          APP_ENV=test
+          APP_DEBUG=0
+          EOF
       - name: Generate APP_SECRET for CI runtime
         run: echo "APP_SECRET=$(php -r 'echo bin2hex(random_bytes(32));')" >> "$GITHUB_ENV"
       - name: Setup PHP
@@ -92,7 +98,15 @@ jobs:
       run:
         working-directory: odos-back
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - name: Prepare backend .env for CI
+        run: |
+          cat > .env <<'EOF'
+          APP_ENV=test
+          APP_DEBUG=0
+          EOF
+      - name: Generate APP_SECRET for CI runtime
+        run: echo "APP_SECRET=$(php -r 'echo bin2hex(random_bytes(32));')" >> "$GITHUB_ENV"
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -137,7 +151,13 @@ jobs:
       LLM_ENABLED: "false"
       XDEBUG_MODE: coverage
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
+      - name: Prepare backend .env for CI
+        run: |
+          cat > .env <<'EOF'
+          APP_ENV=test
+          APP_DEBUG=0
+          EOF
       - name: Generate APP_SECRET for CI runtime
         run: echo "APP_SECRET=$(php -r 'echo bin2hex(random_bytes(32));')" >> "$GITHUB_ENV"
       - name: Setup PHP with Xdebug
@@ -166,11 +186,11 @@ jobs:
       run:
         working-directory: odos-front
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: pnpm
@@ -191,11 +211,11 @@ jobs:
       run:
         working-directory: odos-front
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v5
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: pnpm
@@ -217,6 +237,6 @@ jobs:
     if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.infra == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Build Docker image (prod target)
         run: docker build --target prod -t odos-back:ci ./odos-back
