@@ -73,6 +73,7 @@ jobs:
           cat > .env <<'EOF'
           APP_ENV=test
           APP_DEBUG=0
+          DEFAULT_URI=http://localhost
           EOF
       - name: Generate APP_SECRET for CI runtime
         run: echo "APP_SECRET=$(php -r 'echo bin2hex(random_bytes(32));')" >> "$GITHUB_ENV"
@@ -104,6 +105,7 @@ jobs:
           cat > .env <<'EOF'
           APP_ENV=test
           APP_DEBUG=0
+          DEFAULT_URI=http://localhost
           EOF
       - name: Generate APP_SECRET for CI runtime
         run: echo "APP_SECRET=$(php -r 'echo bin2hex(random_bytes(32));')" >> "$GITHUB_ENV"
@@ -157,6 +159,7 @@ jobs:
           cat > .env <<'EOF'
           APP_ENV=test
           APP_DEBUG=0
+          DEFAULT_URI=http://localhost
           EOF
       - name: Generate APP_SECRET for CI runtime
         run: echo "APP_SECRET=$(php -r 'echo bin2hex(random_bytes(32));')" >> "$GITHUB_ENV"

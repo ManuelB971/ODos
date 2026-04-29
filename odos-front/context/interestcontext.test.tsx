@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
-import { InterestProvider, useInterests } from '@/context/interestcontext';
+import { InterestProvider, useInterests } from '@/context/InterestContext';
 
 const mockUseAuth = jest.fn();
 
