@@ -1,36 +1,218 @@
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Alert, ActivityIndicator } from 'react-native';
-import { ArrowLeft, Camera, Trash2, FileText, Shield, Scale } from 'lucide-react-native';
-import { useState } from 'react';
+import React, { useState } from 'react';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
+import {
+  ArrowLeft,
+  Camera,
+  ChevronRight,
+  FileText,
+  Scale,
+  Shield,
+  Trash2,
+  User as UserIcon,
+} from 'lucide-react-native';
+
 import { useAuth } from '@/context/AuthContext';
-import { updateProfile, deleteAccount } from '@/scripts/api';
-import { Colors, Spacing } from '@/constants/theme';
+import {
+  deleteAccount,
+  deleteAvatar,
+  updateProfile,
+  uploadAvatar,
+} from '@/scripts/api';
+import { Colors, Fonts, Spacing } from '@/constants/theme';
 import { logError, toAppError } from '@/utils/errorHandling';
+import { resolveImageUrl } from '@/utils/imageUrl';
+import { CTAButton } from '@/components/ui/CTAButton';
+import { InputField } from '@/components/ui/InputField';
+
+/**
+ * Écran Paramètres — tout le self-service utilisateur est centralisé ici :
+ *   - Avatar : upload / suppression via `expo-image-picker` + endpoint sécurisé
+ *     `/api/me/avatar` (whitelist MIME, 2 Mo max, throttle 10 s côté serveur).
+ *   - Alias (display name) + Bio : `PATCH /api/users/{id}` (merge-patch JSON), avec
+ *     sanitization côté frontend (strip basique des `<`/`>`) ET côté serveur.
+ *   - Zone dangereuse : suppression de compte avec double confirmation.
+ *
+ * Principes UX :
+ *  - **Aucune saisie ne quitte l'app avant que le serveur ait validé**.
+ *  - Boutons `CTAButton` avec spinner inline → jamais de double-submit.
+ *  - Compteur de caractères live sur la bio (500 max).
+ */
+
+const BIO_MAX = 500;
+const ALIAS_MAX = 60;
+
+/** Retire toute balise HTML rudimentaire avant envoi — défense en profondeur. */
+function sanitizeInline(value: string): string {
+  return value.replace(/[<>]/g, '').trim();
+}
+
+/** Valide l'alias côté client — miroir de l'Assert\Regex backend. */
+function validateAlias(alias: string): string | null {
+  const trimmed = alias.trim();
+  if (trimmed.length === 0) return null; // vide = on le retire, pas d'erreur
+  if (trimmed.length < 2) return "L'alias doit contenir au moins 2 caractères.";
+  if (trimmed.length > ALIAS_MAX) return `L'alias ne peut pas dépasser ${ALIAS_MAX} caractères.`;
+  if (!/^[\p{L}\p{N}\s\-_'.]+$/u.test(trimmed)) {
+    return "Seules les lettres, chiffres, espaces et - _ . ' sont autorisés.";
+  }
+  return null;
+}
 
 export default function SettingsScreen() {
-  const { user, logout } = useAuth();
-  const [alias, setAlias] = useState('');
-  const [saving, setSaving] = useState(false);
+  const { user, setUser, logout } = useAuth();
+
+  const [alias, setAlias] = useState(user?.alias ?? '');
+  const [bio, setBio] = useState(user?.bio ?? '');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatarUrl ?? null);
+
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [removingAvatar, setRemovingAvatar] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const handleSaveAlias = async () => {
-    if (!user?.id) return;
-    setSaving(true);
+  const [aliasError, setAliasError] = useState<string | null>(null);
+  const [bioError, setBioError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const resolvedAvatar = resolveImageUrl(avatarUrl);
+
+  const initials = (user?.displayName ?? user?.email ?? 'OD')
+    .slice(0, 2)
+    .toUpperCase();
+
+  // ── Avatar ────────────────────────────────────────────────────────────────
+  const handlePickAvatar = async () => {
+    if (uploadingAvatar) return;
+
+    // Demande de permission (iOS + Android) — on informe l'utilisateur en cas de refus.
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        'Permission requise',
+        "Autorisez l'accès à vos photos pour changer votre avatar."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+      exif: false,
+    });
+
+    if (result.canceled || !result.assets?.[0]) return;
+
+    const asset = result.assets[0];
+    // On déduit le mime : expo-image-picker donne un uri `file://…/ImagePicker/xxx.jpg`.
+    const inferredMime =
+      asset.mimeType ?? (asset.uri.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+    const inferredName =
+      asset.fileName ?? `avatar-${Date.now()}.${inferredMime.split('/')[1] ?? 'jpg'}`;
+
+    setUploadingAvatar(true);
+    setSuccessMsg(null);
     try {
-      await updateProfile(user.id, { alias: alias.trim() || undefined });
-      Alert.alert('Profil', 'Alias enregistré avec succès.');
+      const { avatarUrl: newUrl } = await uploadAvatar({
+        uri: asset.uri,
+        name: inferredName,
+        mimeType: inferredMime,
+      });
+      setAvatarUrl(newUrl);
+      if (user) setUser({ ...user, avatarUrl: newUrl });
+      setSuccessMsg('Photo de profil mise à jour.');
     } catch (err) {
-      logError('Settings.saveAlias', err);
-      Alert.alert('Erreur', toAppError(err, 'Impossible de sauvegarder.').userMessage);
+      logError('Settings.uploadAvatar', err);
+      Alert.alert(
+        'Avatar',
+        toAppError(err, "Impossible de mettre à jour la photo. Réessayez dans quelques secondes.").userMessage
+      );
     } finally {
-      setSaving(false);
+      setUploadingAvatar(false);
     }
   };
 
-  const handleChangeAvatar = () => {
-    Alert.alert('Photo de profil', 'Cette fonctionnalité sera disponible prochainement.');
+  const handleRemoveAvatar = async () => {
+    if (!avatarUrl || removingAvatar) return;
+    setRemovingAvatar(true);
+    try {
+      await deleteAvatar();
+      setAvatarUrl(null);
+      if (user) setUser({ ...user, avatarUrl: null });
+      setSuccessMsg('Photo de profil retirée.');
+    } catch (err) {
+      logError('Settings.deleteAvatar', err);
+      Alert.alert('Avatar', toAppError(err, 'Impossible de retirer la photo.').userMessage);
+    } finally {
+      setRemovingAvatar(false);
+    }
   };
 
+  // ── Profil (alias + bio) ──────────────────────────────────────────────────
+  const handleSaveProfile = async () => {
+    if (!user?.id) return;
+
+    // Sanitize + validate
+    const cleanAlias = sanitizeInline(alias);
+    const cleanBio = sanitizeInline(bio).slice(0, BIO_MAX);
+
+    const aErr = validateAlias(cleanAlias);
+    if (aErr) {
+      setAliasError(aErr);
+      return;
+    }
+    setAliasError(null);
+
+    if (cleanBio.length > BIO_MAX) {
+      setBioError(`La bio ne peut pas dépasser ${BIO_MAX} caractères.`);
+      return;
+    }
+    setBioError(null);
+
+    setSavingProfile(true);
+    setSuccessMsg(null);
+    try {
+      await updateProfile(user.id, {
+        alias: cleanAlias.length === 0 ? null : cleanAlias,
+        bio: cleanBio.length === 0 ? null : cleanBio,
+      });
+      if (user) {
+        setUser({
+          ...user,
+          alias: cleanAlias || null,
+          bio: cleanBio || null,
+          // displayName côté UI : alias > email local-part (on le recalcule sans re-fetch).
+          displayName: cleanAlias || user.email?.split('@')[0] || user.displayName,
+        });
+      }
+      setSuccessMsg('Profil enregistré.');
+    } catch (err) {
+      logError('Settings.saveProfile', err);
+      const app = toAppError(err, 'Impossible de sauvegarder vos informations.');
+      // On essaie de router l'erreur sur le bon champ en fonction du message backend.
+      if (/alias/i.test(app.userMessage)) setAliasError(app.userMessage);
+      else if (/bio/i.test(app.userMessage)) setBioError(app.userMessage);
+      else Alert.alert('Profil', app.userMessage);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // ── Suppression compte (double confirmation) ──────────────────────────────
   const handleDeleteAccount = () => {
     Alert.alert(
       'Supprimer mon compte',
@@ -38,26 +220,23 @@ export default function SettingsScreen() {
       [
         { text: 'Annuler', style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: 'Continuer',
           style: 'destructive',
-          onPress: () => confirmDelete(),
+          onPress: () =>
+            Alert.alert(
+              'Confirmation finale',
+              "Êtes-vous vraiment sûr(e) ? Il n'y a pas de retour en arrière.",
+              [
+                { text: 'Non, annuler', style: 'cancel' },
+                {
+                  text: 'Oui, supprimer',
+                  style: 'destructive',
+                  onPress: () => executeDelete(),
+                },
+              ]
+            ),
         },
-      ],
-    );
-  };
-
-  const confirmDelete = () => {
-    Alert.alert(
-      'Confirmation finale',
-      'Êtes-vous vraiment sûr(e) ? Il n\'y a pas de retour en arrière.',
-      [
-        { text: 'Non, annuler', style: 'cancel' },
-        {
-          text: 'Oui, supprimer définitivement',
-          style: 'destructive',
-          onPress: () => executeDelete(),
-        },
-      ],
+      ]
     );
   };
 
@@ -75,89 +254,205 @@ export default function SettingsScreen() {
     }
   };
 
+  const bioLen = bio.length;
+  const bioCounterColor =
+    bioLen > BIO_MAX ? Colors.light.danger : bioLen > BIO_MAX * 0.9 ? '#b45309' : Colors.light.muted;
+
   return (
-    <View style={styles.screen}>
+    <KeyboardAvoidingView
+      style={styles.screen}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft color={Colors.light.text} size={24} />
+        <Pressable style={styles.headerBtn} onPress={() => router.back()} hitSlop={8}>
+          <ArrowLeft color={Colors.light.text} size={22} />
         </Pressable>
         <Text style={styles.headerTitle}>Paramètres</Text>
-        <View style={styles.headerSpacer} />
+        <View style={styles.headerBtn} />
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.sectionTitle}>Profil</Text>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.label}>Alias</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Choisissez un alias..."
-            placeholderTextColor={Colors.light.muted}
-            value={alias}
-            onChangeText={setAlias}
-            maxLength={60}
-            autoCapitalize="none"
-          />
-          <Pressable
-            style={[styles.saveButton, saving && styles.buttonDisabled]}
-            onPress={handleSaveAlias}
-            disabled={saving || !alias.trim()}
-          >
-            {saving ? (
-              <ActivityIndicator size="small" color="#fff" />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Avatar card ── */}
+        <View style={styles.avatarCard}>
+          <View style={styles.avatarCircleWrap}>
+            {resolvedAvatar ? (
+              <Image source={{ uri: resolvedAvatar }} style={styles.avatarImg} contentFit="cover" />
             ) : (
-              <Text style={styles.saveButtonText}>Enregistrer</Text>
+              <View style={styles.avatarFallback}>
+                <Text style={styles.avatarInitials}>{initials}</Text>
+              </View>
             )}
-          </Pressable>
+            <Pressable
+              onPress={handlePickAvatar}
+              disabled={uploadingAvatar}
+              style={styles.avatarEditBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Changer ma photo de profil"
+            >
+              <Camera size={16} color="#fff" />
+            </Pressable>
+          </View>
+          <Text style={styles.avatarName} numberOfLines={1}>
+            {user?.displayName ?? user?.email ?? 'Invité'}
+          </Text>
+          <Text style={styles.avatarEmail} numberOfLines={1}>
+            {user?.email ?? ''}
+          </Text>
+          <View style={styles.avatarActions}>
+            <CTAButton
+              label={uploadingAvatar ? 'Envoi…' : 'Changer la photo'}
+              onPress={handlePickAvatar}
+              loading={uploadingAvatar}
+              variant="secondary"
+              size="sm"
+              leftIcon={<Camera size={14} color={Colors.light.text} />}
+            />
+            {avatarUrl ? (
+              <CTAButton
+                label="Retirer"
+                onPress={handleRemoveAvatar}
+                loading={removingAvatar}
+                variant="ghost"
+                size="sm"
+              />
+            ) : null}
+          </View>
         </View>
 
-        <Pressable style={styles.menuRow} onPress={handleChangeAvatar}>
-          <Camera color={Colors.light.primary} size={22} />
-          <Text style={styles.menuRowText}>Changer ma photo de profil</Text>
-        </Pressable>
+        {/* ── Success banner ── */}
+        {successMsg ? (
+          <View style={styles.successBanner}>
+            <Text style={styles.successBannerText}>{successMsg}</Text>
+          </View>
+        ) : null}
 
-        <View style={styles.divider} />
+        {/* ── Profil éditable ── */}
+        <Text style={styles.sectionTitle}>Profil public</Text>
+        <View style={styles.card}>
+          <InputField
+            label="Alias"
+            placeholder="Comment voulez-vous être appelé ?"
+            value={alias}
+            onChangeText={(v) => {
+              setAlias(v);
+              if (aliasError) setAliasError(null);
+            }}
+            maxLength={ALIAS_MAX}
+            autoCapitalize="none"
+            error={aliasError}
+            hint="Affiché à la place de votre email dans les commentaires."
+            leftIcon={<UserIcon size={16} color={Colors.light.muted} />}
+          />
 
-        <Text style={styles.sectionTitle}>Zone dangereuse</Text>
+          <View style={{ height: 14 }} />
 
-        <Pressable
-          style={[styles.dangerButton, deleting && styles.buttonDisabled]}
-          onPress={handleDeleteAccount}
-          disabled={deleting}
-        >
-          {deleting ? (
-            <ActivityIndicator size="small" color={Colors.light.danger} />
-          ) : (
-            <>
-              <Trash2 color={Colors.light.danger} size={20} />
-              <Text style={styles.dangerButtonText}>Supprimer mon compte</Text>
-            </>
-          )}
-        </Pressable>
+          <View style={styles.bioBlock}>
+            <View style={styles.bioLabelRow}>
+              <Text style={styles.bioLabel}>Bio</Text>
+              <Text style={[styles.bioCounter, { color: bioCounterColor }]}>
+                {bioLen}/{BIO_MAX}
+              </Text>
+            </View>
+            <TextInput
+              value={bio}
+              onChangeText={(v) => {
+                if (v.length <= BIO_MAX) setBio(v);
+                if (bioError) setBioError(null);
+              }}
+              multiline
+              maxLength={BIO_MAX}
+              placeholder="Parlez un peu de vous — vos passions, vos envies d'explorer…"
+              placeholderTextColor={Colors.light.muted}
+              style={[styles.bioInput, bioError ? styles.bioInputError : null]}
+              textAlignVertical="top"
+            />
+            {bioError ? <Text style={styles.bioErrorText}>{bioError}</Text> : null}
+          </View>
 
-        <View style={styles.divider} />
+          <View style={{ height: 16 }} />
 
+          <CTAButton
+            label="Enregistrer les modifications"
+            onPress={handleSaveProfile}
+            loading={savingProfile}
+            size="md"
+            fullWidth
+          />
+        </View>
+
+        {/* ── Informations légales ── */}
         <Text style={styles.sectionTitle}>Informations légales</Text>
+        <View style={styles.card}>
+          <MenuRow
+            icon={<FileText size={18} color={Colors.light.muted} />}
+            label="Conditions générales d'utilisation"
+            onPress={() => router.push({ pathname: '/legal', params: { section: 'cgu' } })}
+          />
+          <View style={styles.divider} />
+          <MenuRow
+            icon={<Shield size={18} color={Colors.light.muted} />}
+            label="Politique de confidentialité"
+            onPress={() => router.push({ pathname: '/legal', params: { section: 'privacy' } })}
+          />
+          <View style={styles.divider} />
+          <MenuRow
+            icon={<Scale size={18} color={Colors.light.muted} />}
+            label="Mentions légales"
+            onPress={() => router.push({ pathname: '/legal', params: { section: 'mentions' } })}
+          />
+        </View>
 
-        <Pressable style={styles.legalRow} onPress={() => router.push({ pathname: '/legal', params: { section: 'cgu' } })}>
-          <FileText color={Colors.light.muted} size={20} />
-          <Text style={styles.legalRowText}>Conditions générales d&apos;utilisation</Text>
-        </Pressable>
-
-        <Pressable style={styles.legalRow} onPress={() => router.push({ pathname: '/legal', params: { section: 'privacy' } })}>
-          <Shield color={Colors.light.muted} size={20} />
-          <Text style={styles.legalRowText}>Politique de confidentialité</Text>
-        </Pressable>
-
-        <Pressable style={styles.legalRow} onPress={() => router.push({ pathname: '/legal', params: { section: 'mentions' } })}>
-          <Scale color={Colors.light.muted} size={20} />
-          <Text style={styles.legalRowText}>Mentions légales</Text>
-        </Pressable>
+        {/* ── Zone dangereuse ── */}
+        <Text style={[styles.sectionTitle, styles.dangerSectionTitle]}>Zone dangereuse</Text>
+        <View style={styles.card}>
+          <Text style={styles.dangerHelp}>
+            La suppression de votre compte est définitive. Vos favoris, notes et
+            commentaires seront perdus.
+          </Text>
+          <View style={{ height: 12 }} />
+          <CTAButton
+            label="Supprimer mon compte"
+            onPress={handleDeleteAccount}
+            loading={deleting}
+            variant="danger"
+            size="md"
+            fullWidth
+            leftIcon={<Trash2 size={16} color={Colors.light.danger} />}
+          />
+        </View>
 
         <View style={{ height: 48 }} />
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+/** Row de menu (icône + label + chevron), pour la liste des liens légaux. */
+function MenuRow({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.menuRow, pressed && styles.menuRowPressed]}
+      accessibilityRole="button"
+    >
+      <View style={styles.menuRowIcon}>{icon}</View>
+      <Text style={styles.menuRowText}>{label}</Text>
+      <ChevronRight size={18} color={Colors.light.muted} />
+    </Pressable>
   );
 }
 
@@ -169,112 +464,199 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingTop: 48,
-    paddingBottom: 12,
+    paddingTop: 44,
+    paddingBottom: 8,
   },
-  backButton: {
-    padding: 8,
+  headerBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.light.surface,
   },
   headerTitle: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
     color: Colors.light.text,
-    textAlign: 'center',
-  },
-  headerSpacer: {
-    width: 40,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: 32,
+    paddingTop: 8,
+    paddingBottom: 24,
   },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.light.muted,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 12,
-    marginTop: 24,
-  },
-  fieldGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: Colors.light.text,
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: Colors.light.surface,
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    color: Colors.light.text,
+  avatarCard: {
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    paddingVertical: 22,
+    paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: Colors.light.border,
+    marginBottom: 18,
+  },
+  avatarCircleWrap: {
+    position: 'relative',
     marginBottom: 12,
   },
-  saveButton: {
-    backgroundColor: Colors.light.primary,
-    borderRadius: 10,
-    paddingVertical: 12,
+  avatarImg: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: Colors.light.surface,
+  },
+  avatarFallback: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: Colors.light.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarInitials: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  avatarEditBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.light.text,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+  },
+  avatarName: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.light.text,
+    fontFamily: Fonts?.serif,
+    maxWidth: '90%',
+  },
+  avatarEmail: {
+    marginTop: 2,
+    fontSize: 12,
+    color: Colors.light.muted,
+    maxWidth: '90%',
+  },
+  avatarActions: {
+    marginTop: 14,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  successBanner: {
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#86efac',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  successBannerText: {
+    color: '#047857',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  sectionTitle: {
+    fontSize: 11,
+    letterSpacing: 2,
+    color: Colors.light.muted,
+    fontWeight: '700',
+    marginTop: 10,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  dangerSectionTitle: {
+    color: Colors.light.danger,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    marginBottom: 18,
+  },
+  bioBlock: {
+    gap: 6,
+  },
+  bioLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  saveButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-    fontSize: 16,
+  bioLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.light.text,
+    letterSpacing: 0.2,
   },
-  buttonDisabled: {
-    opacity: 0.5,
+  bioCounter: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  bioInput: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: Colors.light.text,
+    minHeight: 110,
+  },
+  bioInputError: {
+    borderColor: Colors.light.danger,
+  },
+  bioErrorText: {
+    fontSize: 12,
+    color: Colors.light.danger,
+    marginTop: 2,
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    gap: 14,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  menuRowPressed: {
+    opacity: 0.7,
+  },
+  menuRowIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: Colors.light.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuRowText: {
-    fontSize: 16,
+    flex: 1,
+    fontSize: 14,
     color: Colors.light.text,
+    fontWeight: '600',
   },
   divider: {
     height: 1,
     backgroundColor: Colors.light.border,
-    marginVertical: 8,
+    marginLeft: 44,
   },
-  dangerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 14,
-    borderRadius: 10,
-    backgroundColor: '#fee2e2',
-  },
-  dangerButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.light.danger,
-  },
-  legalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    gap: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-  },
-  legalRowText: {
-    fontSize: 16,
-    color: Colors.light.text,
+  dangerHelp: {
+    fontSize: 13,
+    color: Colors.light.muted,
+    lineHeight: 18,
   },
 });

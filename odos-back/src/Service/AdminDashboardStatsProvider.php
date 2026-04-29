@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Entity\Activity;
+use App\Entity\ActivityRating;
 use App\Entity\AdminAuditLog;
 use App\Entity\Category;
+use App\Entity\Comment;
 use App\Entity\User;
 use App\Repository\AdminAuditLogRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -96,6 +98,22 @@ final class AdminDashboardStatsProvider
             ->getQuery()
             ->getSingleScalarResult();
 
+        $ratingsCount = $this->safeCount(ActivityRating::class, 'r');
+        $commentsCount = $this->safeCount(Comment::class, 'c');
+        $hiddenCommentsCount = $this->safeCount(Comment::class, 'c', 'c.isHidden = true');
+
+        $ratingAverageGlobal = null;
+        try {
+            $ratingAverageGlobal = $this->entityManager->createQueryBuilder()
+                ->select('AVG(r.score)')
+                ->from(ActivityRating::class, 'r')
+                ->getQuery()
+                ->getSingleScalarResult();
+            $ratingAverageGlobal = null !== $ratingAverageGlobal ? round((float) $ratingAverageGlobal, 2) : null;
+        } catch (\Throwable) {
+            $ratingAverageGlobal = null;
+        }
+
         return [
             'stats' => [
                 'users' => $userCount,
@@ -105,12 +123,39 @@ final class AdminDashboardStatsProvider
                 'favorite_links' => $favoriteLinksCount,
                 'users_with_phone' => $usersWithPhone,
                 'admin_events' => $adminEventsCount,
+                'ratings' => $ratingsCount,
+                'rating_average_global' => $ratingAverageGlobal,
+                'comments' => $commentsCount,
+                'comments_hidden' => $hiddenCommentsCount,
             ],
             'recent_activities' => $recentActivities,
             'top_favorited' => $topFavorited,
             'log_snippet' => $logSnippet,
             'recent_admin_events' => $recentAdminEvents,
         ];
+    }
+
+    /**
+     * Compte tolérant à l'absence de table (ex. avant migration en environnement local).
+     */
+    /**
+     * @param class-string $entityClass
+     */
+    private function safeCount(string $entityClass, string $alias, ?string $where = null): int
+    {
+        try {
+            $qb = $this->entityManager->createQueryBuilder()
+                ->select(sprintf('COUNT(%s.id)', $alias))
+                ->from($entityClass, $alias);
+
+            if (null !== $where) {
+                $qb->where($where);
+            }
+
+            return (int) $qb->getQuery()->getSingleScalarResult();
+        } catch (\Throwable) {
+            return 0;
+        }
     }
 
     /**
@@ -160,7 +205,11 @@ final class AdminDashboardStatsProvider
      */
     private function getLastLogLines(int $maxLines): array
     {
-        $dir = (string) $this->parameterBag->get('kernel.logs_dir');
+        $logsDir = $this->parameterBag->get('kernel.logs_dir');
+        if (!is_string($logsDir) || '' === $logsDir) {
+            return [];
+        }
+        $dir = $logsDir;
         $path = $dir.'/dev.log';
         if (!is_readable($path)) {
             return [];

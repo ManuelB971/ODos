@@ -1,6 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { ApiActivity, Category } from '@/types';
+import { ApiActivity, ActivityComment, ActivityCommentsPage, ActivityRatingInfo, Category } from '@/types';
 
 const isSecureStoreAvailable = async () => {
     try {
@@ -271,16 +271,93 @@ export async function fetchFavoriteIds(): Promise<number[]> {
     return extractFavoriteActivityIds(response.data.favorites);
 }
 
-/** Update profile fields (alias, avatarUrl) for the current user. */
-export async function updateProfile(userId: number, data: { alias?: string; avatarUrl?: string }): Promise<void> {
+/**
+ * Update editable profile fields (alias, bio) for the current user.
+ *
+ * NB : `avatarUrl` n'est volontairement pas settable directement : il doit passer
+ * par {@link uploadAvatar} (upload contrôlé côté serveur).
+ */
+export async function updateProfile(
+    userId: number,
+    data: { alias?: string | null; bio?: string | null }
+): Promise<void> {
     await api.patch(`/api/users/${userId}`, data, {
         headers: { 'Content-Type': 'application/merge-patch+json' },
     });
 }
 
+/**
+ * Upload un avatar pour l'utilisateur courant (POST /api/me/avatar, multipart).
+ *
+ * @param file objet URI + nom + mimeType typiquement retourné par `expo-image-picker`
+ * @returns la nouvelle URL publique de l'avatar
+ */
+export async function uploadAvatar(file: {
+    uri: string;
+    name: string;
+    mimeType: string;
+}): Promise<{ avatarUrl: string }> {
+    const form = new FormData();
+    // React Native a une signature spécifique pour FormData.append avec un fichier local.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    form.append('file', {
+        uri: file.uri,
+        name: file.name,
+        type: file.mimeType,
+    } as any);
+
+    const response = await api.post('/api/me/avatar', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return { avatarUrl: response.data.avatarUrl };
+}
+
+/** Retire l'avatar courant (revient à l'avatar par défaut côté UI). */
+export async function deleteAvatar(): Promise<void> {
+    await api.delete('/api/me/avatar');
+}
+
 /** Delete the current user's account. */
 export async function deleteAccount(userId: number): Promise<void> {
     await api.delete(`/api/users/${userId}`);
+}
+
+/** GET /api/activities/{id}/rating */
+export async function fetchActivityRating(activityId: number): Promise<ActivityRatingInfo> {
+    const response = await api.get(`/api/activities/${activityId}/rating`);
+    return response.data;
+}
+
+/** PUT /api/activities/{id}/rating — crée ou met à jour la note (1–5) */
+export async function putActivityRating(activityId: number, score: number): Promise<ActivityRatingInfo> {
+    const response = await api.put(`/api/activities/${activityId}/rating`, { score });
+    return response.data;
+}
+
+/** DELETE /api/activities/{id}/rating */
+export async function deleteActivityRating(activityId: number): Promise<ActivityRatingInfo> {
+    const response = await api.delete(`/api/activities/${activityId}/rating`);
+    return response.data;
+}
+
+/** GET /api/activities/{id}/comments?page= */
+export async function fetchActivityComments(activityId: number, page = 1): Promise<ActivityCommentsPage> {
+    const response = await api.get(`/api/activities/${activityId}/comments`, { params: { page } });
+    return response.data;
+}
+
+export async function postActivityComment(activityId: number, content: string): Promise<ActivityComment> {
+    const response = await api.post(`/api/activities/${activityId}/comments`, { content });
+    return response.data;
+}
+
+export async function patchActivityComment(commentId: number, content: string): Promise<ActivityComment> {
+    const response = await api.patch(`/api/comments/${commentId}`, { content });
+    return response.data;
+}
+
+export async function deleteActivityComment(commentId: number): Promise<void> {
+    await api.delete(`/api/comments/${commentId}`);
 }
 
 export default api;

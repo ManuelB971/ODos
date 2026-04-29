@@ -31,7 +31,7 @@ class AdminMfaService
             return false;
         }
 
-        $normalizedCode = preg_replace('/\D+/', '', $code ?? '');
+        $normalizedCode = preg_replace('/\D+/', '', $code);
         if (!is_string($normalizedCode) || 6 !== strlen($normalizedCode)) {
             return false;
         }
@@ -100,7 +100,8 @@ class AdminMfaService
         $hash = hash_hmac('sha1', $time, $secret, true);
         $offset = ord(substr($hash, -1)) & 0x0F;
         $truncatedHash = substr($hash, $offset, 4);
-        $value = unpack('N', $truncatedHash)[1] & 0x7FFFFFFF;
+        $unpacked = unpack('N', $truncatedHash);
+        $value = isset($unpacked[1]) ? (((int) $unpacked[1]) & 0x7FFFFFFF) : 0;
 
         return str_pad((string) ($value % 1000000), 6, '0', STR_PAD_LEFT);
     }
@@ -127,7 +128,7 @@ class AdminMfaService
                 continue;
             }
 
-            $output .= chr(bindec($byte));
+            $output .= chr((int) bindec($byte));
         }
 
         return $output;

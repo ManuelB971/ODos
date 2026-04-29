@@ -1,50 +1,95 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
-import { styles } from '@/app/(tabs)/styles';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { Check, ArrowLeft, Sparkles } from 'lucide-react-native';
+
 import { useInterests } from '@/context/InterestContext';
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'expo-router';
 import { fetchCategories, updateUserInterests } from '@/scripts/api';
 import { Category } from '@/types';
-import { Colors } from '@/constants/theme';
-import { logError } from '@/utils/errorHandling';
+import { Colors, Fonts, Spacing } from '@/constants/theme';
+import { logError, toAppError } from '@/utils/errorHandling';
+import { CTAButton } from '@/components/ui/CTAButton';
+import { Skeleton } from '@/components/ui/Skeleton';
+
+/**
+ * Écran de sélection des centres d'intérêt.
+ *
+ * Refonte premium :
+ *  - Eyebrow serif + titre éditorial + aide contextualisée (2–7 choix).
+ *  - Chips tactiles à bord arrondi avec icône check à l'active.
+ *  - Compteur de sélection live + sticky CTA bottom.
+ *  - Skeleton pendant le chargement des catégories.
+ *  - Gestion d'erreur visible (et retry) sans `Alert.alert`.
+ */
+const MIN_SELECTION = 1;
+const MAX_SELECTION = 7;
 
 const InterestsScreen = () => {
+  const router = useRouter();
+  const { interests: storedNames, setInterests } = useInterests();
+  const { user } = useAuth();
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { setInterests } = useInterests();
-  const { user } = useAuth();
-  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
     fetchCategories()
-      .then(setCategories)
-      .catch((err) => logError('Interests.fetchCategories', err))
-      .finally(() => setLoading(false));
-  }, []);
+      .then((data) => {
+        if (cancelled) return;
+        setCategories(data);
+        // Pré-sélectionner depuis le contexte si l'utilisateur a déjà des intérêts
+        const preselected = data
+          .filter((c) => storedNames.includes(c.name))
+          .map((c) => c.id);
+        setSelectedIds(preselected);
+      })
+      .catch((err) => {
+        logError('Interests.fetchCategories', err);
+        setError(toAppError(err, 'Impossible de charger les catégories.').userMessage);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [storedNames]);
 
   const toggleInterest = (cat: Category) => {
-    if (selectedIds.includes(cat.id)) {
-      setSelectedIds((prev) => prev.filter((id) => id !== cat.id));
-    } else {
-      if (selectedIds.length < 7) {
-        setSelectedIds((prev) => [...prev, cat.id]);
-      } else {
-        Alert.alert('Limite atteinte', 'Sélectionner 7 intérêts maximum.');
-      }
-    }
+    setSelectedIds((prev) => {
+      if (prev.includes(cat.id)) return prev.filter((id) => id !== cat.id);
+      if (prev.length >= MAX_SELECTION) return prev;
+      return [...prev, cat.id];
+    });
   };
 
+  const canContinue = useMemo(
+    () => selectedIds.length >= MIN_SELECTION && !saving,
+    [selectedIds.length, saving]
+  );
+
   const handleContinue = async () => {
-    // Update local context with category names for display
+    if (!canContinue) return;
+
     const selectedNames = categories
       .filter((c) => selectedIds.includes(c.id))
       .map((c) => c.name);
     setInterests(selectedNames);
 
-    // Save to backend if authenticated
     if (user?.id) {
       setSaving(true);
       try {
@@ -52,7 +97,9 @@ const InterestsScreen = () => {
         await updateUserInterests(user.id, iris);
       } catch (err) {
         logError('Interests.updateUserInterests', err, { userId: user.id });
-        // Non bloquant : on continue quand même
+        setError(toAppError(err, "Impossible d'enregistrer vos intérêts.").userMessage);
+        setSaving(false);
+        return;
       } finally {
         setSaving(false);
       }
@@ -61,45 +108,263 @@ const InterestsScreen = () => {
     router.replace('/');
   };
 
-  if (loading) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={Colors.light.primary} />
-      </View>
-    );
-  }
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Choisissez vos centres d&apos;intérêt</Text>
+    <View style={styles.screen}>
+      {/* Header de navigation (back seulement si on a déjà un user ; sinon onboarding direct). */}
+      <View style={styles.topBar}>
+        {user ? (
+          <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
+            <ArrowLeft size={22} color={Colors.light.text} />
+          </Pressable>
+        ) : (
+          <View style={styles.backBtn} />
+        )}
+        <Text style={styles.topBarTitle}>Vos intérêts</Text>
+        <View style={styles.backBtn} />
+      </View>
 
-      <ScrollView contentContainerStyle={styles.interestContainer}>
-        {categories.map((item, index) => (
-          <TouchableOpacity
-            key={item.id}
-            style={[
-              styles.interestBubble,
-              selectedIds.includes(item.id) && styles.selectedBubble,
-              index % 2 === 0 ? styles.oddBubble : styles.evenBubble,
-            ]}
-            onPress={() => toggleInterest(item)}
-          >
-            <Text style={styles.interestText}>{item.name}</Text>
-          </TouchableOpacity>
-        ))}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.header}>
+          <View style={styles.eyebrowRow}>
+            <Sparkles size={12} color={Colors.light.accent} />
+            <Text style={styles.eyebrow}>PERSONNALISATION</Text>
+          </View>
+          <Text style={styles.title}>Qu&apos;est-ce qui vous inspire ?</Text>
+          <Text style={styles.subtitle}>
+            Sélectionnez {MIN_SELECTION} à {MAX_SELECTION} centres d&apos;intérêt pour
+            que nous adaptions vos découvertes.
+          </Text>
+        </View>
+
+        <View style={styles.counterRow}>
+          <Text style={styles.counterText}>
+            <Text style={styles.counterValue}>{selectedIds.length}</Text>
+            <Text style={styles.counterMuted}> / {MAX_SELECTION} choisis</Text>
+          </Text>
+          {selectedIds.length > 0 ? (
+            <Pressable
+              onPress={() => setSelectedIds([])}
+              hitSlop={6}
+              accessibilityRole="button"
+            >
+              <Text style={styles.resetText}>Tout effacer</Text>
+            </Pressable>
+          ) : null}
+        </View>
+
+        {error ? (
+          <View style={styles.errorBanner}>
+            <Text style={styles.errorBannerText}>{error}</Text>
+          </View>
+        ) : null}
+
+        {loading ? (
+          <View style={styles.skeletonGrid}>
+            {Array.from({ length: 10 }).map((_, i) => (
+              <Skeleton key={i} width={96 + (i % 3) * 20} height={38} radius={19} />
+            ))}
+          </View>
+        ) : (
+          <View style={styles.chipsContainer}>
+            {categories.map((cat) => {
+              const active = selectedIds.includes(cat.id);
+              const disabled = !active && selectedIds.length >= MAX_SELECTION;
+              return (
+                <Pressable
+                  key={cat.id}
+                  onPress={() => toggleInterest(cat)}
+                  disabled={disabled}
+                  style={[
+                    styles.chip,
+                    active && styles.chipActive,
+                    disabled && styles.chipDisabled,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active, disabled }}
+                  accessibilityLabel={`${cat.name}${active ? ', sélectionné' : ''}`}
+                >
+                  {active ? <Check size={14} color="#fff" /> : null}
+                  <Text
+                    style={[
+                      styles.chipText,
+                      active && styles.chipTextActive,
+                      disabled && styles.chipTextDisabled,
+                    ]}
+                  >
+                    {cat.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={handleContinue}
-        disabled={selectedIds.length === 0 || saving}
-      >
-        <Text style={styles.buttonText}>
-          {saving ? 'Enregistrement...' : 'Continuer'}
-        </Text>
-      </TouchableOpacity>
+      {/* Sticky CTA en bas — toujours visible */}
+      <View style={styles.stickyBar}>
+        <CTAButton
+          label={selectedIds.length === 0 ? 'Choisissez au moins 1 intérêt' : 'Continuer'}
+          onPress={handleContinue}
+          disabled={!canContinue}
+          loading={saving}
+          size="lg"
+          fullWidth
+        />
+      </View>
     </View>
   );
 };
 
 export default InterestsScreen;
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.light.background,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 44,
+    paddingBottom: 8,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.light.surface,
+  },
+  topBarTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.light.text,
+    letterSpacing: 0.2,
+  },
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: 140,
+  },
+  header: {
+    marginTop: 8,
+    marginBottom: 22,
+  },
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  eyebrow: {
+    fontSize: 11,
+    letterSpacing: 2,
+    color: Colors.light.muted,
+    fontWeight: '700',
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: Colors.light.text,
+    fontFamily: Fonts?.serif,
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: Colors.light.muted,
+  },
+  counterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  counterText: {
+    fontSize: 14,
+    color: Colors.light.text,
+  },
+  counterValue: {
+    fontWeight: '800',
+    color: Colors.light.accent,
+  },
+  counterMuted: {
+    color: Colors.light.muted,
+    fontWeight: '600',
+  },
+  resetText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.light.primary,
+  },
+  errorBanner: {
+    padding: 12,
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+    borderWidth: 1,
+    borderRadius: 12,
+    marginBottom: 14,
+  },
+  errorBannerText: {
+    color: Colors.light.danger,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  skeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  chipsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  chipActive: {
+    backgroundColor: Colors.light.accent,
+    borderColor: Colors.light.accent,
+  },
+  chipDisabled: {
+    opacity: 0.4,
+  },
+  chipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.text,
+  },
+  chipTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  chipTextDisabled: {
+    color: Colors.light.muted,
+  },
+  stickyBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'ios' ? 28 : 18,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderTopWidth: 1,
+    borderTopColor: Colors.light.border,
+  },
+});

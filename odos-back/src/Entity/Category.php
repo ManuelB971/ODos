@@ -25,7 +25,7 @@ class Category
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['category:read', 'activity:read', 'user:read'])]
-    private ?int $id = null;
+    private int $id;
 
     #[ORM\Column(length: 255)]
     #[Groups(['category:read', 'activity:read', 'user:read'])]
@@ -51,7 +51,7 @@ class Category
 
     public function getId(): ?int
     {
-        return $this->id;
+        return isset($this->id) ? $this->id : null;
     }
 
 

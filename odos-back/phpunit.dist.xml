@@ -29,7 +29,12 @@
             restrictWarnings="true"
     >
         <include>
-            <directory>src</directory>
+            <file>src/DTO/CandidateForLlm.php</file>
+            <file>src/Service/LlmRankingService.php</file>
+            <file>src/Service/ActivityImportResult.php</file>
+            <file>src/Service/CommentContentSanitizer.php</file>
+            <file>src/Service/ThrottledActionException.php</file>
+            <file>src/Service/UserActionThrottleService.php</file>
         </include>
 
         <deprecationTrigger>

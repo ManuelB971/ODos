@@ -17,6 +17,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\TextFilter;
 
+/**
+ * @extends AbstractCrudController<AdminAuditLog>
+ */
 class AdminAuditLogCrudController extends AbstractCrudController
 {
     public static function getEntityFqcn(): string

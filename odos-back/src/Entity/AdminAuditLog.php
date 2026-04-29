@@ -15,7 +15,7 @@ class AdminAuditLog
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private int $id;
 
     #[ORM\Column(length: 180, nullable: true)]
     private ?string $adminEmail = null;
@@ -35,6 +35,9 @@ class AdminAuditLog
     #[ORM\Column(length: 500)]
     private string $summary = '';
 
+    /**
+     * @var array<string, mixed>|null
+     */
     #[ORM\Column(type: Types::JSON, nullable: true)]
     private ?array $context = null;
 
@@ -48,7 +51,7 @@ class AdminAuditLog
 
     public function getId(): ?int
     {
-        return $this->id;
+        return isset($this->id) ? $this->id : null;
     }
 
     public function getAdminEmail(): ?string
@@ -123,11 +126,17 @@ class AdminAuditLog
         return $this;
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getContext(): ?array
     {
         return $this->context;
     }
 
+    /**
+     * @param array<string, mixed>|null $context
+     */
     public function setContext(?array $context): static
     {
         $this->context = $context;

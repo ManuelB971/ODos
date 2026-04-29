@@ -20,6 +20,9 @@ final class AdminAuditLogger
     ) {
     }
 
+    /**
+     * @param array<string, mixed>|null $context
+     */
     public function log(
         string $action,
         string $entityClass,

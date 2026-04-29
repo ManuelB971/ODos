@@ -43,22 +43,30 @@ final class LlmRankingService
         $dtos = [];
 
         foreach ($candidates as $activity) {
-            $candidateMap[$activity->getId()] = $activity;
+            $activityId = $activity->getId();
+            if (null === $activityId) {
+                continue;
+            }
+
+            $candidateMap[$activityId] = $activity;
             $cat = $activity->getCategory();
             $catName = \is_object($cat) && method_exists($cat, 'getName') ? $cat->getName() : '';
             // Keep prompt small to reduce latency/timeouts on local CPU models.
             $desc = mb_substr((string) $activity->getDescription(), 0, 120);
 
             $dtos[] = new CandidateForLlm(
-                $activity->getId(),
+                $activityId,
                 $activity->getName(),
                 $desc,
                 $catName,
                 $activity->getCity(),
+                $activity->getRatingAverage(),
+                $activity->getRatingCount(),
             );
         }
 
-        $candidateIds = array_keys($candidateMap);
+        /** @var array<int> $candidateIds */
+        $candidateIds = array_map(static fn (int|string $id): int => (int) $id, array_keys($candidateMap));
 
         try {
             if ($cacheKey) {
@@ -125,7 +133,8 @@ PROMPT;
         ]);
 
         $body = $response->toArray();
-        $content = $body['message']['content'] ?? '';
+        $rawContent = $body['message']['content'] ?? '';
+        $content = is_string($rawContent) ? $rawContent : '';
 
         $this->logger->info('LLM response received.', [
             'model' => $this->llmModel,

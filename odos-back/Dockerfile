@@ -5,15 +5,20 @@ RUN apk add --no-cache \
         icu-dev \
         libpq-dev \
         libzip-dev \
+        freetype-dev \
+        libjpeg-turbo-dev \
+        libpng-dev \
         zip \
         unzip \
         git \
         curl \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install \
         pdo_pgsql \
         pgsql \
         intl \
         zip \
+        gd \
         opcache \
     && docker-php-ext-enable opcache
 

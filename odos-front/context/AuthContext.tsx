@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import api, { onAuthError, safeStorage } from '@/scripts/api';
 
 import { User, AuthContextType } from '@/types';
@@ -21,11 +22,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const logout = async () => {
     await safeStorage.deleteItem('user_token');
     await safeStorage.deleteItem('refresh_token');
     setUser(null);
+    // Purge TOTALE du cache React Query pour éviter toute fuite de données
+    // inter-comptes (favoris, recommandations, profil, commentaires…).
+    // Les requêtes en cours sont aussi annulées.
+    queryClient.cancelQueries();
+    queryClient.clear();
     router.replace('/login');
   };
 
@@ -47,6 +54,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser({
         id: response.data.id,
         email: response.data.email,
+        alias: response.data.alias ?? null,
+        displayName: response.data.displayName ?? null,
+        avatarUrl: response.data.avatarUrl ?? null,
+        bio: response.data.bio ?? null,
         interests: response.data.interests ?? [],
       });
     } catch (error: unknown) {

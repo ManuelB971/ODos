@@ -13,6 +13,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
+/**
+ * @extends AbstractCrudController<RefreshToken>
+ */
 class RefreshTokenCrudController extends AbstractCrudController
 {
     public static function getEntityFqcn(): string

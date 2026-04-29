@@ -34,7 +34,7 @@ class Activity
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['activity:read'])]
-    private ?int $id = null;
+    private int $id;
 
     #[ORM\Column(length: 255)]
     #[Groups(['activity:read', 'activity:write'])]
@@ -87,14 +87,36 @@ class Activity
     #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'favorites')]
     private Collection $favoritedBy;
 
+    #[ORM\Column(type: Types::DECIMAL, precision: 4, scale: 2, nullable: true)]
+    #[Groups(['activity:read'])]
+    private ?string $ratingAverage = null;
+
+    #[ORM\Column(options: ['default' => 0])]
+    #[Groups(['activity:read'])]
+    private int $ratingCount = 0;
+
+    /**
+     * @var Collection<int, Comment>
+     */
+    #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'activity', orphanRemoval: true)]
+    private Collection $comments;
+
+    /**
+     * @var Collection<int, ActivityRating>
+     */
+    #[ORM\OneToMany(targetEntity: ActivityRating::class, mappedBy: 'activity', orphanRemoval: true)]
+    private Collection $ratings;
+
     public function __construct()
     {
         $this->favoritedBy = new ArrayCollection();
+        $this->comments = new ArrayCollection();
+        $this->ratings = new ArrayCollection();
     }
 
     public function getId(): ?int
     {
-        return $this->id;
+        return isset($this->id) ? $this->id : null;
     }
 
     public function getName(): ?string
@@ -235,5 +257,45 @@ class Activity
     public function getFavoritedBy(): Collection
     {
         return $this->favoritedBy;
+    }
+
+    public function getRatingAverage(): ?float
+    {
+        return null !== $this->ratingAverage ? (float) $this->ratingAverage : null;
+    }
+
+    public function setRatingAverage(?float $ratingAverage): static
+    {
+        $this->ratingAverage = null !== $ratingAverage ? (string) round($ratingAverage, 2) : null;
+
+        return $this;
+    }
+
+    public function getRatingCount(): int
+    {
+        return $this->ratingCount;
+    }
+
+    public function setRatingCount(int $ratingCount): static
+    {
+        $this->ratingCount = $ratingCount;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Comment>
+     */
+    public function getComments(): Collection
+    {
+        return $this->comments;
+    }
+
+    /**
+     * @return Collection<int, ActivityRating>
+     */
+    public function getRatings(): Collection
+    {
+        return $this->ratings;
     }
 }

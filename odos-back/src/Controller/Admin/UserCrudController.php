@@ -3,6 +3,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\User;
+use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
@@ -13,6 +14,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
+/**
+ * @extends AbstractCrudController<User>
+ */
 class UserCrudController extends AbstractCrudController
 {
     public function __construct(
@@ -49,7 +53,7 @@ class UserCrudController extends AbstractCrudController
         ];
     }
 
-    public function persistEntity($entityManager, $entityInstance): void
+    public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if (!$entityInstance instanceof User) {
             parent::persistEntity($entityManager, $entityInstance);
@@ -65,7 +69,7 @@ class UserCrudController extends AbstractCrudController
         parent::persistEntity($entityManager, $entityInstance);
     }
 
-    public function updateEntity($entityManager, $entityInstance): void
+    public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if (!$entityInstance instanceof User) {
             parent::updateEntity($entityManager, $entityInstance);
@@ -78,8 +82,8 @@ class UserCrudController extends AbstractCrudController
             if (!in_array('ROLE_ADMIN', $entityInstance->getRoles())) {
                 $roles = $entityInstance->getRoles();
                 $roles[] = 'ROLE_ADMIN';
-                $entityInstance->setRoles(array_unique($roles));
-                $this->getContext()->getRequest()->getSession()->getFlashBag()->add('warning', 'Tentative bloquée : vous ne pouvez pas retirer vos propres droits d\'Administrateur.');
+                $entityInstance->setRoles(array_values(array_unique($roles)));
+                $this->addFlash('warning', 'Tentative bloquée : vous ne pouvez pas retirer vos propres droits d\'Administrateur.');
             }
         }
 
@@ -92,12 +96,12 @@ class UserCrudController extends AbstractCrudController
         parent::updateEntity($entityManager, $entityInstance);
     }
 
-    public function deleteEntity($entityManager, $entityInstance): void
+    public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if ($entityInstance instanceof User) {
             $currentUser = $this->getUser();
             if ($currentUser && $currentUser->getUserIdentifier() === $entityInstance->getUserIdentifier()) {
-                $this->getContext()->getRequest()->getSession()->getFlashBag()->add('danger', 'Tentative bloquée : vous ne pouvez pas supprimer votre propre compte Administrateur.');
+                $this->addFlash('danger', 'Tentative bloquée : vous ne pouvez pas supprimer votre propre compte Administrateur.');
                 return; // Stop the deletion
             }
         }

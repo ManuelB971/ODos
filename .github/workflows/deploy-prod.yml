@@ -1,0 +1,114 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy to Contabo VPS
+    runs-on: ubuntu-latest
+    environment: production
+    if: |
+      (github.event_name == 'workflow_dispatch' && vars.ENABLE_PROD_DEPLOY == 'true') ||
+      (github.event_name == 'workflow_run' &&
+       vars.ENABLE_PROD_DEPLOY == 'true' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main')
+    steps:
+      - name: Preflight - ensure deploy secrets exist
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          PROD_PORT: ${{ secrets.PROD_PORT }}
+          PROD_APP_PATH: ${{ secrets.PROD_APP_PATH }}
+        run: |
+          set -euo pipefail
+          for v in PROD_HOST PROD_USER PROD_SSH_KEY PROD_PORT PROD_APP_PATH; do
+            if [ -z "${!v:-}" ]; then
+              echo "Missing required secret: ${v}"
+              exit 1
+            fi
+          done
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.PROD_APP_PATH }}"
+            export APP_HTTP_PORT="${APP_HTTP_PORT:-80}"
+            PREV_COMMIT="$(git rev-parse HEAD)"
+            BACKUP_DIR="${HOME}/odos-backups"
+            mkdir -p "${BACKUP_DIR}"
+            DB_BACKUP_FILE="${BACKUP_DIR}/predeploy-$(date +%Y%m%d%H%M%S).sql"
+
+            echo "Creating pre-deploy database backup at ${DB_BACKUP_FILE}"
+            docker compose exec -T postgres sh -lc 'pg_dump --clean --if-exists -U "${POSTGRES_USER:-odos}" "${POSTGRES_DB:-odos}"' > "${DB_BACKUP_FILE}"
+
+            git fetch origin main
+            git checkout main
+            git pull --ff-only origin main
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+            docker compose exec -T php php bin/console doctrine:migrations:migrate --no-interaction --env=prod
+            HEALTHCHECK_URL="${{ vars.PROD_HEALTHCHECK_URL }}"
+            HEALTHCHECK_RETRIES="${{ vars.PROD_HEALTHCHECK_RETRIES || '12' }}"
+            HEALTHCHECK_DELAY="${{ vars.PROD_HEALTHCHECK_DELAY_SECONDS || '5' }}"
+            if [ -n "${HEALTHCHECK_URL}" ]; then
+              echo "Running healthcheck on ${HEALTHCHECK_URL}"
+              ok=0
+              for i in $(seq 1 "${HEALTHCHECK_RETRIES}"); do
+                if curl --fail --silent --show-error --max-time 5 "${HEALTHCHECK_URL}" > /dev/null; then
+                  ok=1
+                  break
+                fi
+                sleep "${HEALTHCHECK_DELAY}"
+              done
+              if [ "${ok}" -ne 1 ]; then
+                echo "Healthcheck failed, rolling back to ${PREV_COMMIT}"
+                git checkout "${PREV_COMMIT}"
+                docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+                echo "Restoring database from ${DB_BACKUP_FILE}"
+                docker compose exec -T postgres sh -lc 'psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-odos}" "${POSTGRES_DB:-odos}"' < "${DB_BACKUP_FILE}"
+                exit 1
+              fi
+            else
+              echo "PROD_HEALTHCHECK_URL not configured. Skipping post-deploy healthcheck."
+            fi
+            docker image prune -f
+
+  notify:
+    name: Notify deployment failure
+    runs-on: ubuntu-latest
+    needs: deploy
+    if: failure()
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+    steps:
+      - name: Notify Slack
+        if: env.SLACK_WEBHOOK_URL != ''
+        run: |
+          payload='{"text":"ODOS production deploy failed on branch main. Check GitHub Actions run: '"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"'"}'
+          curl -sS -X POST -H "Content-type: application/json" --data "${payload}" "${SLACK_WEBHOOK_URL}"
+
+      - name: Notify Discord
+        if: env.DISCORD_WEBHOOK_URL != ''
+        run: |
+          payload='{"content":"ODOS production deploy failed on branch main. Check run: '"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"'"}'
+          curl -sS -X POST -H "Content-Type: application/json" --data "${payload}" "${DISCORD_WEBHOOK_URL}"

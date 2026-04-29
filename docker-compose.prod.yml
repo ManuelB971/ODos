@@ -1,0 +1,12 @@
+services:
+  php:
+    build:
+      target: prod
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+      LLM_ENABLED: "${LLM_ENABLED:-false}"
+
+  llm:
+    profiles:
+      - llm

@@ -71,6 +71,38 @@ class RecommendationTest extends TestCase
         self::assertSame(1, $ranked[1]->getId());
     }
 
+    public function testFallsBackToDbOrderWhenLlmResponseIsInvalid(): void
+    {
+        $response = $this->createMock(ResponseInterface::class);
+        $response->method('toArray')->willReturn([
+            'message' => ['content' => 'not-json'],
+        ]);
+        $httpClient = $this->createMock(HttpClientInterface::class);
+        $httpClient->method('request')->willReturn($response);
+
+        $service = new LlmRankingService(
+            new ArrayAdapter(),
+            $httpClient,
+            new NullLogger(),
+            'http://llm:11434',
+            'test-model',
+            3,
+            2,
+            20,
+            true,
+            60
+        );
+
+        $first = $this->makeActivity(1, 'A');
+        $second = $this->makeActivity(2, 'B');
+
+        $ranked = $service->rank(['Music'], [$first, $second]);
+
+        self::assertCount(2, $ranked);
+        self::assertSame(1, $ranked[0]->getId());
+        self::assertSame(2, $ranked[1]->getId());
+    }
+
     private function makeActivity(int $id, string $name): Activity
     {
         $category = (new Category())->setName('Category');

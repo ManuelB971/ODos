@@ -57,6 +57,10 @@ export async function signIn(email: string, password: string) {
       user: {
         id: userResponse.data.id,
         email: userResponse.data.email,
+        alias: userResponse.data.alias ?? null,
+        displayName: userResponse.data.displayName ?? null,
+        avatarUrl: userResponse.data.avatarUrl ?? null,
+        bio: userResponse.data.bio ?? null,
         interests: userResponse.data.interests ?? [],
       },
     };
