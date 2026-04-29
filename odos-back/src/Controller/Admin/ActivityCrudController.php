@@ -23,6 +23,9 @@ use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
 
+/**
+ * @extends AbstractCrudController<Activity>
+ */
 class ActivityCrudController extends AbstractCrudController
 {
     /**

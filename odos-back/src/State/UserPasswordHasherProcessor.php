@@ -7,9 +7,13 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Entity\User;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
+/**
+ * @implements ProcessorInterface<mixed, mixed>
+ */
 class UserPasswordHasherProcessor implements ProcessorInterface
 {
     public function __construct(
+        /** @var ProcessorInterface<mixed, mixed> */
         private ProcessorInterface $innerProcessor,
         private UserPasswordHasherInterface $passwordHasher
     ) {}

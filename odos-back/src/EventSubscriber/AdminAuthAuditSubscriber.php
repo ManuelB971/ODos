@@ -7,6 +7,7 @@ namespace App\EventSubscriber;
 use App\Service\AdminAuditLogger;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Event\LoginFailureEvent;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 use Symfony\Component\Security\Http\Event\LogoutEvent;
@@ -34,20 +35,18 @@ final class AdminAuthAuditSubscriber implements EventSubscriberInterface
     public function onLoginSuccess(LoginSuccessEvent $event): void
     {
         $user = $event->getUser();
-        if (!method_exists($user, 'getRoles') || !in_array('ROLE_ADMIN', $user->getRoles(), true)) {
+        if (!in_array('ROLE_ADMIN', $user->getRoles(), true)) {
             return;
         }
 
-        $email = method_exists($user, 'getUserIdentifier') ? (string) $user->getUserIdentifier() : null;
-        if ($email !== null) {
-            $this->resetFailedAttempts($event->getRequest()->getClientIp(), $email);
-        }
+        $email = (string) $user->getUserIdentifier();
+        $this->resetFailedAttempts($event->getRequest()->getClientIp(), $email);
 
         $this->adminAuditLogger->log(
             'LOGIN',
             'Auth',
             null,
-            sprintf('Connexion admin réussie: %s', $email ?? 'admin'),
+            sprintf('Connexion admin réussie: %s', '' !== $email ? $email : 'admin'),
             'info',
             [
                 'firewall' => $event->getFirewallName(),
@@ -87,17 +86,17 @@ final class AdminAuthAuditSubscriber implements EventSubscriberInterface
     {
         $token = $event->getToken();
         $user = $token?->getUser();
-        if (!is_object($user) || !method_exists($user, 'getRoles') || !in_array('ROLE_ADMIN', $user->getRoles(), true)) {
+        if (!$user instanceof UserInterface || !in_array('ROLE_ADMIN', $user->getRoles(), true)) {
             return;
         }
 
-        $email = method_exists($user, 'getUserIdentifier') ? (string) $user->getUserIdentifier() : null;
+        $email = (string) $user->getUserIdentifier();
 
         $this->adminAuditLogger->log(
             'LOGOUT',
             'Auth',
             null,
-            sprintf('Déconnexion admin: %s', $email ?? 'admin'),
+            sprintf('Déconnexion admin: %s', '' !== $email ? $email : 'admin'),
             'info',
             [
                 'route' => $event->getRequest()->attributes->get('_route'),

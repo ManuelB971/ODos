@@ -32,6 +32,7 @@ use Symfony\Component\HttpFoundation\Response;
  * - Permet de basculer le drapeau {@see Comment::isHidden} (soft-delete réversible)
  *   sans jamais supprimer le contenu en base.
  * - Trace chaque action de modération dans l'audit log admin.
+ * @extends AbstractCrudController<Comment>
  */
 class CommentCrudController extends AbstractCrudController
 {
@@ -121,17 +122,23 @@ class CommentCrudController extends AbstractCrudController
             ->onlyOnDetail();
     }
 
+    /**
+     * @param AdminContext<Comment> $context
+     */
     public function hide(AdminContext $context): Response
     {
         return $this->toggleHidden($context, true);
     }
 
+    /**
+     * @param AdminContext<Comment> $context
+     */
     public function unhide(AdminContext $context): Response
     {
         return $this->toggleHidden($context, false);
     }
 
-    public function updateEntity($entityManager, $entityInstance): void
+    public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if ($entityInstance instanceof Comment) {
             $entityInstance->setUpdatedAt(new \DateTimeImmutable());
@@ -151,7 +158,7 @@ class CommentCrudController extends AbstractCrudController
         parent::updateEntity($entityManager, $entityInstance);
     }
 
-    public function deleteEntity($entityManager, $entityInstance): void
+    public function deleteEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if ($entityInstance instanceof Comment) {
             $this->auditLogger->log(
@@ -166,6 +173,9 @@ class CommentCrudController extends AbstractCrudController
         parent::deleteEntity($entityManager, $entityInstance);
     }
 
+    /**
+     * @param AdminContext<Comment> $context
+     */
     private function toggleHidden(AdminContext $context, bool $hidden): RedirectResponse
     {
         $comment = $context->getEntity()->getInstance();

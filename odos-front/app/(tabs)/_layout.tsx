@@ -1,4 +1,4 @@
-import { Tabs, useRouter, useSegments } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 
 import { Compass, Search, User } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
@@ -8,8 +8,6 @@ import { Colors } from '@/constants/theme';
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const segments = useSegments();
-
   useEffect(() => {
 
     if (!isLoading && !isAuthenticated) {

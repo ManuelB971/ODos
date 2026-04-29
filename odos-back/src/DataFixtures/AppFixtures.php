@@ -50,12 +50,8 @@ class AppFixtures extends Fixture
         $user->setPassword($this->userPasswordHasher->hashPassword($user, 'password'));
         
         // Add specific interests
-        if (isset($categories['Sport'])) {
-            $user->addInterest($categories['Sport']);
-        }
-        if (isset($categories['Nature'])) {
-            $user->addInterest($categories['Nature']);
-        }
+        $user->addInterest($categories['Sport']);
+        $user->addInterest($categories['Nature']);
         
         $manager->persist($user);
 

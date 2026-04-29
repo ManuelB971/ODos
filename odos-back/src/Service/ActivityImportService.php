@@ -154,7 +154,10 @@ final class ActivityImportService
         $sheet = $spreadsheet->getActiveSheet();
         $rows = [];
         foreach ($sheet->toArray(null, true, true, false) as $row) {
-            $rows[] = $row;
+            $rows[] = array_map(
+                static fn (mixed $value): bool|float|int|string|null => is_scalar($value) || null === $value ? $value : (string) $value,
+                array_values($row)
+            );
         }
 
         return $rows;

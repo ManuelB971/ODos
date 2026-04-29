@@ -50,7 +50,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['user:read'])]
-    private ?int $id = null;
+    private int $id;
 
     #[ORM\Column(length: 180)]
     #[Groups(['user:read', 'user:write'])]
@@ -186,7 +186,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getId(): ?int
     {
-        return $this->id;
+        return isset($this->id) ? $this->id : null;
     }
 
     public function getEmail(): ?string
@@ -278,7 +278,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getUserIdentifier(): string
     {
-        return (string) $this->email;
+        $identifier = $this->email ?? 'unknown-user';
+
+        return '' !== $identifier ? $identifier : 'unknown-user';
     }
 
     /**

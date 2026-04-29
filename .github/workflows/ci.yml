@@ -83,6 +83,27 @@ jobs:
       - name: Run PHPUnit
         run: composer test
 
+  backend-static-analysis:
+    name: Backend static analysis (PHPStan)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.infra == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: odos-back
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: intl, pdo_pgsql
+          coverage: none
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+      - name: Run PHPStan
+        run: composer analyse:ci
+
   backend-coverage:
     name: Backend coverage
     needs: [changes, backend]

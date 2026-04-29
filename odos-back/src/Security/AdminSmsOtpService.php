@@ -88,7 +88,11 @@ class AdminSmsOtpService
 
         $path = $raw;
         if (!$this->isAbsoluteFilesystemPath($path)) {
-            $projectDir = rtrim((string) $this->parameterBag->get('kernel.project_dir'), '/\\');
+            $projectDirValue = $this->parameterBag->get('kernel.project_dir');
+            if (!is_string($projectDirValue) || '' === $projectDirValue) {
+                return null;
+            }
+            $projectDir = rtrim($projectDirValue, '/\\');
             $path = $projectDir.DIRECTORY_SEPARATOR.str_replace(['/', '\\'], DIRECTORY_SEPARATOR, ltrim($path, '/\\'));
         }
 

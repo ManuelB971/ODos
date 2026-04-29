@@ -82,7 +82,7 @@ export const BottomSheet = React.forwardRef<BottomSheetRef, BottomSheetProps>(
         const current = translateY.value;
 
         // Détermine la cible la plus proche, en tenant compte de la vélocité.
-        const distances: Array<[BottomSheetState, number]> = [
+        const distances: [BottomSheetState, number][] = [
           ['full', Math.abs(current - snaps.full)],
           ['half', Math.abs(current - snaps.half)],
           ['collapsed', Math.abs(current - snaps.collapsed)],

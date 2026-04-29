@@ -34,7 +34,7 @@ class Activity
     #[ORM\GeneratedValue]
     #[ORM\Column]
     #[Groups(['activity:read'])]
-    private ?int $id = null;
+    private int $id;
 
     #[ORM\Column(length: 255)]
     #[Groups(['activity:read', 'activity:write'])]
@@ -116,7 +116,7 @@ class Activity
 
     public function getId(): ?int
     {
-        return $this->id;
+        return isset($this->id) ? $this->id : null;
     }
 
     public function getName(): ?string

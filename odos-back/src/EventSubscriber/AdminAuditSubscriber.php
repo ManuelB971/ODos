@@ -30,6 +30,9 @@ class AdminAuditSubscriber implements EventSubscriberInterface
         ];
     }
 
+    /**
+     * @param AfterEntityPersistedEvent<object> $event
+     */
     public function onAfterEntityPersisted(AfterEntityPersistedEvent $event): void
     {
         $entity = $event->getEntityInstance();
@@ -49,6 +52,9 @@ class AdminAuditSubscriber implements EventSubscriberInterface
         }
     }
 
+    /**
+     * @param AfterEntityUpdatedEvent<object> $event
+     */
     public function onAfterEntityUpdated(AfterEntityUpdatedEvent $event): void
     {
         $entity = $event->getEntityInstance();
@@ -68,6 +74,9 @@ class AdminAuditSubscriber implements EventSubscriberInterface
         }
     }
 
+    /**
+     * @param AfterEntityDeletedEvent<object> $event
+     */
     public function onAfterEntityDeleted(AfterEntityDeletedEvent $event): void
     {
         $entity = $event->getEntityInstance();

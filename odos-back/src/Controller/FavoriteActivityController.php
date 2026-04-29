@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Activity;
+use App\Entity\User;
 use App\Repository\ActivityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -47,6 +48,9 @@ class FavoriteActivityController extends AbstractController
         }
 
         $user = $this->security->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException('Utilisateur invalide.');
+        }
 
         if (!$user->hasFavorite($activity)) {
             $user->addFavorite($activity);
@@ -80,6 +84,9 @@ class FavoriteActivityController extends AbstractController
         }
 
         $user = $this->security->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException('Utilisateur invalide.');
+        }
 
         if ($user->hasFavorite($activity)) {
             $user->removeFavorite($activity);

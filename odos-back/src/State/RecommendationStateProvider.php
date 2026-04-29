@@ -4,9 +4,11 @@ namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
+use App\Entity\User;
 use App\Repository\ActivityRepository;
 use App\Service\LlmRankingService;
 use Symfony\Bundle\SecurityBundle\Security;
+use App\Entity\Activity;
 
 /**
  * Provides recommended activities based on the authenticated user's interests.
@@ -16,6 +18,7 @@ use Symfony\Bundle\SecurityBundle\Security;
  * 2. LLM re-ranking (if enabled) for smarter ordering
  * 3. Fallback to DB order if LLM is disabled or fails
  */
+/** @implements ProviderInterface<Activity> */
 class RecommendationStateProvider implements ProviderInterface
 {
     public function __construct(
@@ -24,11 +27,12 @@ class RecommendationStateProvider implements ProviderInterface
         private LlmRankingService $llmRankingService,
     ) {}
 
+    /** @return array<Activity> */
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): array
     {
         $user = $this->security->getUser();
 
-        if (!$user) {
+        if (!$user instanceof User) {
             return [];
         }
 

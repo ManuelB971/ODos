@@ -15,7 +15,7 @@ class ActivityRating
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private int $id;
 
     #[ORM\Column]
     #[Assert\Range(min: 1, max: 5)]
@@ -44,7 +44,7 @@ class ActivityRating
 
     public function getId(): ?int
     {
-        return $this->id;
+        return isset($this->id) ? $this->id : null;
     }
 
     public function getScore(): ?int

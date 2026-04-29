@@ -15,6 +15,9 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 
+/**
+ * @extends AbstractCrudController<AdminWebauthnCredential>
+ */
 class AdminWebauthnCredentialCrudController extends AbstractCrudController
 {
     public static function getEntityFqcn(): string

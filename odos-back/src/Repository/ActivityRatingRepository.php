@@ -37,7 +37,8 @@ class ActivityRatingRepository extends ServiceEntityRepository
             ->getSingleResult();
 
         $count = (int) ($row['cnt'] ?? 0);
-        $avg = isset($row['avgScore']) && null !== $row['avgScore'] ? round((float) $row['avgScore'], 2) : null;
+        $avgScore = $row['avgScore'] ?? null;
+        $avg = is_numeric($avgScore) ? round((float) $avgScore, 2) : null;
 
         $activity->setRatingCount($count);
         $activity->setRatingAverage($count > 0 ? $avg : null);

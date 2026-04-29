@@ -13,7 +13,7 @@ class AdminWebauthnCredential
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private int $id;
 
     #[ORM\ManyToOne(inversedBy: 'webauthnCredentials')]
     #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -35,7 +35,7 @@ class AdminWebauthnCredential
 
     public function getId(): ?int
     {
-        return $this->id;
+        return isset($this->id) ? $this->id : null;
     }
 
     public function getUser(): ?User

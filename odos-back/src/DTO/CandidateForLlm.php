@@ -18,6 +18,9 @@ final class CandidateForLlm implements \JsonSerializable
         public readonly int $ratingCount = 0,
     ) {}
 
+    /**
+     * @return array<string, int|float|string|null>
+     */
     public function jsonSerialize(): array
     {
         $data = [

@@ -138,6 +138,9 @@ final class AdminDashboardStatsProvider
     /**
      * Compte tolérant à l'absence de table (ex. avant migration en environnement local).
      */
+    /**
+     * @param class-string $entityClass
+     */
     private function safeCount(string $entityClass, string $alias, ?string $where = null): int
     {
         try {
@@ -202,7 +205,11 @@ final class AdminDashboardStatsProvider
      */
     private function getLastLogLines(int $maxLines): array
     {
-        $dir = (string) $this->parameterBag->get('kernel.logs_dir');
+        $logsDir = $this->parameterBag->get('kernel.logs_dir');
+        if (!is_string($logsDir) || '' === $logsDir) {
+            return [];
+        }
+        $dir = $logsDir;
         $path = $dir.'/dev.log';
         if (!is_readable($path)) {
             return [];
