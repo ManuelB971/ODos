@@ -1,4 +1,9 @@
-# CI/CD ODOS — version 1 (gratuit, apprentissage)
+# CI/CD ODOS — version 1 (archive)
+
+> Statut: **document historique**.  
+> Pour la configuration active du projet, utilisez `docs/CI_CD_V2_2026.md`.
+
+Ce document v1 est conservé pour expliquer l'évolution initiale du pipeline.
 
 Ce document décrit une **première chaîne** concrète pour le monorepo **ODOS** :
 

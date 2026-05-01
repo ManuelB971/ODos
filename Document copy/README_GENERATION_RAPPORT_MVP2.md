@@ -100,22 +100,32 @@ Pour chaque idée : **problème utilisateur**, **comportement attendu**, **donn�
 
 ---
 
-## 8. Références internes (dépôt ODOS)
+## 8. References internes (depot ODOS)
+
+> Mis a jour avril 2026.
 
 | Fichier | Usage |
 |---------|--------|
-| `implementation_plan.md` | Modèle de données, recommandations, sécurité MVP |
-| `TASKS_REMAINING.md` | Checklist MVP et priorités historiques |
-| `planllm.md` | Design LLM re-ranking, contraintes de sécurité |
-| `guide_mise_en_production.md` | Contraintes déploiement / exploitation |
-| `README.md` (racine) | Stack, Docker, démarrage |
+| `implementation_plan.md` | Modele de donnees, recommandations, securite MVP (**realise**) |
+| `TASKS_REMAINING.md` | Checklist recadree avril 2026 (realise vs reste a faire) |
+| `planllm.md` | Design LLM re-ranking (**implemente**), contraintes de securite |
+| `guide_mise_en_production.md` | Deploiement Docker + Contabo VPS |
+| `walkthrough.md` | Architecture fichiers cles (front + back) |
+| `README.md` (racine) | Stack, Docker, demarrage, hebergement Contabo |
+| `docs/CI_CD_V2_2026.md` | Documentation CI/CD active (GitHub Actions) |
+| `odos-front/TESTS_UNITAIRES_FRONT.md` | Strategie et commandes tests front |
 
 ---
 
-## 9. Prochaine action concrète
+## 9. Prochaine action concrete
 
-Ouvrir un nouveau document (par ex. `RAPPORT_ODOS_MVP2_YYYY.md`) en copiant la structure de la **section 4**, puis remplir **section 3 (concurrent)** et **section 5 (backlog)** en premier — ce sont les parties qui conditionnent le reste du rapport.
+Le rapport `RAPPORT_ODOS_MVP2_2026.md` existe deja dans ce dossier. Pour le mettre a jour :
+
+1. Verifier le **tableau section 2.2** (etat code) avec `TASKS_REMAINING.md` recadre.
+2. Completer la **section 5** (concurrent) avec nom, sources, captures.
+3. Ajuster le **planning section 7** selon les jalons reels.
 
 ---
 
-*Document généré pour le dépôt ODOS — à maintenir lorsque la définition de « MVP 2 » ou le paysage concurrentiel évolue.*
+*Document genere pour le depot ODOS — a maintenir lorsque la definition de « MVP 2 » ou le paysage concurrentiel evolue.*  
+*Derniere MAJ : avril 2026.*
