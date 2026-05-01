@@ -14,6 +14,7 @@ class AdminMfaSubscriber implements EventSubscriberInterface
     public function __construct(
         private readonly Security $security,
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly bool $mfaEnabled = true,
     ) {
     }
 
@@ -26,7 +27,7 @@ class AdminMfaSubscriber implements EventSubscriberInterface
 
     public function onKernelRequest(RequestEvent $event): void
     {
-        if (!$event->isMainRequest()) {
+        if (!$this->mfaEnabled || !$event->isMainRequest()) {
             return;
         }
 
