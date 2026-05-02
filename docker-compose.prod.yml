@@ -2,12 +2,12 @@ services:
   php:
     build:
       target: prod
+    env_file:
+      - ${ODOS_CONFIG_DIR:-~/odos-config}/.env
     environment:
       APP_ENV: prod
       APP_DEBUG: "0"
-      LLM_ENABLED: "${LLM_ENABLED:-false}"
     volumes:
-      - ${ODOS_CONFIG_DIR:-~/odos-config}/.env.local.php:/app/.env.local.php:ro
       - ${ODOS_CONFIG_DIR:-~/odos-config}/.env:/app/.env:ro
       - ${ODOS_CONFIG_DIR:-~/odos-config}/jwt/private.pem:/app/config/jwt/private.pem:ro
       - ${ODOS_CONFIG_DIR:-~/odos-config}/jwt/public.pem:/app/config/jwt/public.pem:ro
