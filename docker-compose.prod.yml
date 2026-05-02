@@ -11,7 +11,16 @@ services:
       - ${ODOS_CONFIG_DIR:-~/odos-config}/.env:/app/.env:ro
       - ${ODOS_CONFIG_DIR:-~/odos-config}/jwt/private.pem:/app/config/jwt/private.pem:ro
       - ${ODOS_CONFIG_DIR:-~/odos-config}/jwt/public.pem:/app/config/jwt/public.pem:ro
+      # même espace pour PHP (écriture) et nginx (lecture) : avatars / photos admin
+      - odos_public_uploads:/app/public/uploads
+
+  nginx:
+    volumes:
+      - odos_public_uploads:/app/public/uploads:ro
 
   llm:
     profiles:
       - llm
+
+volumes:
+  odos_public_uploads:
