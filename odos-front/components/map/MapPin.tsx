@@ -20,7 +20,7 @@ export type MapPinProps = {
 };
 
 /**
- * Pin custom ODOS, rendu à l'intérieur d'un `<Marker>` de `react-native-maps`.
+ * Pin custom ODOS, rendu à l'intérieur d'un `<Marker>` MapLibre (`@maplibre/maplibre-react-native`).
  *
  * Design :
  * - Forme inspirée du logo : bulle arrondie surmontant une petite "queue"

@@ -74,6 +74,35 @@ describe('AuthService', () => {
     expect(result.errorMessage).toContain('Session expirée');
   });
 
+  it('signUp returns detailed message when server is unreachable', async () => {
+    mockApi.post.mockRejectedValueOnce({
+      isAxiosError: true,
+      message: 'Network Error',
+      response: undefined,
+    });
+
+    const { signUp } = authService();
+    const result = await signUp('new@odos.app', 'secret12');
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toContain('Impossible de joindre le serveur');
+    expect(result.errorMessage).toContain('http://localhost:8000');
+  });
+
+  it('signUp returns API message on HTTP 400 instead of network wording', async () => {
+    mockApi.post.mockRejectedValueOnce({
+      isAxiosError: true,
+      message: 'Request failed with status code 400',
+      response: { status: 400, data: { message: 'Bad thing.' } },
+    });
+
+    const { signUp } = authService();
+    const result = await signUp('new@odos.app', 'secret12');
+
+    expect(result.success).toBe(false);
+    expect(result.errorMessage).toBe('Bad thing.');
+  });
+
   it('signOut removes tokens', async () => {
     mockSafeStorage.deleteItem.mockResolvedValue(undefined);
 

@@ -1,12 +1,14 @@
 /**
- * Style custom Google Maps pour ODOS.
+ * Ancien style **Google Maps** (JSON tableau pour `customMapStyle` sur react-native-maps).
+ * L’app mobile utilise désormais **MapLibre** — voir `constants/maplibreStyle.ts`;
+ * ce fichier est conservé comme référence si tu dois recréer une esthétique proche sous Maputnik / MapLibre.
  *
  * Principes :
  * - Carte **très claire**, peu de bruit visuel (routes fines, peu de labels).
  * - Eau teintée turquoise douce (#5fc2d8 à 25 %) pour rappeler l'identité.
  * - POIs génériques cachés : on ne garde que nos propres markers.
  *
- * On passe ce tableau à `<MapView customMapStyle={odosMapStyle} />`.
+ * Anciennement : `<MapView customMapStyle={odosMapStyle} />` (Google).
  *
  * Réf. : https://developers.google.com/maps/documentation/ios-sdk/styling
  */

@@ -1,13 +1,12 @@
 import { useEffect } from 'react';
 
-declare global {
-  interface Window {
-    frameworkReady?: () => void;
-  }
-}
-
 export function useFrameworkReady() {
   useEffect(() => {
-    window.frameworkReady?.();
+    try {
+      const g = globalThis as typeof globalThis & { frameworkReady?: () => void };
+      g.frameworkReady?.();
+    } catch {
+      /* Hermes/Android : pas de `window`; hook safe pour APK */
+    }
   });
 }

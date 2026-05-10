@@ -16,14 +16,15 @@ import {
   Text,
   View,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
+import { Map, Camera, Marker, type CameraRef } from '@maplibre/maplibre-react-native';
 import { ArrowLeft, Compass } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
 import { Colors } from '@/constants/theme';
-import { odosMapStyle } from '@/constants/mapStyle';
 import { ApiActivity } from '@/types';
+import { LatLngRegion, regionToBounds } from '@/utils/mapViewport';
 import {
   ActivityCard,
   ActivityCardSkeleton,
@@ -41,7 +42,7 @@ export type MapExperienceProps = {
   error?: string | null;
 };
 
-const FRANCE_FALLBACK_REGION: Region = {
+const FRANCE_FALLBACK_REGION: LatLngRegion = {
   latitude: 46.603354,
   longitude: 1.888334,
   latitudeDelta: 6,
@@ -52,7 +53,7 @@ const FRANCE_FALLBACK_REGION: Region = {
  * Orchestrateur plein-écran : map + top overlay + bottom sheet + synchro.
  *
  * Les 3 layers sont volontairement séparés :
- *  1. `<MapView>` en background absolu.
+ *  1. `<Map>` MapLibre en background absolu (style URL — pas de clé Google).
  *  2. Top overlay (`SearchBar` + `CategoryChips`) positionné en absolu,
  *     au-dessus de la map via `zIndex`.
  *  3. `<BottomSheet>` dessous, lui-même contrôlé avec un état "collapsed/half/full".
@@ -65,7 +66,7 @@ const FRANCE_FALLBACK_REGION: Region = {
  */
 export function MapExperience({ activities, loading = false, error = null }: MapExperienceProps) {
   const router = useRouter();
-  const mapRef = useRef<MapView | null>(null);
+  const cameraRef = useRef<CameraRef | null>(null);
   const listRef = useRef<FlatList<ApiActivity> | null>(null);
 
   const [search, setSearch] = useState('');
@@ -87,17 +88,17 @@ export function MapExperience({ activities, loading = false, error = null }: Map
 
   /** Catégories dérivées des activités, triées + toujours préfixées par "Tous". */
   const chips: Chip[] = useMemo(() => {
-    const map = new Map<string, string>();
+    const seen = new globalThis.Map<string, string>();
     for (const a of geoActivities) {
       const label =
         typeof a.category === 'string'
           ? a.category
           : a.category?.name ?? '';
-      if (label && !map.has(label.toLowerCase())) {
-        map.set(label.toLowerCase(), label);
+      if (label && !seen.has(label.toLowerCase())) {
+        seen.set(label.toLowerCase(), label);
       }
     }
-    const sorted: Chip[] = Array.from(map.entries())
+    const sorted: Chip[] = Array.from(seen.entries())
       .map(([id, label]) => ({ id, label }))
       .sort((a, b) => a.label.localeCompare(b.label, 'fr'));
     return [{ id: 'all', label: 'Tous' }, ...sorted];
@@ -120,7 +121,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
     });
   }, [geoActivities, search, activeCategoryId]);
 
-  const initialRegion = useMemo<Region>(() => {
+  const initialRegion = useMemo<LatLngRegion>(() => {
     if (filtered.length === 0) return FRANCE_FALLBACK_REGION;
     const lats = filtered.map((a) => a.latitude);
     const lngs = filtered.map((a) => a.longitude);
@@ -142,15 +143,12 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   const focusActivity = useCallback(
     (activity: ApiActivity, opts: { scrollList?: boolean; openSheet?: boolean } = {}) => {
       setSelectedId(activity.id);
-      mapRef.current?.animateToRegion(
-        {
-          latitude: activity.latitude,
-          longitude: activity.longitude,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        },
-        350
-      );
+      cameraRef.current?.easeTo({
+        center: [activity.longitude, activity.latitude],
+        zoom: 14,
+        duration: 350,
+        easing: 'ease',
+      });
       if (opts.scrollList !== false) {
         const index = filtered.findIndex((a) => a.id === activity.id);
         if (index >= 0) {
@@ -210,38 +208,52 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   );
 
   const resetViewport = useCallback(() => {
-    mapRef.current?.animateToRegion(initialRegion, 500);
+    cameraRef.current?.fitBounds(regionToBounds(initialRegion), {
+      padding: { top: 120, bottom: 220, left: 28, right: 28 },
+      duration: 500,
+      easing: 'ease',
+    });
     setSelectedId(null);
+  }, [initialRegion]);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => {
+      cameraRef.current?.fitBounds(regionToBounds(initialRegion), {
+        padding: { top: 120, bottom: 220, left: 28, right: 28 },
+        duration: 0,
+      });
+    });
+    return () => cancelAnimationFrame(id);
   }, [initialRegion]);
 
   const showEmpty = !loading && !error && filtered.length === 0;
 
   return (
     <View style={styles.root}>
-      {/* ── Layer 1 : MAP ── */}
-      <MapView
-        ref={mapRef}
+      {/* ── Layer 1 : MAP — MapLibre (vectoriel, style paramétrable). */}
+      <Map
         style={StyleSheet.absoluteFill}
-        initialRegion={initialRegion}
-        provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-        customMapStyle={odosMapStyle}
-        showsCompass={false}
-        showsMyLocationButton={false}
-        rotateEnabled={false}
-        toolbarEnabled={false}
+        mapStyle={getOdosMaplibreStyleUrl()}
+        compass={false}
+        scaleBar={false}
+        attribution
+        logo
+        touchPitch={false}
+        touchRotate={false}
       >
+        <Camera ref={cameraRef} />
         {filtered.map((activity) => (
           <Marker
             key={`pin-${activity.id}`}
-            coordinate={{ latitude: activity.latitude, longitude: activity.longitude }}
+            id={`pin-${activity.id}`}
+            lngLat={[activity.longitude, activity.latitude]}
+            anchor="bottom"
             onPress={() => focusActivity(activity)}
-            anchor={{ x: 0.5, y: 1 }}
-            tracksViewChanges={Platform.OS === 'ios' ? false : activity.id === selectedId}
           >
             <MapPin active={activity.id === selectedId} label={activity.name} />
           </Marker>
         ))}
-      </MapView>
+      </Map>
 
       {/* ── Layer 2 : TOP OVERLAY (search + chips) ── */}
       <SafeAreaView edges={['top']} style={styles.topOverlay} pointerEvents="box-none">

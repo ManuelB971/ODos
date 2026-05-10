@@ -4,7 +4,6 @@ import {
   StyleSheet,
   Pressable,
   FlatList,
-  Platform,
   Image,
   ScrollView,
 } from 'react-native';
@@ -19,10 +18,11 @@ import { Colors, Spacing } from '@/constants/theme';
 import { toAppError } from '@/utils/errorHandling';
 import { AppLogo } from '@/components/AppLogo';
 import { resolveImageUrl } from '@/utils/imageUrl';
-import { odosMapStyle } from '@/constants/mapStyle';
+import { lngDeltaToZoom } from '@/utils/mapViewport';
 import { MapPin as MapPinMarker } from '@/components/map/MapPin';
 import { SkeletonActivityRow, SkeletonRecommendationCard } from '@/components/ui/Skeleton';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
+import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
 
 /** Helper: get the category display name from the API response */
 const getCategoryName = (cat: ApiActivity['category']): string => {
@@ -204,31 +204,39 @@ export default function HomeScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Ouvrir la carte immersive"
               >
-                <MapView
+                <Map
+                  key={`hm-${initialRegion.latitude.toFixed(4)}_${initialRegion.longitude.toFixed(4)}_${geoActivities.length}`}
                   style={styles.map}
-                  initialRegion={initialRegion}
-                  provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
-                  customMapStyle={odosMapStyle}
+                  mapStyle={getOdosMaplibreStyleUrl()}
                   pointerEvents="none"
-                  scrollEnabled={false}
-                  zoomEnabled={false}
-                  rotateEnabled={false}
-                  pitchEnabled={false}
-                  toolbarEnabled={false}
-                  showsCompass={false}
-                  showsMyLocationButton={false}
+                  attribution
+                  logo
+                  compass={false}
+                  scaleBar={false}
+                  dragPan={false}
+                  touchZoom={false}
+                  doubleTapZoom={false}
+                  doubleTapHoldZoom={false}
+                  touchRotate={false}
+                  touchPitch={false}
                 >
+                  <Camera
+                    initialViewState={{
+                      center: [initialRegion.longitude, initialRegion.latitude],
+                      zoom: lngDeltaToZoom(initialRegion.longitudeDelta),
+                    }}
+                  />
                   {geoActivities.slice(0, 40).map((activity) => (
                     <Marker
                       key={`marker-${activity.id}`}
-                      coordinate={{ latitude: activity.latitude, longitude: activity.longitude }}
-                      anchor={{ x: 0.5, y: 1 }}
-                      tracksViewChanges={false}
+                      id={`hm-${activity.id}`}
+                      lngLat={[activity.longitude, activity.latitude]}
+                      anchor="bottom"
                     >
                       <MapPinMarker variant="dot" />
                     </Marker>
                   ))}
-                </MapView>
+                </Map>
                 <View pointerEvents="none" style={styles.mapBadgeCount}>
                   <Text style={styles.mapBadgeCountText}>
                     {geoActivities.length} lieu{geoActivities.length > 1 ? 'x' : ''}

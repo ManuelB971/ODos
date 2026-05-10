@@ -12,10 +12,36 @@ export type AppError = {
   retryAfterSeconds?: number;
 };
 
+function extractApiMessage(data: unknown): string | undefined {
+  if (!data || typeof data !== 'object') return undefined;
+  const d = data as Record<string, unknown>;
+  if (typeof d.message === 'string' && d.message.trim() !== '') return d.message;
+  if (typeof d['hydra:description'] === 'string' && d['hydra:description'].trim() !== '') {
+    return d['hydra:description'];
+  }
+  const details = d.details;
+  if (Array.isArray(details)) {
+    const first = details.find((x) => x && typeof x === 'object' && typeof (x as { message?: unknown }).message === 'string');
+    if (first && typeof (first as { message: string }).message === 'string') {
+      return (first as { message: string }).message;
+    }
+  }
+  return undefined;
+}
+
 export function toAppError(error: unknown, fallback = 'Une erreur est survenue.'): AppError {
   if (isAxiosError(error)) {
-    const status = error.response?.status;
-    const data = error.response?.data as
+    if (error.response == null) {
+      return {
+        code: 'NETWORK_ERROR',
+        userMessage:
+          'Impossible de joindre le serveur. Vérifiez votre connexion, le pare-feu et que l’API est accessible depuis le téléphone.',
+        technicalMessage: error.message,
+      };
+    }
+
+    const status = error.response.status;
+    const data = error.response.data as
       | {
           message?: unknown;
           details?: Array<{ message?: unknown }>;
@@ -32,6 +58,10 @@ export function toAppError(error: unknown, fallback = 'Une erreur est survenue.'
     }
     if (status === 404) {
       return { status, code: 'NOT_FOUND', userMessage: 'Ressource introuvable.', technicalMessage: error.message };
+    }
+    if (status === 400) {
+      const message = extractApiMessage(data) ?? 'Requête refusée par le serveur.';
+      return { status, code: 'BAD_REQUEST', userMessage: message, technicalMessage: error.message };
     }
     if (status === 422) {
       const firstDetailMessage = data?.details?.find((d) => typeof d?.message === 'string')?.message as string | undefined;

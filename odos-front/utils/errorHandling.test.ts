@@ -18,6 +18,33 @@ describe('toAppError', () => {
     expect(result.userMessage).toBe('Fallback message');
   });
 
+  it('maps axios errors without response to NETWORK_ERROR', () => {
+    const error = {
+      isAxiosError: true,
+      message: 'Network Error',
+      response: undefined,
+    };
+
+    const result = toAppError(error);
+    expect(result.code).toBe('NETWORK_ERROR');
+    expect(result.userMessage).toContain('Impossible de joindre');
+  });
+
+  it('maps 400 and returns backend message when present', () => {
+    const error = {
+      isAxiosError: true,
+      message: 'Request failed with status code 400',
+      response: {
+        status: 400,
+        data: { message: 'Format JSON invalide.' },
+      },
+    };
+
+    const result = toAppError(error);
+    expect(result.code).toBe('BAD_REQUEST');
+    expect(result.userMessage).toBe('Format JSON invalide.');
+  });
+
   it('maps 422 and returns backend validation message', () => {
     const error = {
       isAxiosError: true,
