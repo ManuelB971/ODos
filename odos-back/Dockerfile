@@ -26,6 +26,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
+# Symfony reads env from Docker / env_file; PHP-FPM defaults to clear_env=yes which strips them from workers.
+RUN printf '\n; Allow container env (Docker Compose env_file) to reach PHP workers\nclear_env = no\n' >> /usr/local/etc/php-fpm.d/www.conf
+
 # ---------- Dev target (default) ----------
 FROM base AS dev
 
@@ -39,8 +42,9 @@ RUN composer install --no-scripts --no-interaction --prefer-dist
 COPY . .
 RUN composer run-script post-install-cmd || true
 
-RUN mkdir -p var/cache var/log var/share \
-    && chown -R www-data:www-data var
+RUN mkdir -p public/uploads/avatars public/uploads/activities \
+    && mkdir -p var/cache var/log var/share \
+    && chown -R www-data:www-data var public/uploads
 
 EXPOSE 9000
 CMD ["php-fpm"]
@@ -57,8 +61,9 @@ COPY . .
 RUN composer run-script post-install-cmd || true \
     && composer dump-autoload --optimize --classmap-authoritative
 
-RUN mkdir -p var/cache var/log var/share \
-    && chown -R www-data:www-data var
+RUN mkdir -p public/uploads/avatars public/uploads/activities \
+    && mkdir -p var/cache var/log var/share \
+    && chown -R www-data:www-data var public/uploads
 
 EXPOSE 9000
 CMD ["php-fpm"]

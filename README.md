@@ -6,12 +6,45 @@ Ce dépôt contient :
 - `odos-back/` : API Symfony + API Platform + JWT (LexikJWT) + EasyAdmin (`/admin`)
 - `odos-front/` : application mobile Expo/React Native
 
+## Documentation (à jour)
+
+- `docs/CI_CD_V2_2026.md` : documentation de référence CI/CD actuelle (Contabo-ready).
+- `docs/CI_CD_V1.md` : version historique (archivée) conservée pour contexte.
+- `odos-front/TESTS_UNITAIRES_FRONT.md` : stratégie et commandes de tests front.
+
 ## Prérequis
 
 - Docker Desktop (Windows/Mac) ou Docker Engine + Compose v2
 - Node.js 20+ (pour lancer les tests front hors conteneur)
 - pnpm (optionnel, sinon npm)
 - (Optionnel) PHP 8.2+ + Composer pour exécution locale sans Docker
+
+## Hébergement recommandé (Contabo)
+
+### Avis sur ta config Contabo Cloud VPS 30
+
+Configuration proposée:
+
+- `8 vCPU`
+- `24 GB RAM`
+- `200 GB NVMe` (ou `400 GB SSD`)
+- `600 Mbit/s`
+- `3 snapshots`
+
+Verdict: **oui, c'est une très bonne base pour héberger ODOS en production** (API Symfony + PostgreSQL + Redis + front Expo publié séparément).
+
+### Recommandation pratique pour ODOS
+
+- Prendre **200 GB NVMe** plutôt que 400 GB SSD (meilleures latences DB, cache et migrations).
+- Garder la stack Docker actuelle (`docker-compose.yml` + `docker-compose.prod.yml`).
+- Prévoir un reverse proxy TLS (Nginx/Caddy + Let's Encrypt) devant l'API.
+- Conserver les snapshots Contabo, mais ajouter une vraie stratégie de backup DB (dump quotidien + rétention hors VPS).
+
+### Capacité estimée (ordre de grandeur)
+
+- Cette machine supporte largement un **MVP / petite à moyenne charge**.
+- Point d'attention principal: la **RAM**, surtout si tu actives plusieurs services lourds en même temps (LLM local, SIEM, etc.).
+- Si tu actives Wazuh/LLM en permanence sur la même VM, séparer les rôles (ou augmenter de palier) reste plus propre.
 
 ## Objectif immédiat (demandé)
 

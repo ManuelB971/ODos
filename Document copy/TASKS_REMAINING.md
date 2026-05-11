@@ -1,165 +1,134 @@
-# 📋 ODOS - Tâches Restantes pour MVP
+# ODOS - Taches restantes (mis a jour avril 2026)
 
-## ✅ Complété
-- [x] Symfony 7.4.5 configuré
-- [x] PostgreSQL en Docker
-- [x] JWT authentiication (private/public.pem générées)
-- [x] EasyAdmin dashboard
-- [x] API Platform
+> **Derniere MAJ** : avril 2026 — recadrage complet par rapport a l'etat reel du depot.
+
+---
+
+## Realise
+
+### Backend Symfony (odos-back)
+
+- [x] Symfony 7.4 configure + Docker (PHP-FPM, Nginx, PostgreSQL, Redis)
+- [x] Entity `Category` (name unique, API Platform groups)
+- [x] Entity `User` (email, roles, password, interests ManyToMany -> Category, favorites, alias, bio, avatar, displayName)
+- [x] Entity `Activity` (name, description, lat/lon, city, price, imageUrl, dates, isPublished, category ManyToOne, ratingAverage, ratingCount)
+- [x] Entity `ActivityRating` (note 1-5 par utilisateur, agregation sur Activity)
+- [x] Entity `Comment` (auteur, contenu sanitize, soft-delete `isHidden`)
+- [x] Migrations Doctrine executees
+- [x] JWT authentification (LexikJWT : `/api/login`, `/api/token/refresh`)
+- [x] Endpoint `/api/me` (MeStateProvider)
+- [x] Endpoint `GET /api/recommendations` (RecommendationStateProvider + re-ranking LLM optionnel)
+- [x] `LlmRankingService` : appel Ollama, cache Redis, fallback DB, timeout configurable
+- [x] `CandidateForLlm` DTO (id, name, description, category, city, ratingAverage, ratingCount)
+- [x] Securite : acces public categories/activities, recommandations ROLE_USER, admin ROLE_ADMIN
+- [x] CORS configure (NelmioCorsBundle)
+- [x] EasyAdmin dashboard (`/admin`) : Activity, Category, User, Comment, import CSV
+- [x] `ActivityRatingController` : GET/PUT/DELETE `/api/activities/{id}/rating`
+- [x] `ActivityCommentsController` : GET/POST `/api/activities/{id}/comments`
+- [x] `CommentItemController` : PATCH/DELETE `/api/comments/{id}`
+- [x] `FavoriteActivityController` : POST/DELETE `/api/activities/{id}/favorite`
+- [x] `UserAvatarController` : upload avatar securise
+- [x] `UserActionThrottleService` : anti-abus (cache)
+- [x] `CommentContentSanitizer` : nettoyage XSS
+- [x] `ActivityImportService` + `ActivityPhotoUploader` (import CSV admin)
+- [x] `AdminDashboardStatsProvider` : stats admin
 - [x] Fixtures de base
+- [x] Tests PHPUnit : RecommendationTest, ActivityRatingAggregateTest, CommentContentSanitizerTest, UserActionThrottleServiceTest, ThrottledActionExceptionTest, ActivityImportResultTest
+- [x] PHPStan analyse statique (niveau progressif, extensions Doctrine + Symfony)
+
+### Frontend React Native / Expo (odos-front)
+
+- [x] Navigation tabs (home, search, favorites, account)
+- [x] Ecran login JWT (AuthService + AuthContext + SecureStore)
+- [x] Ecran interests (selection centres d'interet, InterestContext)
+- [x] Ecran account (profil, alias, bio, avatar, settings)
+- [x] Ecran detail activite (`activity/[id].tsx`) : favoris, notes, commentaires
+- [x] Ecran recherche avec filtres
+- [x] Ecran carte (`map.tsx`) avec MapExperience, pins, bottom sheet
+- [x] Ecran favoris (FavoriteCard)
+- [x] Hook `useRecommendations` (appel `/api/recommendations` avec JWT)
+- [x] Composant `RecommendedActivities`
+- [x] Types centralises (`types/index.ts`)
+- [x] API centralisee (`scripts/api.ts`)
+- [x] Gestion d'erreurs centralisee (`utils/errorHandling.ts`)
+- [x] Tests unitaires Jest : api, AuthService, errorHandling, imageUrl, jwt, useRecommendations, useDebounce, useFavorites, useSearchActivities, useActivities, InterestContext
+
+### CI/CD (GitHub Actions)
+
+- [x] Workflow `.github/workflows/ci.yml` : detection de changements (paths-filter)
+- [x] Job backend : PHPUnit + PostgreSQL + Redis en service
+- [x] Job frontend : lint (eslint) + tests Jest
+- [x] Job backend-static-analysis : PHPStan
+- [x] Job backend-coverage : rapport HTML en artifact
+- [x] Job frontend-coverage : rapport HTML en artifact
+- [x] Job build-backend-prod : image Docker cible prod
+- [x] Actions mises a jour : checkout@v6, setup-node@v6, pnpm/action-setup@v5
+
+### Docker & Infrastructure
+
+- [x] `docker-compose.yml` : PHP, Nginx, PostgreSQL, Redis, Ollama (LLM)
+- [x] `docker-compose.override.yml` : config dev
+- [x] Configuration Contabo VPS documentee dans README
 
 ---
 
-## 🔨 Backend Symfony (odos-back)
+## Reste a faire (par priorite)
 
-### Phase 1: Entities & Database
-- [ ] Créer Entity `Category` (Catégorie d'intérêts)
-  - `name` (string, 255, unique)
-  - Group API Platform: `category:read`
-  
-- [ ] Créer Entity `User` 
-  - Ajouter relation ManyToMany → `Category` (interests)
-  - Configurer groupes API Platform: `user:read`, `user:write`
-  - Masquer password en lecture
-  - **Attention**: Seul le propriétaire/admin peut voir profil complet
+### P0 — Critique (avant release)
 
-- [ ] Créer Entity `Activity`
-  - Fields: `name`, `description`, `latitude`, `longitude`, `city`
-  - ManyToOne → `Category`
-  - Groupes API: `activity:read`, `activity:write`
+- [ ] Deploiement prod sur Contabo VPS (reverse proxy TLS, `docker-compose.prod.yml`)
+- [ ] Strategie de backup DB (dump PostgreSQL quotidien + retention hors VPS)
+- [ ] Monitoring LLM en prod (latence p95, taux erreurs, taux fallback, cout)
 
-- [ ] Ajouter migrations et exécuter
-  ```bash
-  php bin/console make:migration
-  php bin/console doctrine:migrations:migrate
-  ```
+### P1 — Important (court terme)
 
-### Phase 2: Logique Métier
-- [ ] Créer `StateProvider` pour recommandations
-  - Chemin: `src/State/RecommendationStateProvider.php`
-  - Endpoint: `GET /api/recommendations`
-  - Logique: Match activity.category avec user.interests
-  
-- [ ] Configurer Activity Entity avec StateProvider
-  ```php
-  #[ApiResource(provider: RecommendationStateProvider::class)]
-  ```
+- [ ] Tests d'integration API complets (parcours auth -> reco -> favoris -> commentaires)
+- [ ] Tests React Native end-to-end (Detox ou Maestro)
+- [ ] Notifications push (COULD dans le cahier des charges)
+- [ ] Explicabilite recommandations cote front ("pourquoi cette reco ?") — **hypothese a valider**
 
-- [ ] Tester endpoint `/api/recommendations`
+### P2 — Nice to have (apres MVP)
 
-### Phase 3: Sécurité & Validation
-- [ ] Protéger endpoints avec Access Control (JWT)
-  - `GET /api/categories` → PUBLIC_ACCESS
-  - `GET /api/activities` → PUBLIC_ACCESS  
-  - `PATCH /api/users/{id}` → ROLE_USER (propriétaire seulement)
-  - `POST /api/recommendations` → ROLE_USER
-  - `/admin/*` → ROLE_ADMIN
-
-- [ ] Ajouter validation Symfony (groups avec JWT)
-
-- [ ] Configurer CORS pour odos-front
-  ```yaml
-  # .env
-  CORS_ALLOW_ORIGIN='^https?://(localhost|127\.0\.0\.1):(3000|8081|5173)'
-  ```
-
-### Phase 4: EasyAdmin
-- [ ] Configurer CrudController pour `User`, `Activity`, `Category`
-- [ ] Ajouter filtres et recherche en admin
-- [ ] Tester dashboard: http://localhost:8000/admin
+- [ ] Filtres contextuels (meteo, budget, duree) — **hypothese a valider**
+- [ ] Listes / favoris partageables (viralite)
+- [ ] A/B testing recommandations (LLM on vs off)
+- [ ] Microservice ML dedie (scaling LLM independant)
 
 ---
 
-## 📱 Frontend React Native (odos-front)
+## Checklist de test (etat actuel)
 
-### Phase 1: Authentification
-- [ ] Intégrer login JWT
-  - POST `/api/login` → récupérer token
-  - Stocker token dans `AuthContext`
-  - Ajouter token dans headers Authorization
+### API
 
-- [ ] Protéger navigations avec `useAuth()` hook
-
-### Phase 2: Écrans Principaux
-- [ ] Screen `activities` - Liste les activités
-- [ ] Screen `login` - Connexion JWT
-- [ ] Screen `interests` - Sélectionner ses catégories (interests)
-- [ ] Screen `account` - Profil utilisateur (déjà partiellement fait)
-
-### Phase 3: Recommandations
-- [ ] Hook `useRecommendations()` (déjà présent?)
-  - Appeler `GET /api/recommendations`
-  - Passer Authorization header avec JWT
-  
-- [ ] Component `RecommendedActivities` - Afficher les recommandations
-
-### Phase 4: ML (Optionnel pour MVP)
-- [ ] Vérifier modèle ML dans `ml/recommendationModel.ts`
-- [ ] Tester logique de recommandation frontend vs backend
-
----
-
-## 🐳 Docker & Déploiement
-
-### Development
-- [ ] Ajouter service `app` en docker-compose (optionnel, PHP local ok)
-- [ ] Vérifier compose.yaml pour prod ready
-
-### Tests
-- [ ] Tests unitaires JWT (PHPUnit)
-- [ ] Tests API Platform
-- [ ] Tests React Native (Detox ou Expo Testing)
-
----
-
-## 📝 Checklist de Test
-
-### API JWT
-- [ ] `POST /api/login` → Status 200 + token (✅ Confirmé)
-- [ ] `GET /api/recommendations` + Authorization Bearer → Status 200
-- [ ] `PATCH /api/users/{id}` (propriétaire) → Status 200
-- [ ] `DELETE /api/users/{id}` (non propriétaire) → Status 403
+- [x] `POST /api/login` -> Status 200 + token
+- [x] `GET /api/recommendations` + Authorization Bearer -> Status 200
+- [x] `GET/PUT/DELETE /api/activities/{id}/rating` fonctionnel
+- [x] `GET/POST /api/activities/{id}/comments` fonctionnel
+- [x] `POST/DELETE /api/activities/{id}/favorite` fonctionnel
+- [x] `GET /api/me` -> profil utilisateur courant
 
 ### Admin
-- [ ] Dashboard accessible: http://localhost:8000/admin
-- [ ] CRUD User/Activity/Category fonctionnel
-- [ ] Logout fonctionne
+
+- [x] Dashboard accessible : `http://localhost:8000/admin`
+- [x] CRUD Activity/Category/User/Comment fonctionnel
+- [x] Import CSV activites
 
 ### Frontend
-- [ ] Login/Logout fonctionne
-- [ ] Token persiste après refresh
-- [ ] Appels API passent le JWT header
-- [ ] Recommandations s'affichent
+
+- [x] Login/Logout fonctionne
+- [x] Token persiste (SecureStore)
+- [x] Appels API passent le JWT header
+- [x] Recommandations s'affichent
+- [x] Favoris toggle + ecran dedie
+- [x] Notes et commentaires sur detail activite
 
 ---
 
-## 📅 Priorité (MVP)
-
-**Priority 1 - CRITIQUE** (Cette semaine)
-1. User.interests → Category relation
-2. Activity.name, description, latitude, longitude
-3. RecommendationStateProvider
-4. Tester endpoint `/api/recommendations`
-
-**Priority 2 - IMPORTANT** (Prochaine semaine)
-5. Frontend integration (login, interests, recommendations)
-6. CORS + Security
-7. EasyAdmin CRUD
-
-**Priority 3 - NICE TO HAVE** (Après MVP)
-8. Tests unitaires
-9. ML backend vs frontend
-10. Déploiement prod
-
----
-
-## 🔗 Ressources / Docs
+## Ressources / Docs
 
 - [API Platform - StateProvider](https://api-platform.com/docs/core/state-providers/)
 - [Symfony Security + JWT](https://symfony.com/doc/current/security.html)
 - [EasyAdmin 4](https://symfony.com/doc/current/EasyAdminBundle/index.html)
-- [React Native HTTP Headers](https://reactnative.dev/docs/network)
-
----
-
-**Dernière MAJ**: 17 Février 2026 - JWT ✅, MVP Planning ✅
+- [Expo Documentation](https://docs.expo.dev/)
+- `docs/CI_CD_V2_2026.md` : documentation CI/CD active
+- `planllm.md` : design LLM re-ranking

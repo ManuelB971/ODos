@@ -18,6 +18,7 @@ parameters:
     app.llm.candidate_max: '%env(int:LLM_CANDIDATE_MAX)%'
     app.llm.enabled: '%env(bool:LLM_ENABLED)%'
     app.llm.cache_ttl_seconds: '%env(int:LLM_CACHE_TTL_SECONDS)%'
+    app.admin.mfa_enabled: '%env(bool:ADMIN_MFA_ENABLED)%'
 
 services:
     # default configuration for services in *this* file
@@ -50,6 +51,10 @@ services:
         arguments:
             $uploadDir: '%app.uploads.avatars.dir%'
             $publicPrefix: '%app.uploads.avatars.public_prefix%'
+
+    App\EventSubscriber\AdminMfaSubscriber:
+        arguments:
+            $mfaEnabled: '%app.admin.mfa_enabled%'
 
     App\Service\LlmRankingService:
         arguments:

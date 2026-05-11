@@ -1,114 +1,141 @@
 # ODOS MVP - Technical Roadmap & Implementation Plan
 
-This roadmap addresses the missing elements to reach the MVP by March, focusing on the User/Activity recommendation flow.
+> **Statut** : plan initial **realise**. Ce document est conserve comme reference historique.  
+> Pour l'etat actuel du projet, voir `TASKS_REMAINING.md` (version avril 2026).
 
-## 1. Modélisation BDD (Entities & Relations)
+This roadmap addresses the missing elements to reach the MVP, focusing on the User/Activity recommendation flow.
 
-We will implement 3 core entities using `make:entity`.
+---
 
-### **Entity: Category**
-Represents "Intérêts" (Interests) for Users and classifications for Activities.
+## 1. Modelisation BDD (Entities & Relations) — REALISE
+
+### **Entity: Category** ✅
+Represents "Interets" (Interests) for Users and classifications for Activities.
 - **Fields**:
     - `name` (string, 255, unique)
 - **Groups**: `['category:read']`
 
-### **Entity: User**
+### **Entity: User** ✅
 - **Fields**:
     - `email` (string, 180, unique)
     - `roles` (json)
-    - `password` (string)
-    - `interests` (ManyToMany with **Category**) -> *Crucial for matching.*
+    - `password` (string, hashed)
+    - `interests` (ManyToMany with **Category**)
+    - `favorites` (ManyToMany with **Activity**)
+    - `alias` (string, 60, nullable — pseudo public)
+    - `bio` (text, nullable — sanitized)
+    - `avatarUrl` (string, nullable — upload controle)
+    - `phoneNumber` (string, nullable)
 - **API Platform**:
-    - `itemOperations`: GET, PATCH (Update profile/interests), DELETE.
+    - `GetCollection` (ROLE_ADMIN), `Get` (/me + par id), `Post`, `Patch`, `Delete`
     - `normalizationContext`: `['groups' => ['user:read']]`
     - `denormalizationContext`: `['groups' => ['user:write']]`
+    - Champ calcule `displayName` (alias ou local-part email)
 - **Security**:
-    - Password should NEVER be readable (`user:read` must NOT include password).
-    - Only Owner or Admin can view full profile.
+    - Password NEVER readable.
+    - Only Owner or Admin can view/edit full profile.
+    - avatarUrl non-writable via API (upload uniquement via `UserAvatarController`).
 
-### **Entity: Activity**
+### **Entity: Activity** ✅
 - **Fields**:
-    - `name` (string, 255)
-    - `description` (text)
-    - `latitude` (float)
-    - `longitude` (float)
-    - `category` (ManyToOne with **Category**) -> *Links activity to an interest.*
-    - `city` (string, optional, for filtering)
-- **API Platform**:
-    - `normalizationContext`: `['groups' => ['activity:read']]`
-    - `denormalizationContext`: `['groups' => ['activity:write']]`
+    - `name` (string, 255), `description` (text), `latitude` (float), `longitude` (float)
+    - `category` (ManyToOne with **Category**)
+    - `city` (string, optional), `price` (float, nullable), `imageUrl` (string, nullable)
+    - `dateStart`, `dateEnd` (datetime, nullable)
+    - `isPublished` (bool, default true)
+    - `ratingAverage` (decimal 4,2, nullable), `ratingCount` (int, default 0)
+- **Relations**: `comments` (OneToMany -> Comment), `ratings` (OneToMany -> ActivityRating), `favoritedBy` (ManyToMany -> User)
+- **Groups**: `['activity:read']`, `['activity:write']`
 
-## 2. Logique Métier (Recommendations)
+### **Entity: ActivityRating** ✅
+- User + Activity (unique pair), score 1-5
+- Agregation automatique sur `Activity.ratingAverage` / `ratingCount`
 
-The PDF mentions a recommendation system. Since we are using API Platform, the cleanest way (REST) is a **StateProvider**.
+### **Entity: Comment** ✅
+- Auteur (User), activite (Activity), contenu sanitize, `isHidden` (soft-delete)
+- Controleurs dedies (CRUD par auteur, moderation admin)
 
-### **Endpoint**
-`GET /api/recommendations`
+---
 
-### **Implementation Strategy**
-1.  **Create a Custom StateProvider**: `App\State\RecommendationStateProvider`.
-2.  **Register it in Activity Entity**:
-    ```php
-    #[ApiResource(
-        operations: [
-            new GetCollection(
-                uriTemplate: '/recommendations',
-                provider: RecommendationStateProvider::class,
-                normalizationContext: ['groups' => ['activity:read']]
-            )
-        ]
-    )]
-    ```
-3.  **Logic (SQL/DQL)**:
-    - Inject `Security` to get current User.
-    - Start QueryBuilder on `Activity` repository.
-    - `join` Activity.category.
-    - `where` category IN (AuthUser.interests).
-    - If user has no interests, return random/all activities or top rated (fallback).
+## 2. Logique Metier (Recommendations) — REALISE
 
-## 3. Sécurité & Permissions (Security.yaml)
+### **Endpoint** ✅
+`GET /api/recommendations` — protege `ROLE_USER`
 
-We need a clear separation between Public, User, and Admin.
+### **Implementation** ✅
+1.  `RecommendationStateProvider` : filtre par interets utilisateur + `isPublished`.
+2.  **Re-ranking LLM** via `LlmRankingService` (Ollama, cache Redis, fallback DB).
+3.  `CandidateForLlm` DTO (id, name, description, category, city, ratingAverage, ratingCount).
+4.  Validation stricte : IDs renvoyes par le LLM ⊆ candidats DB.
+5.  Desactivable via `LLM_ENABLED=false`.
 
-### **Access Control (`security.config`)**
-```yaml
-access_control:
-    - { path: ^/api/login, roles: PUBLIC_ACCESS }
-    - { path: ^/api/docs, roles: PUBLIC_ACCESS }
-    - { path: ^/api/activities, methods: [GET], roles: PUBLIC_ACCESS } # Browse without logic
-    - { path: ^/api/recommendations, roles: ROLE_USER } # Must be logged in for tailored results
-    - { path: ^/api/admin, roles: ROLE_ADMIN } # Future Backoffice
-    - { path: ^/api, roles: IS_AUTHENTICATED_FULLY } # Default fallback
-```
+---
 
-### **Roles**
-- `ROLE_USER`: Can view recommendations, update their own profile.
-- `ROLE_ADMIN`: Can create/edit/delete Activities and Categories.
+## 3. Securite & Permissions — REALISE
 
-## 4. Jeux de Données (Fixtures)
+### **Access Control** ✅
+- `/api/login`, `/api/docs`, `GET /api/activities` : PUBLIC_ACCESS
+- `/api/recommendations`, `/api/me` : ROLE_USER
+- `/admin/*` : ROLE_ADMIN
+- PATCH/DELETE user : owner or admin
+- Commentaires : auteur uniquement (edit/delete)
 
-To unblock the Front React Native, we need consistent data.
+### **Fonctionnalites securite additionnelles** ✅
+- `UserActionThrottleService` : limitation d'abus (cache)
+- `CommentContentSanitizer` : nettoyage XSS dans les commentaires
+- Sanitization dans setters `User.alias`, `User.bio` (strip_tags)
+- Politique de mot de passe (min 8 chars, majuscule, minuscule, chiffre, special)
+- WebAuthn admin (entite `AdminWebauthnCredential`)
+- CORS (NelmioCorsBundle)
 
-**Plan (DoctrineFixtures):**
-1.  **Categories (10)**: "Sport", "Culture", "Gastronomy", "Music", "Nature", "Nightlife"...
-2.  **Users (2)**:
-    - `admin@odos.com` (ROLE_ADMIN, password: 'password')
-    - `user@odos.com` (ROLE_USER, password: 'password', interests: ['Sport', 'Nature'])
-3.  **Activities (50)**:
-    - Generated with Faker.
-    - Lat/Lon near a specific testing city (e.g., Paris or User's mock location).
-    - Randomly assigned to Categories.
-    - *Goal*: Ensure `user@odos.com` sees only "Sport" and "Nature" activities on `/recommendations`.
+---
 
-## Verification Plan
+## 4. Jeux de Donnees (Fixtures) — REALISE ✅
 
-### Automated Tests
-- **PHPUnit**:
-    - Test `GET /api/recommendations` as anonymous -> 401 Unauthorized.
-    - Test `GET /api/recommendations` as `user@odos.com` -> Returns only Sport/Nature activities.
+Fixtures de demonstration avec categories, utilisateurs et activites.
 
-### Manual Verification
-- **Curl/Postman/Browser**:
-    1.  Login as `user@odos.com` -> Get Token.
-    2.  `GET /api/recommendations` with Token.
-    3.  Verify JSON response contains expected activities.
+---
+
+## 5. Tests — REALISE ✅
+
+### Backend (PHPUnit)
+- `RecommendationTest` : pipeline recommandations
+- `ActivityRatingAggregateTest` : agregation notes
+- `CommentContentSanitizerTest` : nettoyage XSS
+- `UserActionThrottleServiceTest` : limitation d'abus
+- `ThrottledActionExceptionTest` : exception throttle
+- `ActivityImportResultTest` : import CSV
+
+### Frontend (Jest)
+- 12 fichiers de test couvrant : api, AuthService, errorHandling, imageUrl, jwt, hooks (useRecommendations, useDebounce, useFavorites, useSearchActivities, useActivities), context (InterestContext)
+
+### CI/CD (GitHub Actions)
+- Pipeline complete : lint, tests, coverage, PHPStan, build Docker prod
+- Voir `docs/CI_CD_V2_2026.md` pour la documentation active
+
+---
+
+## 6. API Reference (etat actuel)
+
+| Methode | Chemin | Role |
+|---------|--------|------|
+| POST | `/api/login` | JWT access token |
+| POST | `/api/token/refresh` | Refresh token |
+| GET | `/api/me` | Profil utilisateur courant |
+| GET | `/api/recommendations` | Recommandations personnalisees (auth) |
+| GET | `/api/activities`, `/api/activities/{id}` | Catalogue |
+| GET/PUT/DELETE | `/api/activities/{id}/rating` | Notes (auth) |
+| GET/POST | `/api/activities/{id}/comments` | Commentaires (auth pour POST) |
+| PATCH/DELETE | `/api/comments/{id}` | Edition / masquage commentaire (auteur) |
+| POST/DELETE | `/api/activities/{id}/favorite` | Favoris (auth) |
+| POST | `/api/users/{id}/avatar` | Upload avatar (auth, owner) |
+
+---
+
+## Ressources
+
+- [API Platform - StateProvider](https://api-platform.com/docs/core/state-providers/)
+- [Symfony Security + JWT](https://symfony.com/doc/current/security.html)
+- [EasyAdmin 4](https://symfony.com/doc/current/EasyAdminBundle/index.html)
+- `planllm.md` : design complet LLM re-ranking
+- `docs/CI_CD_V2_2026.md` : documentation CI/CD active

@@ -19,12 +19,14 @@ export async function signUp(email: string, password: string) {
   } catch (error: unknown) {
     const appError = toAppError(error, "Erreur lors de l'inscription");
     logError('AuthService.signUp', error, { email });
+    const base = String(api.defaults.baseURL ?? '');
+    const errorMessage =
+      appError.code === 'NETWORK_ERROR'
+        ? `Impossible de joindre le serveur (${base}). Vérifiez l’URL, le Wi‑Fi ou la 4G (certains opérateurs bloquent des ports comme :8000), et le pare-feu du serveur.`
+        : appError.userMessage;
     return {
       success: false,
-      errorMessage:
-        appError.userMessage === "Erreur lors de l'inscription"
-          ? `Impossible de joindre le serveur (${api.defaults.baseURL}) - verifier l'URL/reseau`
-          : appError.userMessage,
+      errorMessage,
       user: null,
     };
   }

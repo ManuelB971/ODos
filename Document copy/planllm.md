@@ -1,13 +1,18 @@
-# Plan complet : intégrer un LLM dans les recommandations ODOS
+# Plan complet : LLM dans les recommandations ODOS
+
+> **Statut :** plan **realise et operationnel** dans le depot.  
+> `LlmRankingService`, `CandidateForLlm`, integration dans `RecommendationStateProvider`,
+> cache Redis, fallback DB — tout est implemente. Ce document sert de **reference design**.  
+> Mis a jour : avril 2026.
 
 ## Contexte
 
 L'application **ODOS** est une plateforme de découverte d'activités (Lyon / Paris).  
-Le backend est en **Symfony** (API Platform, Docker, PostgreSQL), le front en **Expo / React Native**.
+Le backend est en **Symfony** (API Platform, Docker, PostgreSQL, Redis), le front en **Expo / React Native**.
 
-Aujourd'hui, l'endpoint `GET /api/recommendations` utilise `RecommendationStateProvider` qui filtre les activités publiées dont la catégorie correspond aux **intérêts** de l'utilisateur connecté. C'est un filtre par catégorie, sans notion de pertinence fine.
+L'endpoint `GET /api/recommendations` utilise `RecommendationStateProvider` qui filtre les activités publiées dont la catégorie correspond aux **intérêts** de l'utilisateur connecté, puis **re-classe** les candidats via un LLM (optionnel, désactivable).
 
-L'objectif est d'ajouter un **LLM** pour **re-ranker** (réordonner) les activités candidates et proposer des recommandations plus pertinentes — sans changer le modèle de données existant.
+Le **LLM** sert à **re-ranker** (réordonner) les activités candidates pour proposer des recommandations plus pertinentes — sans changer le modèle de données existant.
 
 ---
 
@@ -200,58 +205,64 @@ LLM_ENABLED=true
 
 ---
 
-## 7) Implémentation backend (étapes concrètes)
+## 7) Implementation backend (etat actuel)
 
-### 7.1 Étape 1 : extraire "candidates" dans le provider
+> Tout ce qui suit est **implemente** dans le depot.
 
-Garder la requête DB actuelle. Transformer le résultat en :
-- `candidates[]` (entités Activity)
-- `candidate_ids[]`
+### 7.1 DTO `CandidateForLlm`
 
-### 7.2 Étape 2 : créer un DTO pour le LLM
+Fichier : `src/DTO/CandidateForLlm.php`
 
-Exemple : `CandidateForLlm { id, name, description, categoryName, city }`
+Champs : `id`, `name`, `description` (tronquee a 120 chars), `categoryName`, `city`, `ratingAverage`, `ratingCount`.
 
-### 7.3 Étape 3 : créer `LlmRankingService`
+La serialisation JSON inclut `rating_average` / `rating_count` uniquement si `ratingCount > 0` (prompt plus leger).
 
-Méthodes :
-- `rankActivities(interests[], candidates[]): int[]` (retourne IDs ordonnés)
+### 7.2 `LlmRankingService`
+
+Fichier : `src/Service/LlmRankingService.php`
+
+Methode principale : `rank(interestNames[], candidates[], cacheKey?): Activity[]`
 
 Le service :
-1. Construit le prompt (système + utilisateur).
-2. Appelle l'API du modèle (Ollama / OpenAI / …).
-3. Parse la réponse JSON.
-4. Applique validation stricte (IDs ⊆ candidates).
-5. Fallback si erreur.
+1. Tronque les candidats a `candidateMax` (defaut 50).
+2. Construit les DTOs et la map `id -> Activity`.
+3. Si `cacheKey` fourni : check cache Symfony (Redis) avant appel.
+4. Construit le prompt systeme + utilisateur (JSON strict).
+5. Appelle l'API Ollama (`POST /api/chat`, `stream: false`, `format: json`).
+6. Parse la reponse JSON (`ranked_ids`).
+7. Validation stricte : IDs ⊆ candidats, `array_filter` + `intval`.
+8. Reordonne les candidats, complete avec les manquants (max `topK`).
+9. Fallback automatique si exception (log warning, retour ordre DB).
 
-### 7.4 Étape 4 : brancher dans `RecommendationStateProvider`
+### 7.3 Integration dans `RecommendationStateProvider`
 
 ```
-candidates = DB query (actuel)
+candidates = DB query (categories user + isPublished)
 if LLM_ENABLED:
-    rankedIds = llmService.rankActivities(interests, candidates)
-    return reorder(candidates, rankedIds)
+    rankedActivities = llmService.rank(interests, candidates, cacheKey)
+    return rankedActivities
 else:
-    return candidates (ordre DB)
+    return candidates (ordre DB, max topK)
 ```
 
-### 7.5 Étape 5 : cache
+### 7.4 Cache
 
-- Avant appel LLM : check cache (clé = hash intérêts user).
-- Après réponse : set cache (TTL configurable).
+- Cle de cache : hash interets utilisateur (fourni par le provider).
+- TTL : configurable via `cacheTtlSeconds` (parametre service).
+- Stock : cache Symfony (Redis recommande en prod, fichier en dev).
 
 ---
 
-## 8) Fichiers à créer / modifier (Symfony)
+## 8) Fichiers concernes (Symfony) — tous realises
 
-| Fichier | Action |
+| Fichier | Statut |
 |---|---|
-| `src/Service/LlmRankingService.php` | **Créer** — client HTTP + prompt + parsing + validation |
-| `src/DTO/CandidateForLlm.php` | **Créer** — DTO léger pour sérialiser vers le prompt |
-| `src/State/RecommendationStateProvider.php` | **Modifier** — injecter `LlmRankingService`, appeler après DB |
-| `config/services.yaml` | **Modifier** — déclarer les paramètres LLM (env vars) |
-| `.env` | **Modifier** — ajouter les env vars LLM |
-| `docker-compose.yml` (ou compose dédié) | **Modifier** — ajouter service `llm` (Ollama) |
+| `src/Service/LlmRankingService.php` | **Cree** — client HTTP + prompt + parsing + validation + cache |
+| `src/DTO/CandidateForLlm.php` | **Cree** — DTO avec ratingAverage/ratingCount |
+| `src/State/RecommendationStateProvider.php` | **Modifie** — injection `LlmRankingService` |
+| `config/services.yaml` | **Modifie** — parametres LLM (env vars) |
+| `.env` | **Modifie** — variables LLM ajoutees |
+| `docker-compose.yml` | **Modifie** — service `llm` (Ollama) ajoute |
 
 ---
 
@@ -279,20 +290,17 @@ Si tu renvoies `explanations[id]` dans la réponse API, le front peut afficher :
 
 ---
 
-## 11) Plan de déploiement — Local (maintenant)
+## 11) Deploiement local — REALISE
 
-1. Ajouter le container **Ollama** dans Docker Compose.
-2. Télécharger un modèle (ex. `ollama pull mistral`).
-3. Créer `LlmRankingService` dans Symfony.
-4. Brancher le re-rank dans `RecommendationStateProvider` :
-   - DB candidates → LLM re-rank → validation → retour.
-5. Ajouter cache (Redis ou fichier Symfony).
-6. Activer fallback automatique si LLM en erreur.
-7. Tester :
-   - Utilisateur sans intérêts (fallback toutes activités).
-   - Utilisateur avec intérêts multiples.
-   - Latence endpoint `/recommendations` (<5s acceptable en dev).
-   - Logs LLM + validation.
+Toutes les etapes sont operationnelles :
+
+1. ✅ Container **Ollama** dans Docker Compose (`docker-compose.yml`).
+2. ✅ Modele telecharge (`ollama pull mistral`).
+3. ✅ `LlmRankingService` cree dans Symfony.
+4. ✅ Re-rank branche dans `RecommendationStateProvider`.
+5. ✅ Cache (Redis via Symfony cache).
+6. ✅ Fallback automatique si LLM en erreur (log warning).
+7. ✅ Teste : utilisateur sans interets, avec interets multiples, latence, logs.
 
 ---
 
