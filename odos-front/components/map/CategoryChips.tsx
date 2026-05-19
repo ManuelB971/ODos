@@ -41,6 +41,7 @@ function CategoryChipsComponent({ chips, activeId, onPressChip }: CategoryChipsP
             style={[styles.chip, isActive && styles.chipActive]}
             accessibilityRole="button"
             accessibilityState={{ selected: isActive }}
+            accessibilityLabel={`${chip.label}${isActive ? ', sélectionné' : ''}`}
           >
             <Text style={[styles.chipText, isActive && styles.chipTextActive]}>{chip.label}</Text>
           </Pressable>

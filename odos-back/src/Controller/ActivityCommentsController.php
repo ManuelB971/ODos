@@ -132,7 +132,6 @@ class ActivityCommentsController extends AbstractController
     private function serializeComment(Comment $c): array
     {
         $author = $c->getAuthor();
-        \assert($author instanceof User);
 
         $payload = [
             'id' => $c->getId(),
@@ -140,10 +139,12 @@ class ActivityCommentsController extends AbstractController
             'createdAt' => $c->getCreatedAt()?->format(\DateTimeInterface::ATOM),
             'updatedAt' => $c->getUpdatedAt()?->format(\DateTimeInterface::ATOM),
             'isEdited' => $c->isEdited(),
-            'author' => [
-                'id' => $author->getId(),
-                'displayName' => $author->getDisplayName(),
-            ],
+            'author' => $author instanceof User
+                ? [
+                    'id' => $author->getId(),
+                    'displayName' => $author->getDisplayName(),
+                ]
+                : null,
             'activityId' => $c->getActivity()?->getId(),
         ];
 

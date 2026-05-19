@@ -172,7 +172,7 @@ const SIZE_STYLES: Record<
   CTAButtonSize,
   { paddingV: number; paddingH: number; fontSize: number; minH: number }
 > = {
-  sm: { paddingV: 8, paddingH: 14, fontSize: 13, minH: 36 },
+  sm: { paddingV: 10, paddingH: 14, fontSize: 13, minH: 44 },
   md: { paddingV: 14, paddingH: 20, fontSize: 15, minH: 50 },
   lg: { paddingV: 16, paddingH: 24, fontSize: 16, minH: 56 },
 };

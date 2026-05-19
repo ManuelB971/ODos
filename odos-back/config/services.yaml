@@ -33,9 +33,33 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+    App\State\UserRegistrationProcessor:
+        decorates: App\State\UserPasswordHasherProcessor
+        arguments:
+            $innerProcessor: '@.inner'
+
     App\State\UserPasswordHasherProcessor:
         arguments:
             $innerProcessor: '@api_platform.doctrine.orm.state.persist_processor'
+
+    App\State\UserRemoveProcessor:
+        decorates: api_platform.doctrine.orm.state.remove_processor
+        arguments:
+            $innerProcessor: '@.inner'
+
+    App\Service\UserDeletionService:
+        arguments:
+            $avatarUploadDir: '%app.uploads.avatars.dir%'
+            $avatarPublicPrefix: '%app.uploads.avatars.public_prefix%'
+
+    App\EventSubscriber\ApiRateLimitSubscriber:
+        arguments:
+            $apiLoginLimiter: '@limiter.api_login'
+            $apiRegisterLimiter: '@limiter.api_register'
+
+    App\Monolog\SensitiveDataProcessor:
+        tags:
+            - { name: monolog.processor }
 
     App\Service\ActivityPhotoUploader:
         arguments:

@@ -3,30 +3,33 @@
 {% block title %}Odos Admin - MFA{% endblock %}
 
 {% block body %}
-<div class="container mt-5">
+<div class="container mt-5 pb-5">
     <div class="row justify-content-center">
         <div class="col-md-7">
-            <h1 class="h3 mb-3 font-weight-normal">Odos Admin - Vérification MFA</h1>
+            <h1 class="h3 mb-3 fw-normal" id="mfa-heading">Odos Admin — Vérification MFA</h1>
 
-            <div class="alert alert-secondary">
-                <div class="fw-semibold mb-1">Étapes</div>
-                <div>
-                    <strong>1.</strong> Google Authenticator (TOTP)
-                    {% if totp_verified %}
-                        <span class="badge text-bg-success ms-2">OK</span>
-                    {% else %}
-                        <span class="badge text-bg-secondary ms-2">En attente</span>
-                    {% endif %}
-                </div>
-                <div class="mt-1">
-                    <strong>2.</strong> SMS OTP
-                    {% if totp_verified %}
-                        <span class="badge text-bg-secondary ms-2">À valider</span>
-                    {% else %}
-                        <span class="badge text-bg-secondary ms-2">Bloqué</span>
-                    {% endif %}
-                </div>
+            <div class="alert alert-secondary" role="region" aria-labelledby="mfa-steps-title">
+                <div class="fw-semibold mb-1" id="mfa-steps-title">Étapes</div>
+                <ol class="mb-0 ps-3">
+                    <li class="mb-1">
+                        Google Authenticator (TOTP)
+                        {% if totp_verified %}
+                            <span class="badge text-bg-success ms-2">Validé</span>
+                        {% else %}
+                            <span class="badge text-bg-secondary ms-2">En attente</span>
+                        {% endif %}
+                    </li>
+                    <li>
+                        SMS OTP
+                        {% if totp_verified %}
+                            <span class="badge text-bg-secondary ms-2">À valider</span>
+                        {% else %}
+                            <span class="badge text-bg-secondary ms-2" title="Disponible après validation TOTP">Bloqué</span>
+                        {% endif %}
+                    </li>
+                </ol>
             </div>
+
             <div class="mb-3">
                 <a class="btn btn-sm btn-outline-dark" href="{{ path('app_admin_mfa_totp_setup') }}">
                     Configurer Google Authenticator (QR)
@@ -34,18 +37,18 @@
             </div>
 
             {% if error %}
-                <div class="alert alert-danger">{{ error }}</div>
+                <div class="alert alert-danger" role="alert" id="mfa-error">{{ error }}</div>
             {% endif %}
 
             {% if info %}
                 <div class="alert alert-success" role="status">{{ info }}</div>
             {% endif %}
 
-            <form method="post" id="admin-mfa-form">
+            <form method="post" id="admin-mfa-form" aria-labelledby="mfa-heading">
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin_mfa') }}">
 
                 {% if totp_verified %}
-                    <div class="alert alert-success mt-3">
+                    <div class="alert alert-success mt-3" role="status">
                         Google Authenticator validé.
                         <span class="text-muted small ms-2">Étape SMS à compléter.</span>
                     </div>
@@ -55,14 +58,17 @@
                         <input type="text"
                                name="totp_code"
                                id="inputTotpCode"
-                               class="form-control"
+                               class="form-control{% if error and not totp_verified %} is-invalid{% endif %}"
                                inputmode="numeric"
                                pattern="[0-9]{6}"
                                maxlength="6"
                                autocomplete="one-time-code"
-                               placeholder="6 chiffres">
-                        <div class="form-text">
-                            Ouvrez Google Authenticator et saisissez le code à 6 chiffres (toutes les ~30 secondes).
+                               placeholder="6 chiffres"
+                               aria-required="false"
+                               aria-describedby="totp-help{% if error and not totp_verified %} mfa-error{% endif %}"
+                               {% if error and not totp_verified %}aria-invalid="true" aria-errormessage="mfa-error"{% endif %}>
+                        <div id="totp-help" class="form-text">
+                            Ouvrez Google Authenticator et saisissez le code à 6 chiffres (renouvelé environ toutes les 30 secondes).
                         </div>
                     </div>
                 {% endif %}
@@ -78,20 +84,21 @@
                            maxlength="6"
                            autocomplete="one-time-code"
                            placeholder="6 chiffres"
-                           {% if not totp_verified %}disabled aria-disabled="true"{% endif %}>
-                    <div class="form-text">
+                           {% if not totp_verified %}disabled aria-disabled="true"{% endif %}
+                           aria-describedby="sms-help{% if not totp_verified %} sms-blocked{% endif %}">
+                    <div id="sms-help" class="form-text">
                         {% if masked_phone %}
-                            Numero cible: {{ masked_phone }}
+                            Numéro cible : {{ masked_phone }}
                         {% else %}
-                            Aucun numero configure pour cet admin.
-                        {% endif %}
-                        {% if not totp_verified %}
-                            <span class="text-muted d-block mt-1">Validez d’abord l’étape Google Authenticator.</span>
+                            Aucun numéro configuré pour cet admin.
                         {% endif %}
                     </div>
+                    {% if not totp_verified %}
+                        <div id="sms-blocked" class="form-text">Validez d'abord l'étape Google Authenticator pour activer le SMS.</div>
+                    {% endif %}
                 </div>
 
-                <div class="d-flex gap-2 mt-3 flex-wrap">
+                <div class="d-flex gap-2 mt-3 flex-wrap" role="group" aria-label="Actions MFA">
                     {% if not totp_verified %}
                         <button class="btn btn-secondary" type="submit" name="action" value="validate_totp">
                             Valider Google Authenticator
@@ -102,7 +109,7 @@
                             type="submit"
                             name="action"
                             value="send_sms"
-                            {% if not totp_verified %}disabled aria-disabled="true"{% endif %}>
+                            {% if not totp_verified %}disabled aria-disabled="true" title="Validez d'abord le TOTP"{% endif %}>
                         Envoyer le code SMS
                     </button>
 
@@ -110,7 +117,7 @@
                             type="submit"
                             name="action"
                             value="validate"
-                            {% if not totp_verified %}disabled aria-disabled="true"{% endif %}>
+                            {% if not totp_verified %}disabled aria-disabled="true" title="Validez d'abord le TOTP"{% endif %}>
                         Valider MFA admin
                     </button>
                 </div>

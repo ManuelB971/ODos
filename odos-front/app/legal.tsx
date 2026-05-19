@@ -60,9 +60,15 @@ Le traitement repose sur le consentement de l'utilisateur (création de compte) 
 Les données sont conservées tant que le compte est actif. En cas de suppression du compte, les données sont effacées dans un délai de 30 jours.
 
 6. Droits de l'utilisateur
-Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, de suppression, de portabilité et d'opposition. Pour exercer ces droits, contactez-nous à : contact@odos-app.fr
+Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, de suppression, de portabilité et d'opposition.
+- Export de vos données : Paramètres → « Télécharger mes données ».
+- Suppression de compte : Paramètres → « Supprimer mon compte ».
+Pour toute demande : contact@odos-app.fr
 
-7. Sécurité
+7. Stockages locaux (application mobile)
+L'application stocke localement (SecureStore) les jetons d'authentification JWT et de rafraîchissement, nécessaires au maintien de session. Aucun cookie publicitaire n'est utilisé.
+
+8. Sécurité
 Les données sont protégées par des mesures techniques (chiffrement des mots de passe, tokens JWT, HTTPS).`,
   },
   mentions: {
@@ -75,10 +81,10 @@ Application mobile de découverte d'activités
 Email de contact : contact@odos-app.fr
 
 2. Hébergement
-Les données sont hébergées par [Nom de l'hébergeur] — [Adresse de l'hébergeur].
+Les données sont hébergées par Contabo GmbH — Aschauer Straße 32a, 81549 München, Allemagne (https://contabo.com).
 
 3. Directeur de la publication
-[Nom du directeur de la publication]
+Manuel — contact@odos-app.fr
 
 4. Propriété intellectuelle
 L'Application ODOS et l'ensemble de ses contenus sont protégés par les lois relatives à la propriété intellectuelle. Toute reproduction, même partielle, est interdite sans autorisation préalable.
@@ -99,7 +105,13 @@ export default function LegalScreen() {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Pressable
+          style={styles.backButton}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+          hitSlop={8}
+        >
           <ArrowLeft color={Colors.light.text} size={24} />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
@@ -127,6 +139,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     flex: 1,

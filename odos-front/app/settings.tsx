@@ -5,6 +5,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -20,14 +21,16 @@ import {
   FileText,
   Scale,
   Shield,
+  Download,
   Trash2,
   User as UserIcon,
 } from 'lucide-react-native';
 
 import { useAuth } from '@/context/AuthContext';
 import {
-  deleteAccount,
   deleteAvatar,
+  deleteMyAccount,
+  exportMyData,
   updateProfile,
   uploadAvatar,
 } from '@/scripts/api';
@@ -244,13 +247,26 @@ export default function SettingsScreen() {
     if (!user?.id) return;
     setDeleting(true);
     try {
-      await deleteAccount(user.id);
+      await deleteMyAccount();
       await logout();
       router.replace('/login');
     } catch (err) {
       logError('Settings.deleteAccount', err);
       Alert.alert('Erreur', toAppError(err, 'Impossible de supprimer le compte.').userMessage);
       setDeleting(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    try {
+      const data = await exportMyData();
+      await Share.share({
+        title: 'Export de mes données ODOS',
+        message: JSON.stringify(data, null, 2),
+      });
+    } catch (err) {
+      logError('Settings.exportData', err);
+      Alert.alert('Export', toAppError(err, 'Impossible d’exporter vos données.').userMessage);
     }
   };
 
@@ -386,6 +402,16 @@ export default function SettingsScreen() {
           />
         </View>
 
+        {/* ── Données personnelles (RGPD) ── */}
+        <Text style={styles.sectionTitle}>Mes données</Text>
+        <View style={styles.card}>
+          <MenuRow
+            icon={<Download size={18} color={Colors.light.muted} />}
+            label="Télécharger mes données (portabilité)"
+            onPress={handleExportData}
+          />
+        </View>
+
         {/* ── Informations légales ── */}
         <Text style={styles.sectionTitle}>Informations légales</Text>
         <View style={styles.card}>
@@ -412,8 +438,8 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionTitle, styles.dangerSectionTitle]}>Zone dangereuse</Text>
         <View style={styles.card}>
           <Text style={styles.dangerHelp}>
-            La suppression de votre compte est définitive. Vos favoris, notes et
-            commentaires seront perdus.
+            La suppression de votre compte est définitive. Vos favoris et notes seront
+            effacés ; vos commentaires publics seront anonymisés.
           </Text>
           <View style={{ height: 12 }} />
           <CTAButton

@@ -58,6 +58,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\Email(message: 'L\'adresse email {{ value }} n\'est pas valide.')]
     private ?string $email = null;
 
+    /** Horodatage du consentement CGU + politique de confidentialité (art. 7 RGPD). */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    #[Groups(['user:read'])]
+    private ?\DateTimeImmutable $consentedAt = null;
+
     #[ORM\Column(length: 32, nullable: true)]
     #[Groups(['user:read', 'user:write'])]
     private ?string $phoneNumber = null;
@@ -166,7 +171,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var Collection<int, Comment>
      */
-    #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'author', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'author')]
     private Collection $authoredComments;
 
     /**
@@ -197,6 +202,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEmail(string $email): static
     {
         $this->email = $email;
+
+        return $this;
+    }
+
+    public function getConsentedAt(): ?\DateTimeImmutable
+    {
+        return $this->consentedAt;
+    }
+
+    public function setConsentedAt(?\DateTimeImmutable $consentedAt): static
+    {
+        $this->consentedAt = $consentedAt;
 
         return $this;
     }

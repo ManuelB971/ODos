@@ -83,6 +83,10 @@ class CommentItemController extends AbstractController
             return $this->json(['message' => 'Commentaire introuvable.'], Response::HTTP_NOT_FOUND);
         }
 
+        if (null === $comment->getAuthor()) {
+            return $this->json(['message' => 'Commentaire introuvable.'], Response::HTTP_NOT_FOUND);
+        }
+
         if (!$this->canEdit($comment, $user)) {
             return $this->json(['message' => 'Accès refusé.'], Response::HTTP_FORBIDDEN);
         }
@@ -111,7 +115,6 @@ class CommentItemController extends AbstractController
     private function serializeComment(Comment $c): array
     {
         $author = $c->getAuthor();
-        \assert($author instanceof User);
 
         $payload = [
             'id' => $c->getId(),
@@ -119,10 +122,12 @@ class CommentItemController extends AbstractController
             'createdAt' => $c->getCreatedAt()?->format(\DateTimeInterface::ATOM),
             'updatedAt' => $c->getUpdatedAt()?->format(\DateTimeInterface::ATOM),
             'isEdited' => $c->isEdited(),
-            'author' => [
-                'id' => $author->getId(),
-                'displayName' => $author->getDisplayName(),
-            ],
+            'author' => $author instanceof User
+                ? [
+                    'id' => $author->getId(),
+                    'displayName' => $author->getDisplayName(),
+                ]
+                : null,
             'activityId' => $c->getActivity()?->getId(),
         ];
 

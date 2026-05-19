@@ -1,0 +1,26 @@
+<div id="odos-cookie-banner" role="dialog" aria-labelledby="odos-cookie-title" aria-describedby="odos-cookie-desc" hidden>
+    <p id="odos-cookie-title" class="fw-semibold mb-1 mb-md-0">Cookies de session</p>
+    <p id="odos-cookie-desc" class="small mb-0">
+        Cet espace admin utilise un cookie de session strictement nécessaire à l'authentification (pas de publicité).
+        <a href="mailto:contact@odos-app.fr">Contact RGPD</a>
+    </p>
+    <div class="odos-cookie-actions">
+        <button type="button" class="btn btn-sm btn-light" id="odos-cookie-accept">J'ai compris</button>
+    </div>
+</div>
+<script>
+(function () {
+    var key = 'odos_admin_cookie_ack';
+    var banner = document.getElementById('odos-cookie-banner');
+    var btn = document.getElementById('odos-cookie-accept');
+    if (!banner || !btn) return;
+    try {
+        if (localStorage.getItem(key) === '1') return;
+    } catch (e) { /* ignore */ }
+    banner.removeAttribute('hidden');
+    btn.addEventListener('click', function () {
+        try { localStorage.setItem(key, '1'); } catch (e) { /* ignore */ }
+        banner.setAttribute('hidden', 'hidden');
+    });
+})();
+</script>

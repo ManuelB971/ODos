@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import api, { onAuthError, safeStorage } from '@/scripts/api';
 
 import { User, AuthContextType } from '@/types';
-import { isJwtExpired } from '@/utils/jwt';
 import { logError } from '@/utils/errorHandling';
 
 export const AuthContext = createContext<AuthContextType>({
@@ -40,9 +40,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const token = await safeStorage.getItem('user_token');
 
-      if (!token || isJwtExpired(token)) {
-        await safeStorage.deleteItem('user_token');
-        await safeStorage.deleteItem('refresh_token');
+      // Pas de session stockée → rien à restaurer.
+      // NB : si le JWT d’accès est expiré mais qu’un refresh_token existe,
+      // on laisse passer : l’intercepteur axios (401) renouvelle la paire
+      // avant de rejouer /api/me. L’ancien comportement purgeait aussi le
+      // refresh_token au cold start → re-login obligatoire à chaque retour app.
+      if (!token) {
         setUser(null);
         setIsLoading(false);
         return;
@@ -62,9 +65,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
     } catch (error: unknown) {
       logError('AuthContext.checkAuth', error);
-      // Si le token est invalide ou expiré, on nettoie
-      await safeStorage.deleteItem('user_token');
-      await safeStorage.deleteItem('refresh_token');
+      // Déjà nettoyé par l’intercepteur si refresh impossible ; on ne vide pas
+      // la session sur erreur réseau (sinon utilisateur hors-ligne perd la session).
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        await safeStorage.deleteItem('user_token');
+        await safeStorage.deleteItem('refresh_token');
+      }
       setUser(null);
     } finally {
       setIsLoading(false);

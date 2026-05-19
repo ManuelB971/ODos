@@ -3,6 +3,13 @@
     "appVersionSource": "local"
   },
   "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:8000"
+      }
+    },
     "preview": {
       "distribution": "internal",
       "android": {
@@ -14,7 +21,10 @@
     },
     "production": {
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://167.86.75.36:8000"
       }
     }
   }

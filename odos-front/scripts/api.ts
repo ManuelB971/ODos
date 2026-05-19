@@ -317,9 +317,20 @@ export async function deleteAvatar(): Promise<void> {
     await api.delete('/api/me/avatar');
 }
 
-/** Delete the current user's account. */
+/** Delete the current user's account (legacy ApiPlatform route). */
 export async function deleteAccount(userId: number): Promise<void> {
     await api.delete(`/api/users/${userId}`);
+}
+
+/** Effacement du compte courant — art. 17 RGPD (confirmation explicite). */
+export async function deleteMyAccount(): Promise<void> {
+    await api.delete('/api/me', { data: { confirm: true } });
+}
+
+/** Export des données personnelles — art. 20 RGPD. */
+export async function exportMyData(): Promise<Record<string, unknown>> {
+    const response = await api.get('/api/me/export');
+    return response.data;
 }
 
 /** GET /api/activities/{id}/rating */

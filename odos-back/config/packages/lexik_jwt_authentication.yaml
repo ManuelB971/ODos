@@ -2,3 +2,5 @@ lexik_jwt_authentication:
     secret_key: '%env(resolve:JWT_SECRET_KEY)%'
     public_key: '%env(resolve:JWT_PUBLIC_KEY)%'
     pass_phrase: '%env(JWT_PASSPHRASE)%'
+    # TTL court : le refresh token prolonge la session (voir gesdinet + JWT_REFRESH_TTL).
+    token_ttl: '%env(int:default:900:JWT_TOKEN_TTL)%'

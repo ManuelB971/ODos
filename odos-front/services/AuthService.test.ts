@@ -82,7 +82,7 @@ describe('AuthService', () => {
     });
 
     const { signUp } = authService();
-    const result = await signUp('new@odos.app', 'secret12');
+    const result = await signUp('new@odos.app', 'secret12', true);
 
     expect(result.success).toBe(false);
     expect(result.errorMessage).toContain('Impossible de joindre le serveur');
@@ -97,19 +97,22 @@ describe('AuthService', () => {
     });
 
     const { signUp } = authService();
-    const result = await signUp('new@odos.app', 'secret12');
+    const result = await signUp('new@odos.app', 'secret12', true);
 
     expect(result.success).toBe(false);
     expect(result.errorMessage).toBe('Bad thing.');
+    expect(mockApi.post).toHaveBeenCalledWith('/api/users', expect.objectContaining({ acceptTerms: true }));
   });
 
-  it('signOut removes tokens', async () => {
+  it('signOut invalidates server session and removes tokens', async () => {
+    mockApi.post.mockResolvedValueOnce({ data: { message: 'Déconnecté.' } });
     mockSafeStorage.deleteItem.mockResolvedValue(undefined);
 
     const { signOut } = authService();
     const result = await signOut();
 
     expect(result).toEqual({ success: true, errorMessage: null });
+    expect(mockApi.post).toHaveBeenCalledWith('/api/logout');
     expect(mockSafeStorage.deleteItem).toHaveBeenCalledWith('user_token');
     expect(mockSafeStorage.deleteItem).toHaveBeenCalledWith('refresh_token');
   });
