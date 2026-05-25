@@ -28,6 +28,7 @@ class CommentItemController extends AbstractController
         private CommentContentSanitizer $sanitizer,
         private ValidatorInterface $validator,
         private LoggerInterface $logger,
+        private CommentSerializer $commentSerializer,
     ) {}
 
     #[Route('/{id}', name: 'api_comment_patch', methods: ['PATCH'])]
