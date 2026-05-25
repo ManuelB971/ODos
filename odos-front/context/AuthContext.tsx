@@ -62,6 +62,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         avatarUrl: response.data.avatarUrl ?? null,
         bio: response.data.bio ?? null,
         interests: response.data.interests ?? [],
+        hideBadgesOnProfile: response.data.hideBadgesOnProfile ?? false,
+        mapExplorationEnabled: response.data.mapExplorationEnabled ?? false,
       });
     } catch (error: unknown) {
       logError('AuthContext.checkAuth', error);

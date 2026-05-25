@@ -14,7 +14,8 @@
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
-        }
+        },
+        "NSLocationWhenInUseUsageDescription": "ODos utilise votre position sur la carte pour suivre votre progression d'exploration des zones d'activités."
       }
     },
     "android": {
@@ -23,6 +24,10 @@
         "backgroundColor": "#F4A261",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
       },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize"

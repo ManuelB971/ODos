@@ -52,8 +52,10 @@ export const Map = forwardRef<View, MapProps>(function Map(
   );
 });
 
-export const Camera = forwardRef<CameraRef, React.PropsWithChildren<Record<string, unknown>>>(
-  function Camera(_props, ref) {
+export const Camera = forwardRef<
+  CameraRef,
+  React.PropsWithChildren<{ initialViewState?: unknown }>
+>(function Camera(_props, ref) {
     useImperativeHandle(ref, () => ({
       easeTo: noop,
       fitBounds: noop,
@@ -69,6 +71,28 @@ type MarkerProps = ViewProps & {
   anchor?: string;
   children?: React.ReactNode;
   onPress?: () => void;
+};
+
+type GeoJSONSourceProps = {
+  id?: string;
+  data?: unknown;
+  children?: React.ReactNode;
+};
+
+export const GeoJSONSource = function GeoJSONSource({ children }: GeoJSONSourceProps) {
+  return <>{children}</>;
+};
+
+type LayerProps = {
+  id?: string;
+  type?: string;
+  source?: string;
+  paint?: Record<string, unknown>;
+  layout?: Record<string, unknown>;
+};
+
+export const Layer = function Layer(_props: LayerProps) {
+  return null;
 };
 
 export const Marker = forwardRef<View, MarkerProps>(function Marker(

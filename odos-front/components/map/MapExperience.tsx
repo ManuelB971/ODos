@@ -14,6 +14,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Map, Camera, Marker, type CameraRef } from '@maplibre/maplibre-react-native';
@@ -23,16 +24,23 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
 import { Colors } from '@/constants/theme';
+import { useAuth } from '@/context/AuthContext';
+import { useMapExploration } from '@/hooks/useMapExploration';
 import { ApiActivity } from '@/types';
-import { LatLngRegion, regionToBounds } from '@/utils/mapViewport';
+import { LatLngRegion, regionToBounds, regionToInitialCamera } from '@/utils/mapViewport';
+import { mapCameraPaddingForSheet } from '@/utils/mapCameraPadding';
 import {
   ActivityCard,
   ActivityCardSkeleton,
   ACTIVITY_CARD_GAP,
   ACTIVITY_CARD_WIDTH,
 } from './ActivityCard';
+import { ActivityPinsLayer } from './ActivityPinsLayer';
 import { BottomSheet, BottomSheetState } from './BottomSheet';
 import { CategoryChips, Chip } from './CategoryChips';
+import { ExplorationConsentModal } from './ExplorationConsentModal';
+import { ExplorationProgressChip } from './ExplorationProgressChip';
+import { ExplorationVisitedLayer } from './ExplorationVisitedLayer';
 import { MapPin } from './MapPin';
 import { SearchBar } from './SearchBar';
 
@@ -49,35 +57,40 @@ const FRANCE_FALLBACK_REGION: LatLngRegion = {
   longitudeDelta: 6,
 };
 
+const CAMERA_EASE_MS = 380;
+
 /**
- * Orchestrateur plein-écran : map + top overlay + bottom sheet + synchro.
+ * Orchestrateur plein-écran : map + overlays + bottom sheet + synchro.
  *
- * Les 3 layers sont volontairement séparés :
- *  1. `<Map>` MapLibre en background absolu (style URL — pas de clé Google).
- *  2. Top overlay (`SearchBar` + `CategoryChips`) positionné en absolu,
- *     au-dessus de la map via `zIndex`.
- *  3. `<BottomSheet>` dessous, lui-même contrôlé avec un état "collapsed/half/full".
+ * Layers (z-order bas → haut dans MapLibre) :
+ *  1. Exploration visitée (fill)
+ *  2. Pins activités (cercles GL)
+ *  3. Pin sélectionné (Marker React + label)
  *
- * Sync pin ↔ card ↔ map :
- *  - Tap sur un pin → `setSelectedId` → scroll du carrousel sur la card
- *    correspondante + recentrage de la map (`animateToRegion`).
- *  - Scroll du carrousel (momentum end) → sélectionne la card la plus visible
- *    → recentre la map sur son activité.
+ * Overlays RN au-dessus de la map :
+ *  - Top : recherche, chips, jauge exploration
+ *  - FAB recentrage (position liée au haut du bottom sheet)
+ *  - Bottom sheet
  */
 export function MapExperience({ activities, loading = false, error = null }: MapExperienceProps) {
   const router = useRouter();
+  const { height: windowHeight } = useWindowDimensions();
+  const { isAuthenticated, user, setUser } = useAuth();
   const cameraRef = useRef<CameraRef | null>(null);
   const listRef = useRef<FlatList<ApiActivity> | null>(null);
+  const cameraBusyRef = useRef(false);
+  const lastFilterKeyRef = useRef('');
 
   const [search, setSearch] = useState('');
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [sheetState, setSheetState] = useState<BottomSheetState>('half');
+  const [sheetTopY, setSheetTopY] = useState(windowHeight * 0.55);
+  const [consentDismissed, setConsentDismissed] = useState(false);
+  const [showConsentModal, setShowConsentModal] = useState(false);
 
-  /**
-   * Activités géolocalisées **et** publiées (les brouillons sont exclus même pour
-   * les admins afin que la carte reflète le feed public).
-   */
+  const exploration = useMapExploration(isAuthenticated && (user?.mapExplorationEnabled ?? false));
+
   const geoActivities = useMemo(
     () =>
       activities.filter(
@@ -86,14 +99,11 @@ export function MapExperience({ activities, loading = false, error = null }: Map
     [activities]
   );
 
-  /** Catégories dérivées des activités, triées + toujours préfixées par "Tous". */
   const chips: Chip[] = useMemo(() => {
     const seen = new globalThis.Map<string, string>();
     for (const a of geoActivities) {
       const label =
-        typeof a.category === 'string'
-          ? a.category
-          : a.category?.name ?? '';
+        typeof a.category === 'string' ? a.category : a.category?.name ?? '';
       if (label && !seen.has(label.toLowerCase())) {
         seen.set(label.toLowerCase(), label);
       }
@@ -104,7 +114,6 @@ export function MapExperience({ activities, loading = false, error = null }: Map
     return [{ id: 'all', label: 'Tous' }, ...sorted];
   }, [geoActivities]);
 
-  /** Filtre appliqué avant rendu des pins et des cards. */
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return geoActivities.filter((a) => {
@@ -120,6 +129,11 @@ export function MapExperience({ activities, loading = false, error = null }: Map
       );
     });
   }, [geoActivities, search, activeCategoryId]);
+
+  const filterKey = useMemo(
+    () => filtered.map((a) => a.id).join(','),
+    [filtered]
+  );
 
   const initialRegion = useMemo<LatLngRegion>(() => {
     if (filtered.length === 0) return FRANCE_FALLBACK_REGION;
@@ -137,18 +151,47 @@ export function MapExperience({ activities, loading = false, error = null }: Map
     };
   }, [filtered]);
 
-  /**
-   * Recentrage fluide sur une activité donnée + scroll carrousel.
-   */
+  const initialCamera = useMemo(
+    () => regionToInitialCamera(initialRegion),
+    [initialRegion]
+  );
+
+  const cameraPadding = useMemo(
+    () => mapCameraPaddingForSheet(sheetState),
+    [sheetState]
+  );
+
+  const selectedActivity = useMemo(
+    () => filtered.find((a) => a.id === selectedId) ?? null,
+    [filtered, selectedId]
+  );
+
+  const fitFilteredBounds = useCallback(
+    (animated: boolean) => {
+      cameraRef.current?.fitBounds(regionToBounds(initialRegion), {
+        padding: cameraPadding,
+        duration: animated ? 480 : 0,
+        easing: 'ease',
+      });
+    },
+    [initialRegion, cameraPadding]
+  );
+
   const focusActivity = useCallback(
     (activity: ApiActivity, opts: { scrollList?: boolean; openSheet?: boolean } = {}) => {
       setSelectedId(activity.id);
+      cameraBusyRef.current = true;
       cameraRef.current?.easeTo({
         center: [activity.longitude, activity.latitude],
         zoom: 14,
-        duration: 350,
+        padding: cameraPadding,
+        duration: CAMERA_EASE_MS,
         easing: 'ease',
       });
+      setTimeout(() => {
+        cameraBusyRef.current = false;
+      }, CAMERA_EASE_MS + 80);
+
       if (opts.scrollList !== false) {
         const index = filtered.findIndex((a) => a.id === activity.id);
         if (index >= 0) {
@@ -159,15 +202,46 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         setSheetState('half');
       }
     },
-    [filtered, sheetState]
+    [filtered, sheetState, cameraPadding]
   );
 
-  /** Si la liste filtrée change et que la sélection devient invalide, on reset. */
   useEffect(() => {
     if (selectedId != null && !filtered.some((a) => a.id === selectedId)) {
       setSelectedId(null);
     }
   }, [filtered, selectedId]);
+
+  useEffect(() => {
+    if (filterKey === lastFilterKeyRef.current) return;
+    lastFilterKeyRef.current = filterKey;
+    const id = requestAnimationFrame(() => fitFilteredBounds(false));
+    return () => cancelAnimationFrame(id);
+  }, [filterKey, fitFilteredBounds]);
+
+  useEffect(() => {
+    if (cameraBusyRef.current || selectedId != null) return;
+    fitFilteredBounds(true);
+  }, [sheetState, cameraPadding, fitFilteredBounds, selectedId]);
+
+  useEffect(() => {
+    if (
+      isAuthenticated &&
+      user?.mapExplorationEnabled &&
+      exploration.overview &&
+      !exploration.consented &&
+      !consentDismissed
+    ) {
+      setShowConsentModal(true);
+    } else if (!user?.mapExplorationEnabled) {
+      setShowConsentModal(false);
+    }
+  }, [
+    isAuthenticated,
+    user?.mapExplorationEnabled,
+    exploration.overview,
+    exploration.consented,
+    consentDismissed,
+  ]);
 
   const handleCardMomentumEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -187,9 +261,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
       <ActivityCard
         activity={item}
         active={item.id === selectedId}
-        onPress={() => {
-          router.push(`/activity/${item.id}`);
-        }}
+        onPress={() => router.push(`/activity/${item.id}`)}
       />
     ),
     [router, selectedId]
@@ -208,54 +280,46 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   );
 
   const resetViewport = useCallback(() => {
-    cameraRef.current?.fitBounds(regionToBounds(initialRegion), {
-      padding: { top: 120, bottom: 220, left: 28, right: 28 },
-      duration: 500,
-      easing: 'ease',
-    });
     setSelectedId(null);
-  }, [initialRegion]);
+    fitFilteredBounds(true);
+  }, [fitFilteredBounds]);
 
-  useEffect(() => {
-    const id = requestAnimationFrame(() => {
-      cameraRef.current?.fitBounds(regionToBounds(initialRegion), {
-        padding: { top: 120, bottom: 220, left: 28, right: 28 },
-        duration: 0,
-      });
-    });
-    return () => cancelAnimationFrame(id);
-  }, [initialRegion]);
+  const fabBottom = Math.max(24, windowHeight - sheetTopY + 12);
 
   const showEmpty = !loading && !error && filtered.length === 0;
 
   return (
     <View style={styles.root}>
-      {/* ── Layer 1 : MAP — MapLibre (vectoriel, style paramétrable). */}
-      <Map
-        style={StyleSheet.absoluteFill}
-        mapStyle={getOdosMaplibreStyleUrl()}
-        compass={false}
-        scaleBar={false}
-        attribution
-        logo
-        touchPitch={false}
-        touchRotate={false}
-      >
-        <Camera ref={cameraRef} />
-        {filtered.map((activity) => (
-          <Marker
-            key={`pin-${activity.id}`}
-            id={`pin-${activity.id}`}
-            lngLat={[activity.longitude, activity.latitude]}
-            anchor="bottom"
-            onPress={() => focusActivity(activity)}
-          >
-            <MapPin active={activity.id === selectedId} label={activity.name} />
-          </Marker>
-        ))}
-      </Map>
+      <View style={styles.mapStage}>
+        <Map
+          style={styles.map}
+          mapStyle={getOdosMaplibreStyleUrl()}
+          compass={false}
+          scaleBar={false}
+          attribution
+          logo
+          touchPitch={false}
+          touchRotate={false}
+        >
+          <Camera ref={cameraRef} initialViewState={initialCamera} />
+          <ExplorationVisitedLayer
+            geoJson={exploration.active ? (exploration.visitedGeoJson ?? null) : null}
+          />
+          <ActivityPinsLayer activities={filtered} selectedId={selectedId} />
+          {selectedActivity ? (
+            <Marker
+              key={`pin-selected-${selectedActivity.id}`}
+              id={`pin-selected-${selectedActivity.id}`}
+              lngLat={[selectedActivity.longitude, selectedActivity.latitude]}
+              anchor="bottom"
+              onPress={() => focusActivity(selectedActivity)}
+            >
+              <MapPin active label={selectedActivity.name} />
+            </Marker>
+          ) : null}
+        </Map>
+      </View>
 
-      {/* ── Layer 2 : TOP OVERLAY (search + chips) ── */}
       <SafeAreaView edges={['top']} style={styles.topOverlay} pointerEvents="box-none">
         <View style={styles.topRow} pointerEvents="box-none">
           <Pressable
@@ -271,11 +335,17 @@ export function MapExperience({ activities, loading = false, error = null }: Map
           </View>
         </View>
         <CategoryChips chips={chips} activeId={activeCategoryId} onPressChip={(c) => setActiveCategoryId(c.id)} />
+        {isAuthenticated && exploration.active && exploration.overview ? (
+          <ExplorationProgressChip
+            percent={exploration.percent}
+            visitedCount={exploration.overview.visitedCount}
+            totalCells={exploration.overview.totalCells}
+          />
+        ) : null}
       </SafeAreaView>
 
-      {/* ── Floating recenter FAB ── */}
       <Pressable
-        style={styles.recenterBtn}
+        style={[styles.recenterBtn, { bottom: fabBottom }]}
         onPress={resetViewport}
         accessibilityRole="button"
         accessibilityLabel="Recentrer la carte"
@@ -283,8 +353,11 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         <Compass size={18} color={Colors.light.text} />
       </Pressable>
 
-      {/* ── Layer 3 : BOTTOM SHEET ── */}
-      <BottomSheet state={sheetState} onChangeState={setSheetState}>
+      <BottomSheet
+        state={sheetState}
+        onChangeState={setSheetState}
+        onSheetTopY={setSheetTopY}
+      >
         <View style={styles.sheetHeader}>
           <Text style={styles.sheetTitle}>
             {filtered.length} lieu{filtered.length > 1 ? 'x' : ''} à explorer
@@ -343,6 +416,20 @@ export function MapExperience({ activities, loading = false, error = null }: Map
           />
         )}
       </BottomSheet>
+
+      <ExplorationConsentModal
+        visible={showConsentModal}
+        loading={exploration.isConsentPending}
+        onAccept={async () => {
+          await exploration.giveConsent();
+          setUser((u) => (u ? { ...u, mapExplorationEnabled: true } : u));
+          setShowConsentModal(false);
+        }}
+        onDecline={() => {
+          setConsentDismissed(true);
+          setShowConsentModal(false);
+        }}
+      />
     </View>
   );
 }
@@ -351,6 +438,13 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  mapStage: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 0,
+  },
+  map: {
+    flex: 1,
   },
   topOverlay: {
     position: 'absolute',
@@ -381,9 +475,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.12,
         shadowRadius: 10,
       },
-      android: {
-        elevation: 4,
-      },
+      android: { elevation: 4 },
     }),
   },
   searchWrap: {
@@ -392,14 +484,13 @@ const styles = StyleSheet.create({
   recenterBtn: {
     position: 'absolute',
     right: 18,
-    bottom: '50%',
     width: 44,
     height: 44,
     borderRadius: 22,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 5,
+    zIndex: 8,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -407,9 +498,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 8,
       },
-      android: {
-        elevation: 4,
-      },
+      android: { elevation: 4 },
     }),
   },
   sheetHeader: {

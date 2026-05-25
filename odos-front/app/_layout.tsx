@@ -7,6 +7,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { InterestProvider } from '@/context/InterestContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { BadgeUnlockProvider } from '@/context/BadgeUnlockContext';
+import { BadgeUnlockModal } from '@/components/badges/BadgeUnlockModal';
+import { useBadgeUnlock } from '@/context/BadgeUnlockContext';
 import SplashScreen from '@/components/SplashScreen';
 
 const queryClient = new QueryClient({
@@ -18,6 +21,11 @@ const queryClient = new QueryClient({
   },
 });
 
+function BadgeUnlockOverlay() {
+  const { pendingUnlock, dismissUnlock } = useBadgeUnlock();
+  return <BadgeUnlockModal badge={pendingUnlock} onClose={dismissUnlock} />;
+}
+
 export default function RootLayout() {
   useFrameworkReady();
   const [splashDone, setSplashDone] = useState(false);
@@ -27,21 +35,25 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <InterestProvider>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="login" options={{ headerShown: false }} />
-                <Stack.Screen name="interests" options={{ headerShown: false }} />
-                <Stack.Screen name="settings" options={{ headerShown: false }} />
-                <Stack.Screen name="legal" options={{ headerShown: false }} />
-                <Stack.Screen name="map" options={{ headerShown: false, animation: 'fade' }} />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-              <StatusBar style="auto" />
-              {!splashDone && (
-                <SplashScreen onFinish={() => setSplashDone(true)} />
-              )}
-            </InterestProvider>
+            <BadgeUnlockProvider>
+              <InterestProvider>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="login" options={{ headerShown: false }} />
+                  <Stack.Screen name="interests" options={{ headerShown: false }} />
+                  <Stack.Screen name="settings" options={{ headerShown: false }} />
+                  <Stack.Screen name="badges" options={{ headerShown: false }} />
+                  <Stack.Screen name="legal" options={{ headerShown: false }} />
+                  <Stack.Screen name="map" options={{ headerShown: false, animation: 'fade' }} />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+                <BadgeUnlockOverlay />
+                <StatusBar style="auto" />
+                {!splashDone && (
+                  <SplashScreen onFinish={() => setSplashDone(true)} />
+                )}
+              </InterestProvider>
+            </BadgeUnlockProvider>
           </AuthProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

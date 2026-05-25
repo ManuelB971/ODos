@@ -9,6 +9,7 @@ import {
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import {
+  Award,
   ChevronRight,
   Edit3,
   FileText,
@@ -19,6 +20,7 @@ import {
 
 import { useAuth } from '@/context/AuthContext';
 import { useFavorites } from '@/hooks/useFavorites';
+import { useBadges } from '@/hooks/useBadges';
 import { useInterests } from '@/context/InterestContext';
 import { Colors, Fonts, Spacing } from '@/constants/theme';
 import { CTAButton } from '@/components/ui/CTAButton';
@@ -37,6 +39,8 @@ export default function AccountScreen() {
   const { user, logout } = useAuth();
   const { favorites } = useFavorites();
   const { interests } = useInterests();
+  const { overview: badgesOverview } = useBadges();
+  const profileBadges = badgesOverview?.profileDisplayed ?? [];
   const [loggingOut, setLoggingOut] = useState(false);
 
   /**
@@ -117,8 +121,45 @@ export default function AccountScreen() {
         />
       </View>
 
+      {profileBadges.length > 0 && (
+        <Pressable
+          style={styles.badgesVitrine}
+          onPress={() => router.push('/badges')}
+          accessibilityRole="button"
+          accessibilityLabel="Voir mes badges"
+        >
+          <Text style={styles.badgesVitrineTitle}>Badges sur le profil</Text>
+          <View style={styles.badgesRow}>
+            {profileBadges.slice(0, 6).map((b) => {
+              const uri = resolveImageUrl(b.imageUrl);
+              return (
+                <View key={b.id} style={styles.badgeChip}>
+                  {uri ? (
+                    <Image source={{ uri }} style={styles.badgeChipImg} contentFit="cover" />
+                  ) : (
+                    <Award size={20} color={Colors.light.accent} />
+                  )}
+                </View>
+              );
+            })}
+          </View>
+          <Text style={styles.badgesVitrineLink}>Gérer mes badges →</Text>
+        </Pressable>
+      )}
+
       {/* ── Menu ── */}
       <View style={styles.menuCard}>
+        <MenuItem
+          icon={<Award size={18} color={Colors.light.text} />}
+          label="Mes badges"
+          helper={
+            badgesOverview
+              ? `${badgesOverview.earned.length} obtenu${badgesOverview.earned.length > 1 ? 's' : ''}`
+              : 'Récompenses exploration'
+          }
+          onPress={() => router.push('/badges')}
+        />
+        <View style={styles.menuDivider} />
         <MenuItem
           icon={<Heart size={18} color={Colors.light.text} />}
           label="Mes favoris"
@@ -323,6 +364,39 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     fontWeight: '700',
+  },
+  badgesVitrine: {
+    backgroundColor: Colors.light.surface,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 22,
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+  },
+  badgesVitrineTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.light.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 10,
+  },
+  badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  badgeChip: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.light.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  badgeChipImg: { width: 44, height: 44 },
+  badgesVitrineLink: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.light.primary,
   },
   menuCard: {
     backgroundColor: '#fff',
