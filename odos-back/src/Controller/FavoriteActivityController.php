@@ -4,6 +4,8 @@ namespace App\Controller;
 
 use App\Entity\Activity;
 use App\Entity\User;
+use App\Gamification\GamificationEvent;
+use App\Gamification\GamificationService;
 use App\Repository\ActivityRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,6 +24,7 @@ class FavoriteActivityController extends AbstractController
         private ActivityRepository $activityRepository,
         private EntityManagerInterface $em,
         private Security $security,
+        private GamificationService $gamificationService,
     ) {}
 
     #[Route('', name: 'add', methods: ['POST'])]
@@ -52,12 +55,14 @@ class FavoriteActivityController extends AbstractController
             throw $this->createAccessDeniedException('Utilisateur invalide.');
         }
 
+        $unlocked = [];
         if (!$user->hasFavorite($activity)) {
             $user->addFavorite($activity);
             $this->em->flush();
+            $unlocked = $this->gamificationService->evaluateAndAward($user, GamificationEvent::FAVORITE_ADDED);
         }
 
-        return $this->json(['isFavorite' => true]);
+        return $this->json(['isFavorite' => true, 'unlockedBadges' => $unlocked]);
     }
 
     #[Route('', name: 'remove', methods: ['DELETE'])]

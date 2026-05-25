@@ -58,6 +58,11 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\Email(message: 'L\'adresse email {{ value }} n\'est pas valide.')]
     private ?string $email = null;
 
+    /** Horodatage du consentement CGU + politique de confidentialité (art. 7 RGPD). */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    #[Groups(['user:read'])]
+    private ?\DateTimeImmutable $consentedAt = null;
+
     #[ORM\Column(length: 32, nullable: true)]
     #[Groups(['user:read', 'user:write'])]
     private ?string $phoneNumber = null;
@@ -166,7 +171,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var Collection<int, Comment>
      */
-    #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'author', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'author')]
     private Collection $authoredComments;
 
     /**
@@ -175,6 +180,32 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\OneToMany(targetEntity: ActivityRating::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $activityRatings;
 
+    /** Masque tous les badges sur le profil public (préférence utilisateur). */
+    #[ORM\Column(options: ['default' => false])]
+    #[Groups(['user:read', 'user:write'])]
+    private bool $hideBadgesOnProfile = false;
+
+    /** Consentement RGPD pour le suivi GPS d'exploration carte (phase D). */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $mapExplorationConsentAt = null;
+
+    /** Interrupteur paramètres : désactivé = pas de GPS, sync ni progression badges carte. */
+    #[ORM\Column(options: ['default' => false])]
+    #[Groups(['user:read', 'user:write'])]
+    private bool $mapExplorationEnabled = false;
+
+    /**
+     * @var Collection<int, UserBadge>
+     */
+    #[ORM\OneToMany(targetEntity: UserBadge::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $userBadges;
+
+    /**
+     * @var Collection<int, UserBadgeDisplay>
+     */
+    #[ORM\OneToMany(targetEntity: UserBadgeDisplay::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $badgeDisplays;
+
     public function __construct()
     {
         $this->interests = new ArrayCollection();
@@ -182,6 +213,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->webauthnCredentials = new ArrayCollection();
         $this->authoredComments = new ArrayCollection();
         $this->activityRatings = new ArrayCollection();
+        $this->userBadges = new ArrayCollection();
+        $this->badgeDisplays = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -197,6 +230,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEmail(string $email): static
     {
         $this->email = $email;
+
+        return $this;
+    }
+
+    public function getConsentedAt(): ?\DateTimeImmutable
+    {
+        return $this->consentedAt;
+    }
+
+    public function setConsentedAt(?\DateTimeImmutable $consentedAt): static
+    {
+        $this->consentedAt = $consentedAt;
 
         return $this;
     }
@@ -463,5 +508,63 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getActivityRatings(): Collection
     {
         return $this->activityRatings;
+    }
+
+    public function isHideBadgesOnProfile(): bool
+    {
+        return $this->hideBadgesOnProfile;
+    }
+
+    public function setHideBadgesOnProfile(bool $hideBadgesOnProfile): static
+    {
+        $this->hideBadgesOnProfile = $hideBadgesOnProfile;
+
+        return $this;
+    }
+
+    public function getMapExplorationConsentAt(): ?\DateTimeImmutable
+    {
+        return $this->mapExplorationConsentAt;
+    }
+
+    public function setMapExplorationConsentAt(?\DateTimeImmutable $mapExplorationConsentAt): static
+    {
+        $this->mapExplorationConsentAt = $mapExplorationConsentAt;
+
+        return $this;
+    }
+
+    public function isMapExplorationEnabled(): bool
+    {
+        return $this->mapExplorationEnabled;
+    }
+
+    public function setMapExplorationEnabled(bool $mapExplorationEnabled): static
+    {
+        $this->mapExplorationEnabled = $mapExplorationEnabled;
+
+        return $this;
+    }
+
+    /** Consentement + interrupteur activés (fonctionnalité réellement active). */
+    public function isMapExplorationActive(): bool
+    {
+        return $this->mapExplorationEnabled && null !== $this->mapExplorationConsentAt;
+    }
+
+    /**
+     * @return Collection<int, UserBadge>
+     */
+    public function getUserBadges(): Collection
+    {
+        return $this->userBadges;
+    }
+
+    /**
+     * @return Collection<int, UserBadgeDisplay>
+     */
+    public function getBadgeDisplays(): Collection
+    {
+        return $this->badgeDisplays;
     }
 }

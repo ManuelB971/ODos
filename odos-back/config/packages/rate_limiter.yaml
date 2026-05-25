@@ -1,0 +1,10 @@
+framework:
+    rate_limiter:
+        api_login:
+            policy: fixed_window
+            limit: 5
+            interval: '1 minute'
+        api_register:
+            policy: fixed_window
+            limit: 3
+            interval: '1 hour'

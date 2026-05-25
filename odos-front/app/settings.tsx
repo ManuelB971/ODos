@@ -5,7 +5,9 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -18,19 +20,24 @@ import {
   Camera,
   ChevronRight,
   FileText,
+  Map,
   Scale,
   Shield,
+  Download,
   Trash2,
   User as UserIcon,
 } from 'lucide-react-native';
 
 import { useAuth } from '@/context/AuthContext';
 import {
-  deleteAccount,
   deleteAvatar,
+  deleteMyAccount,
+  exportMyData,
+  patchMapExplorationEnabled,
   updateProfile,
   uploadAvatar,
 } from '@/scripts/api';
+import { MAP_EXPLORATION_QUERY_KEY } from '@/hooks/useMapExploration';
 import { Colors, Fonts, Spacing } from '@/constants/theme';
 import { logError, toAppError } from '@/utils/errorHandling';
 import { resolveImageUrl } from '@/utils/imageUrl';
@@ -72,7 +79,8 @@ function validateAlias(alias: string): string | null {
 }
 
 export default function SettingsScreen() {
-  const { user, setUser, logout } = useAuth();
+  const { user, setUser, logout, isAuthenticated } = useAuth();
+  const queryClient = useQueryClient();
 
   const [alias, setAlias] = useState(user?.alias ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
@@ -86,6 +94,26 @@ export default function SettingsScreen() {
   const [aliasError, setAliasError] = useState<string | null>(null);
   const [bioError, setBioError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const explorationMutation = useMutation({
+    mutationFn: (enabled: boolean) => patchMapExplorationEnabled(enabled),
+    onSuccess: async (_overview, enabled) => {
+      setUser((u) => (u ? { ...u, mapExplorationEnabled: enabled } : u));
+      await queryClient.invalidateQueries({ queryKey: MAP_EXPLORATION_QUERY_KEY });
+      setSuccessMsg(
+        enabled
+          ? 'Exploration carte activée. Ouvrez la carte pour autoriser la position si besoin.'
+          : 'Exploration carte désactivée.'
+      );
+    },
+    onError: (err) => {
+      logError('Settings.mapExploration', err);
+      Alert.alert(
+        'Exploration carte',
+        toAppError(err, 'Impossible de mettre à jour ce réglage.').userMessage
+      );
+    },
+  });
 
   const resolvedAvatar = resolveImageUrl(avatarUrl);
 
@@ -244,13 +272,26 @@ export default function SettingsScreen() {
     if (!user?.id) return;
     setDeleting(true);
     try {
-      await deleteAccount(user.id);
+      await deleteMyAccount();
       await logout();
       router.replace('/login');
     } catch (err) {
       logError('Settings.deleteAccount', err);
       Alert.alert('Erreur', toAppError(err, 'Impossible de supprimer le compte.').userMessage);
       setDeleting(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    try {
+      const data = await exportMyData();
+      await Share.share({
+        title: 'Export de mes données ODOS',
+        message: JSON.stringify(data, null, 2),
+      });
+    } catch (err) {
+      logError('Settings.exportData', err);
+      Alert.alert('Export', toAppError(err, 'Impossible d’exporter vos données.').userMessage);
     }
   };
 
@@ -386,6 +427,44 @@ export default function SettingsScreen() {
           />
         </View>
 
+        {/* ── Carte & confidentialité ── */}
+        {isAuthenticated ? (
+          <>
+            <Text style={styles.sectionTitle}>Carte</Text>
+            <View style={styles.card}>
+              <View style={styles.switchRow}>
+                <View style={styles.switchIcon}>
+                  <Map size={18} color={Colors.light.muted} />
+                </View>
+                <View style={styles.switchTextCol}>
+                  <Text style={styles.switchLabel}>Exploration de la carte</Text>
+                  <Text style={styles.switchHint}>
+                    Suivi des zones visitées et badges « Explorateur ». Désactivé : pas de GPS, pas de
+                    progression ni calque sur la carte (badges déjà obtenus conservés).
+                  </Text>
+                </View>
+                <Switch
+                  value={user?.mapExplorationEnabled ?? false}
+                  onValueChange={(on) => explorationMutation.mutate(on)}
+                  disabled={explorationMutation.isPending}
+                  trackColor={{ true: Colors.light.mapPrimaryCta }}
+                  accessibilityLabel="Activer l'exploration de la carte"
+                />
+              </View>
+            </View>
+          </>
+        ) : null}
+
+        {/* ── Données personnelles (RGPD) ── */}
+        <Text style={styles.sectionTitle}>Mes données</Text>
+        <View style={styles.card}>
+          <MenuRow
+            icon={<Download size={18} color={Colors.light.muted} />}
+            label="Télécharger mes données (portabilité)"
+            onPress={handleExportData}
+          />
+        </View>
+
         {/* ── Informations légales ── */}
         <Text style={styles.sectionTitle}>Informations légales</Text>
         <View style={styles.card}>
@@ -412,8 +491,8 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionTitle, styles.dangerSectionTitle]}>Zone dangereuse</Text>
         <View style={styles.card}>
           <Text style={styles.dangerHelp}>
-            La suppression de votre compte est définitive. Vos favoris, notes et
-            commentaires seront perdus.
+            La suppression de votre compte est définitive. Vos favoris et notes seront
+            effacés ; vos commentaires publics seront anonymisés.
           </Text>
           <View style={{ height: 12 }} />
           <CTAButton
@@ -658,5 +737,34 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.light.muted,
     lineHeight: 18,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  switchIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: Colors.light.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  switchTextCol: {
+    flex: 1,
+    paddingRight: 4,
+  },
+  switchLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  switchHint: {
+    marginTop: 4,
+    fontSize: 12,
+    color: Colors.light.muted,
+    lineHeight: 17,
   },
 });

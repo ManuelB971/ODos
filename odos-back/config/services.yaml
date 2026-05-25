@@ -11,6 +11,8 @@ parameters:
     app.uploads.activities.public_prefix: '/uploads/activities'
     app.uploads.avatars.dir: '%kernel.project_dir%/public/uploads/avatars'
     app.uploads.avatars.public_prefix: '/uploads/avatars'
+    app.uploads.badges.dir: '%kernel.project_dir%/public/uploads/badges'
+    app.uploads.badges.public_prefix: '/uploads/badges'
     app.llm.base_url: '%env(LLM_BASE_URL)%'
     app.llm.model: '%env(LLM_MODEL)%'
     app.llm.timeout: '%env(int:LLM_TIMEOUT)%'
@@ -33,9 +35,33 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+    App\State\UserRegistrationProcessor:
+        decorates: App\State\UserPasswordHasherProcessor
+        arguments:
+            $innerProcessor: '@.inner'
+
     App\State\UserPasswordHasherProcessor:
         arguments:
             $innerProcessor: '@api_platform.doctrine.orm.state.persist_processor'
+
+    App\State\UserRemoveProcessor:
+        decorates: api_platform.doctrine.orm.state.remove_processor
+        arguments:
+            $innerProcessor: '@.inner'
+
+    App\Service\UserDeletionService:
+        arguments:
+            $avatarUploadDir: '%app.uploads.avatars.dir%'
+            $avatarPublicPrefix: '%app.uploads.avatars.public_prefix%'
+
+    App\EventSubscriber\ApiRateLimitSubscriber:
+        arguments:
+            $apiLoginLimiter: '@limiter.api_login'
+            $apiRegisterLimiter: '@limiter.api_register'
+
+    App\Monolog\SensitiveDataProcessor:
+        tags:
+            - { name: monolog.processor }
 
     App\Service\ActivityPhotoUploader:
         arguments:
@@ -46,6 +72,11 @@ services:
         arguments:
             $uploadDir: '%app.uploads.avatars.dir%'
             $publicPathPrefix: '%app.uploads.avatars.public_prefix%'
+
+    App\Service\BadgePhotoUploader:
+        arguments:
+            $uploadDir: '%app.uploads.badges.dir%'
+            $publicPathPrefix: '%app.uploads.badges.public_prefix%'
 
     App\Controller\UserAvatarController:
         arguments:

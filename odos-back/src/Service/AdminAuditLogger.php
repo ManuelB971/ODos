@@ -17,6 +17,7 @@ final class AdminAuditLogger
         private readonly Security $security,
         private readonly RequestStack $requestStack,
         private readonly LoggerInterface $logger,
+        private readonly EmailPseudonymizer $emailPseudonymizer,
     ) {
     }
 
@@ -34,6 +35,7 @@ final class AdminAuditLogger
     ): void {
         try {
             $request = $this->requestStack->getCurrentRequest();
+            $rawEmail = $adminEmail ?? $this->security->getUser()?->getUserIdentifier();
             $mergedContext = array_merge(
                 [
                     'route' => $request?->attributes->get('_route'),
@@ -42,9 +44,16 @@ final class AdminAuditLogger
                 ],
                 $context ?? []
             );
+            if (is_string($rawEmail) && '' !== $rawEmail) {
+                $mergedContext['adminEmailHash'] = $this->emailPseudonymizer->hash($rawEmail);
+            }
 
             $audit = new AdminAuditLog();
-            $audit->setAdminEmail($adminEmail ?? $this->security->getUser()?->getUserIdentifier());
+            $audit->setAdminEmail(
+                is_string($rawEmail) && '' !== $rawEmail
+                    ? $this->emailPseudonymizer->pseudonymize($rawEmail)
+                    : null
+            );
             $audit->setAction($action);
             $audit->setEntityClass($entityClass);
             $audit->setEntityId($entityId);

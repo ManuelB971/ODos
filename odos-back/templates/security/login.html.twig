@@ -1,64 +1,154 @@
 {% extends 'base.html.twig' %}
 
+
+
 {% block title %}Odos Admin - Connexion{% endblock %}
 
+
+
 {% block body %}
-<div class="container mt-5">
+
+<div class="container mt-5 pb-5">
+
     <div class="row justify-content-center">
+
         <div class="col-md-6">
+
             <div class="card shadow-sm border-0">
+
                 <div class="card-body p-4">
-                    <div class="mb-3">
-                        <div class="text-uppercase fw-semibold text-muted small">Accès admin</div>
-                        <h1 class="h3 mb-1 fw-normal">Odos Admin</h1>
-                        <div class="text-muted">Connexion sécurisée</div>
-                    </div>
+
+                    <header class="mb-3">
+
+                        <p class="text-uppercase fw-semibold text-muted small mb-1" id="login-subtitle">Accès admin</p>
+
+                        <h1 class="h3 mb-1 fw-normal" id="login-heading">Odos Admin</h1>
+
+                        <p class="text-muted mb-0">Connexion sécurisée</p>
+
+                    </header>
+
+
 
                     {% if error %}
-                        <div class="alert alert-danger mb-3" role="alert">
+
+                        <div class="alert alert-danger mb-3" role="alert" id="login-error">
+
+                            <span class="visually-hidden">Erreur : </span>
+
                             {{ error.messageKey|trans(error.messageData, 'security') }}
+
                         </div>
+
                     {% endif %}
+
+
 
                     {% if app.user %}
-                        <div class="alert alert-info mb-3">
+
+                        <div class="alert alert-info mb-3" role="status">
+
                             Vous êtes connecté en tant que <strong>{{ app.user.userIdentifier }}</strong>.
+
                             <a class="alert-link" href="{{ path('app_logout') }}">Déconnexion</a>
+
                         </div>
+
                     {% endif %}
 
-                    <form method="post" autocomplete="off">
-                        <label for="inputEmail" class="form-label">Email</label>
-                        <input type="email"
-                               value="{{ last_username }}"
-                               name="email"
-                               id="inputEmail"
-                               class="form-control"
-                               autocomplete="email"
-                               required
-                               autofocus>
 
-                        <label for="inputPassword" class="form-label mt-3">Mot de passe</label>
-                        <input type="password"
-                               name="password"
-                               id="inputPassword"
-                               class="form-control"
-                               autocomplete="current-password"
-                               required>
+
+                    <form method="post" autocomplete="off" novalidate aria-labelledby="login-heading">
+
+                        <div class="mb-3">
+
+                            <label for="inputEmail" class="form-label">Email</label>
+
+                            <input type="email"
+
+                                   value="{{ last_username }}"
+
+                                   name="email"
+
+                                   id="inputEmail"
+
+                                   class="form-control{% if error %} is-invalid{% endif %}"
+
+                                   autocomplete="email"
+
+                                   required
+
+                                   autofocus
+
+                                   aria-required="true"
+
+                                   {% if error %}aria-invalid="true" aria-errormessage="login-error"{% endif %}
+
+                                   aria-describedby="email-help">
+
+                            <div id="email-help" class="form-text">Adresse email de votre compte administrateur.</div>
+
+                        </div>
+
+
+
+                        <div class="mb-3">
+
+                            <label for="inputPassword" class="form-label">Mot de passe</label>
+
+                            <input type="password"
+
+                                   name="password"
+
+                                   id="inputPassword"
+
+                                   class="form-control{% if error %} is-invalid{% endif %}"
+
+                                   autocomplete="current-password"
+
+                                   required
+
+                                   aria-required="true"
+
+                                   {% if error %}aria-invalid="true" aria-errormessage="login-error"{% endif %}
+
+                                   aria-describedby="password-help">
+
+                            <div id="password-help" class="form-text">Mot de passe associé à votre compte admin.</div>
+
+                        </div>
+
+
 
                         <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
 
-                        <button class="btn btn-lg btn-primary w-100 mt-4" type="submit">
+
+
+                        <button class="btn btn-lg btn-primary w-100 mt-2" type="submit">
+
                             Se connecter
+
                         </button>
+
                     </form>
 
-                    <div class="text-muted small mt-3">
+
+
+                    <p class="text-muted small mt-3 mb-0" id="mfa-notice">
+
                         Après la connexion, une vérification MFA sera demandée.
-                    </div>
+
+                    </p>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
+
 {% endblock %}
+

@@ -7,7 +7,10 @@ use App\Entity\Comment;
 use App\Entity\User;
 use App\Repository\ActivityRepository;
 use App\Repository\CommentRepository;
+use App\Gamification\GamificationEvent;
+use App\Gamification\GamificationService;
 use App\Service\CommentContentSanitizer;
+use App\Service\CommentSerializer;
 use App\Service\ThrottledActionException;
 use App\Service\UserActionThrottleService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -35,6 +38,8 @@ class ActivityCommentsController extends AbstractController
         private ValidatorInterface $validator,
         private UserActionThrottleService $throttle,
         private LoggerInterface $logger,
+        private GamificationService $gamificationService,
+        private CommentSerializer $commentSerializer,
     ) {}
 
     #[Route('', name: 'api_activity_comments_list', methods: ['GET'])]
@@ -50,7 +55,7 @@ class ActivityCommentsController extends AbstractController
         $items = $this->commentRepository->findVisibleForActivityPaginated($activity, $page, self::PER_PAGE, $isAdmin);
         $total = $this->commentRepository->countVisibleForActivity($activity, $isAdmin);
 
-        $member = array_map(fn (Comment $c) => $this->serializeComment($c), $items);
+        $member = array_map(fn (Comment $c) => $this->commentSerializer->toArray($c), $items);
 
         return $this->json([
             'member' => $member,
@@ -110,7 +115,12 @@ class ActivityCommentsController extends AbstractController
         $this->throttle->markCommentPosted((int) $user->getId());
         $this->logger->info('comment.created', ['commentId' => $comment->getId(), 'activityId' => $activity->getId(), 'userId' => $user->getId()]);
 
-        return $this->json($this->serializeComment($comment), Response::HTTP_CREATED);
+        $unlocked = $this->gamificationService->evaluateAndAward($user, GamificationEvent::COMMENT_CREATED);
+
+        return $this->json(
+            array_merge($this->commentSerializer->toArray($comment), ['unlockedBadges' => $unlocked]),
+            Response::HTTP_CREATED
+        );
     }
 
     private function findPublishedActivity(int $id): ?Activity
@@ -126,31 +136,4 @@ class ActivityCommentsController extends AbstractController
         return $activity;
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function serializeComment(Comment $c): array
-    {
-        $author = $c->getAuthor();
-        \assert($author instanceof User);
-
-        $payload = [
-            'id' => $c->getId(),
-            'content' => $c->getContent(),
-            'createdAt' => $c->getCreatedAt()?->format(\DateTimeInterface::ATOM),
-            'updatedAt' => $c->getUpdatedAt()?->format(\DateTimeInterface::ATOM),
-            'isEdited' => $c->isEdited(),
-            'author' => [
-                'id' => $author->getId(),
-                'displayName' => $author->getDisplayName(),
-            ],
-            'activityId' => $c->getActivity()?->getId(),
-        ];
-
-        if ($this->security->isGranted('ROLE_ADMIN')) {
-            $payload['isHidden'] = $c->isHidden();
-        }
-
-        return $payload;
-    }
 }

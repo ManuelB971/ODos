@@ -15,8 +15,52 @@ export type User = {
     avatarUrl?: string | null;
     /** Bio publique, 500 caractères max, texte brut. */
     bio?: string | null;
+    hideBadgesOnProfile?: boolean;
+    /** Exploration carte activée (paramètres + consentement). */
+    mapExplorationEnabled?: boolean;
     interests?: Category[];
 } | null;
+
+/** Badge gamification (API /api/me/badges) */
+export interface BadgeItem {
+    id: number;
+    code: string;
+    name: string;
+    description: string;
+    imageUrl: string | null;
+    sortOrder: number;
+    owned: boolean;
+    ruleHint: string;
+    unlockedAt?: string;
+    seenAt?: string | null;
+    isUnseen?: boolean;
+    displayOnProfile?: boolean;
+    displayOrder?: number | null;
+}
+
+export interface BadgesOverview {
+    hideAllOnProfile: boolean;
+    earned: BadgeItem[];
+    available: BadgeItem[];
+    profileDisplayed: BadgeItem[];
+    unseenCount: number;
+}
+
+export interface MapExplorationOverview {
+    zoneKey: string;
+    precision: number;
+    bbox: { west: number; south: number; east: number; north: number };
+    totalCells: number;
+    visitedCount: number;
+    percent: number;
+    enabled: boolean;
+    consented: boolean;
+    /** enabled && consented — fonctionnalité réellement utilisable */
+    active: boolean;
+    consentedAt?: string | null;
+    visitedCellIds: string[];
+    visitedGeoJson?: GeoJSON.FeatureCollection;
+}
 
 export type AuthContextType = {
     user: User;
@@ -86,7 +130,7 @@ export interface ActivityComment {
     isEdited: boolean;
     /** Présent uniquement pour les admins (les commentaires masqués sont filtrés côté serveur). */
     isHidden?: boolean;
-    author: { id: number; displayName: string };
+    author: { id: number; displayName: string; avatarUrl?: string | null };
     activityId: number | null;
 }
 

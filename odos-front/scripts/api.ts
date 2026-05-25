@@ -1,6 +1,15 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
-import { ApiActivity, ActivityComment, ActivityCommentsPage, ActivityRatingInfo, Category } from '@/types';
+import {
+    ApiActivity,
+    ActivityComment,
+    ActivityCommentsPage,
+    ActivityRatingInfo,
+    BadgeItem,
+    BadgesOverview,
+    MapExplorationOverview,
+    Category,
+} from '@/types';
 
 const isSecureStoreAvailable = async () => {
     try {
@@ -279,11 +288,17 @@ export async function fetchFavoriteIds(): Promise<number[]> {
  */
 export async function updateProfile(
     userId: number,
-    data: { alias?: string | null; bio?: string | null }
+    data: { alias?: string | null; bio?: string | null; mapExplorationEnabled?: boolean }
 ): Promise<void> {
     await api.patch(`/api/users/${userId}`, data, {
         headers: { 'Content-Type': 'application/merge-patch+json' },
     });
+}
+
+/** PATCH /api/me/exploration/settings — activer / désactiver l'exploration carte */
+export async function patchMapExplorationEnabled(enabled: boolean): Promise<MapExplorationOverview> {
+    const response = await api.patch('/api/me/exploration/settings', { enabled });
+    return response.data;
 }
 
 /**
@@ -317,9 +332,20 @@ export async function deleteAvatar(): Promise<void> {
     await api.delete('/api/me/avatar');
 }
 
-/** Delete the current user's account. */
+/** Delete the current user's account (legacy ApiPlatform route). */
 export async function deleteAccount(userId: number): Promise<void> {
     await api.delete(`/api/users/${userId}`);
+}
+
+/** Effacement du compte courant — art. 17 RGPD (confirmation explicite). */
+export async function deleteMyAccount(): Promise<void> {
+    await api.delete('/api/me', { data: { confirm: true } });
+}
+
+/** Export des données personnelles — art. 20 RGPD. */
+export async function exportMyData(): Promise<Record<string, unknown>> {
+    const response = await api.get('/api/me/export');
+    return response.data;
 }
 
 /** GET /api/activities/{id}/rating */
@@ -358,6 +384,59 @@ export async function patchActivityComment(commentId: number, content: string): 
 
 export async function deleteActivityComment(commentId: number): Promise<void> {
     await api.delete(`/api/comments/${commentId}`);
+}
+
+/** GET /api/me/badges — badges obtenus, catalogue et vitrine profil */
+export async function fetchMyBadges(): Promise<BadgesOverview> {
+    const response = await api.get('/api/me/badges');
+    return response.data;
+}
+
+/** PATCH /api/me/badges/{id}/display */
+export async function patchBadgeDisplay(
+    badgeId: number,
+    displayOnProfile: boolean,
+    displayOrder?: number | null
+): Promise<BadgeItem> {
+    const response = await api.patch(`/api/me/badges/${badgeId}/display`, {
+        displayOnProfile,
+        ...(displayOrder !== undefined ? { displayOrder } : {}),
+    });
+    return response.data;
+}
+
+/** POST /api/me/badges/{id}/seen */
+export async function markBadgeSeen(badgeId: number): Promise<void> {
+    await api.post(`/api/me/badges/${badgeId}/seen`);
+}
+
+/** POST /api/me/gamification/events */
+export async function postGamificationEvent(
+    type: 'activity_viewed' | 'favorite_added' | 'comment_created' | 'rating_created',
+    context: Record<string, unknown> = {}
+): Promise<{ unlocked: BadgeItem[]; overview: BadgesOverview }> {
+    const response = await api.post('/api/me/gamification/events', { type, context });
+    return response.data;
+}
+
+/** GET /api/me/exploration — progression zones carte */
+export async function fetchMapExploration(): Promise<MapExplorationOverview> {
+    const response = await api.get('/api/me/exploration');
+    return response.data;
+}
+
+/** POST /api/me/exploration/consent */
+export async function postMapExplorationConsent(): Promise<MapExplorationOverview> {
+    const response = await api.post('/api/me/exploration/consent');
+    return response.data;
+}
+
+/** POST /api/me/exploration/sync */
+export async function syncMapExplorationCells(
+    cells: string[]
+): Promise<{ overview: MapExplorationOverview; unlockedBadges: BadgeItem[] }> {
+    const response = await api.post('/api/me/exploration/sync', { cells });
+    return response.data;
 }
 
 export default api;

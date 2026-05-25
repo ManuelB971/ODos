@@ -4,9 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  ActivityIndicator,
   Alert,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
   Image,
@@ -27,8 +25,13 @@ import api, {
   postActivityComment,
   patchActivityComment,
   deleteActivityComment,
+  postGamificationEvent,
 } from '@/scripts/api';
-import { ApiActivity, ActivityComment } from '@/types';
+import { ActivityCommentsSection } from '@/components/comments/ActivityCommentsSection';
+import { useBadgeUnlock } from '@/context/BadgeUnlockContext';
+import { BADGES_QUERY_KEY } from '@/hooks/useBadges';
+import type { BadgeItem } from '@/types';
+import { ApiActivity } from '@/types';
 import { Colors, Spacing } from '@/constants/theme';
 import { logError, toAppError, AppError } from '@/utils/errorHandling';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -109,6 +112,7 @@ export default function ActivityDetails() {
   const [ratingToast, setRatingToast] = useState<ToastState | null>(null);
   const [commentToast, setCommentToast] = useState<ToastState | null>(null);
   const queryClient = useQueryClient();
+  const { mergeUnlocked } = useBadgeUnlock();
   const idFromRoute = routeParamToString(id as string | string[] | undefined);
   const activityIdFromRoute = Number.parseInt(String(idFromRoute ?? ''), 10);
   const activityId =
@@ -162,6 +166,13 @@ export default function ActivityDetails() {
       const appError = toAppError(err, 'Impossible de modifier les favoris.');
       Alert.alert('Favoris', appError.userMessage);
     },
+    onSuccess: (data) => {
+      const unlocked = (data as { unlockedBadges?: BadgeItem[] }).unlockedBadges;
+      if (unlocked?.length) {
+        mergeUnlocked(unlocked);
+        void queryClient.invalidateQueries({ queryKey: BADGES_QUERY_KEY });
+      }
+    },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ['favoriteIds'] });
     },
@@ -194,6 +205,11 @@ export default function ActivityDetails() {
       setActivity((a) =>
         a ? { ...a, ratingAverage: data.average ?? undefined, ratingCount: data.count } : a
       );
+      const unlocked = (data as { unlockedBadges?: BadgeItem[] }).unlockedBadges;
+      if (unlocked?.length) {
+        mergeUnlocked(unlocked);
+        void queryClient.invalidateQueries({ queryKey: BADGES_QUERY_KEY });
+      }
     },
   });
 
@@ -219,10 +235,15 @@ export default function ActivityDetails() {
 
   const postCommentMutation = useMutation({
     mutationFn: () => postActivityComment(activityId, commentDraft.trim()),
-    onSuccess: () => {
+    onSuccess: (data) => {
       setCommentDraft('');
       setCommentToast(null);
       queryClient.invalidateQueries({ queryKey: ['activityComments', activityId] });
+      const unlocked = (data as { unlockedBadges?: BadgeItem[] }).unlockedBadges;
+      if (unlocked?.length) {
+        mergeUnlocked(unlocked);
+        void queryClient.invalidateQueries({ queryKey: BADGES_QUERY_KEY });
+      }
     },
     onError: (err) => {
       logError('ActivityDetails.postComment', err, { activityId });
@@ -288,13 +309,26 @@ export default function ActivityDetails() {
     }
     api
       .get(`/api/activities/${fetchId}`)
-      .then((res) => setActivity(res.data))
+      .then((res) => {
+        setActivity(res.data);
+        const actId = Number.parseInt(String(fetchId), 10);
+        if (isAuthenticated && Number.isFinite(actId) && actId > 0) {
+          postGamificationEvent('activity_viewed', { activityId: actId })
+            .then(({ unlocked }) => {
+              if (unlocked?.length) {
+                mergeUnlocked(unlocked);
+                void queryClient.invalidateQueries({ queryKey: BADGES_QUERY_KEY });
+              }
+            })
+            .catch((err) => logError('ActivityDetails.gamification', err, { activityId: actId }));
+        }
+      })
       .catch((err) => {
         logError('ActivityDetails.fetch', err, { id: fetchId });
         setError(toAppError(err, "Impossible de charger l'activite.").userMessage);
       })
       .finally(() => setLoading(false));
-  }, [id, idFromRoute]);
+  }, [id, idFromRoute, isAuthenticated, mergeUnlocked, queryClient]);
 
   if (loading) {
     return (
@@ -508,137 +542,39 @@ export default function ActivityDetails() {
             </View>
           )}
 
-          <Text style={styles.sectionTitle}>Commentaires</Text>
-          {commentToast && (
-            <InlineToast
-              variant={commentToast.variant}
-              message={commentToast.message}
-              countdownSeconds={commentToast.retryAfterSeconds}
-              action={
-                commentToast.retry
-                  ? {
-                      label: 'Réessayer',
-                      onPress: commentToast.retry,
-                      disabled:
-                        postCommentMutation.isPending ||
-                        patchCommentMutation.isPending ||
-                        deleteCommentMutation.isPending,
-                    }
-                  : undefined
+          <ActivityCommentsSection
+            comments={comments}
+            loading={commentsLoading}
+            error={commentsError}
+            isAuthenticated={isAuthenticated}
+            currentUser={user}
+            commentDraft={commentDraft}
+            onChangeDraft={setCommentDraft}
+            editingCommentId={editingCommentId}
+            editingText={editingText}
+            onChangeEditingText={setEditingText}
+            onStartEdit={(c) => {
+              setEditingCommentId(c.id);
+              setEditingText(c.content);
+            }}
+            onCancelEdit={() => setEditingCommentId(null)}
+            onSaveEdit={(commentId, text) => patchCommentMutation.mutate({ commentId, text })}
+            onDelete={(commentId) => deleteCommentMutation.mutate(commentId)}
+            onPost={() => {
+              const t = commentDraft.trim();
+              if (t.length < 2) {
+                Alert.alert('Commentaire', 'Le texte est trop court.');
+                return;
               }
-              onDismiss={() => setCommentToast(null)}
-            />
-          )}
-          {commentsLoading && <ActivityIndicator color={Colors.light.primary} />}
-          {commentsError && <Text style={styles.warnText}>{commentsError}</Text>}
-          {!commentsLoading &&
-            comments.map((c: ActivityComment) => {
-              const isMine = user != null && c.author.id === user.id;
-              const isHiddenForAdmin = c.isHidden === true;
-              return (
-                <View
-                  key={c.id}
-                  style={[styles.commentCard, isHiddenForAdmin && styles.commentCardHidden]}
-                >
-                  {isHiddenForAdmin && (
-                    <View style={styles.hiddenBadge}>
-                      <Text style={styles.hiddenBadgeText}>Masqué (visible admin uniquement)</Text>
-                    </View>
-                  )}
-                  {editingCommentId === c.id ? (
-                    <>
-                      <TextInput
-                        style={styles.commentInput}
-                        value={editingText}
-                        onChangeText={setEditingText}
-                        multiline
-                        maxLength={1000}
-                      />
-                      <View style={styles.commentActions}>
-                        <Pressable
-                          onPress={() =>
-                            patchCommentMutation.mutate({ commentId: c.id, text: editingText.trim() })
-                          }
-                        >
-                          <Text style={styles.linkText}>Enregistrer</Text>
-                        </Pressable>
-                        <Pressable onPress={() => setEditingCommentId(null)}>
-                          <Text style={styles.muted}>Annuler</Text>
-                        </Pressable>
-                      </View>
-                    </>
-                  ) : (
-                    <>
-                      <Text style={styles.commentAuthor}>{c.author.displayName}</Text>
-                      <Text style={styles.commentBody}>{c.content}</Text>
-                      <Text style={styles.commentDate}>
-                        {new Date(c.createdAt).toLocaleString()}
-                        {c.isEdited ? ' · modifié' : ''}
-                      </Text>
-                      {isMine && (
-                        <View style={styles.commentActions}>
-                          <Pressable
-                            onPress={() => {
-                              setEditingCommentId(c.id);
-                              setEditingText(c.content);
-                            }}
-                          >
-                            <Text style={styles.linkText}>Modifier</Text>
-                          </Pressable>
-                          <Pressable
-                            onPress={() =>
-                              Alert.alert('Supprimer', 'Masquer ce commentaire ?', [
-                                { text: 'Annuler', style: 'cancel' },
-                                {
-                                  text: 'Supprimer',
-                                  style: 'destructive',
-                                  onPress: () => deleteCommentMutation.mutate(c.id),
-                                },
-                              ])
-                            }
-                          >
-                            <Text style={styles.dangerText}>Supprimer</Text>
-                          </Pressable>
-                        </View>
-                      )}
-                    </>
-                  )}
-                </View>
-              );
-            })}
-          {!commentsLoading && comments.length === 0 && !commentsError && (
-            <Text style={styles.muted}>Aucun commentaire pour le moment.</Text>
-          )}
-
-          {isAuthenticated && (
-            <View style={styles.newCommentBox}>
-              <Text style={styles.subLabel}>Ajouter un commentaire</Text>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Votre message (2–1000 caractères)"
-                value={commentDraft}
-                onChangeText={setCommentDraft}
-                multiline
-                maxLength={1000}
-              />
-              <CTAButton
-                label="Publier"
-                loading={postCommentMutation.isPending}
-                disabled={commentDraft.trim().length < 2}
-                onPress={() => {
-                  const t = commentDraft.trim();
-                  if (t.length < 2) {
-                    Alert.alert('Commentaire', 'Le texte est trop court.');
-                    return;
-                  }
-                  postCommentMutation.mutate();
-                }}
-                size="md"
-                fullWidth
-                style={{ marginTop: 10 }}
-              />
-            </View>
-          )}
+              postCommentMutation.mutate();
+            }}
+            postPending={postCommentMutation.isPending}
+            patchPending={patchCommentMutation.isPending}
+            deletePending={deleteCommentMutation.isPending}
+            commentToast={commentToast}
+            onDismissToast={() => setCommentToast(null)}
+            onLoginPress={() => router.push('/login')}
+          />
         </View>
       </ScrollView>
 

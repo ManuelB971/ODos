@@ -3,6 +3,7 @@ import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
@@ -18,6 +19,8 @@ export type BottomSheetProps = {
   onChangeState: (state: BottomSheetState) => void;
   /** Hauteurs en % de l'écran pour chaque état. Valeurs par défaut raisonnables. */
   snapHeights?: { collapsed: number; half: number; full: number };
+  /** Position Y du haut du sheet (worklet → JS) pour caler les overlays carte. */
+  onSheetTopY?: (topY: number) => void;
 };
 
 export type BottomSheetRef = {
@@ -36,7 +39,7 @@ export type BottomSheetRef = {
  * la logique utile tient en ~80 lignes et reste prévisible.
  */
 export const BottomSheet = React.forwardRef<BottomSheetRef, BottomSheetProps>(
-  function BottomSheet({ children, state, onChangeState, snapHeights }, ref) {
+  function BottomSheet({ children, state, onChangeState, snapHeights, onSheetTopY }, ref) {
     const { height: windowHeight } = useWindowDimensions();
 
     const snaps = useMemo(() => {
@@ -104,6 +107,16 @@ export const BottomSheet = React.forwardRef<BottomSheetRef, BottomSheetProps>(
     const animatedStyle = useAnimatedStyle(() => ({
       transform: [{ translateY: translateY.value }],
     }));
+
+    useAnimatedReaction(
+      () => translateY.value,
+      (y, prev) => {
+        if (onSheetTopY && y !== prev) {
+          runOnJS(onSheetTopY)(y);
+        }
+      },
+      [onSheetTopY]
+    );
 
     return (
       <GestureDetector gesture={panGesture}>

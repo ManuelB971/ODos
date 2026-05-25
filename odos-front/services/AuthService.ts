@@ -4,11 +4,12 @@ import { toAppError, logError } from '@/utils/errorHandling';
 /**
  * Inscription d'un nouvel utilisateur
  */
-export async function signUp(email: string, password: string) {
+export async function signUp(email: string, password: string, acceptTerms: boolean) {
   try {
     const response = await api.post('/api/users', {
       email: email,
       plainPassword: password, // Utilisation du champ plainPassword pour le processor Symfony
+      acceptTerms,
     });
 
     return {
@@ -97,7 +98,12 @@ export async function signInWithGoogle() {
  */
 export async function signOut() {
   try {
-    // Suppression des tokens
+    // Invalide les refresh tokens côté serveur (best-effort si hors-ligne).
+    try {
+      await api.post('/api/logout');
+    } catch {
+      // On purge quand même le stockage local.
+    }
     await safeStorage.deleteItem('user_token');
     await safeStorage.deleteItem('refresh_token');
     return { success: true, errorMessage: null };

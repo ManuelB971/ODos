@@ -6,6 +6,7 @@ use App\Entity\Comment;
 use App\Entity\User;
 use App\Repository\CommentRepository;
 use App\Service\CommentContentSanitizer;
+use App\Service\CommentSerializer;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -27,6 +28,7 @@ class CommentItemController extends AbstractController
         private CommentContentSanitizer $sanitizer,
         private ValidatorInterface $validator,
         private LoggerInterface $logger,
+        private CommentSerializer $commentSerializer,
     ) {}
 
     #[Route('/{id}', name: 'api_comment_patch', methods: ['PATCH'])]
@@ -66,7 +68,7 @@ class CommentItemController extends AbstractController
 
         $this->logger->info('comment.updated', ['commentId' => $comment->getId(), 'userId' => $user->getId()]);
 
-        return $this->json($this->serializeComment($comment));
+        return $this->json($this->commentSerializer->toArray($comment));
     }
 
     #[Route('/{id}', name: 'api_comment_delete', methods: ['DELETE'])]
@@ -80,6 +82,10 @@ class CommentItemController extends AbstractController
 
         $comment = $this->commentRepository->find($id);
         if (!$comment instanceof Comment) {
+            return $this->json(['message' => 'Commentaire introuvable.'], Response::HTTP_NOT_FOUND);
+        }
+
+        if (null === $comment->getAuthor()) {
             return $this->json(['message' => 'Commentaire introuvable.'], Response::HTTP_NOT_FOUND);
         }
 
@@ -105,31 +111,4 @@ class CommentItemController extends AbstractController
         return $comment->getAuthor()?->getId() === $user->getId();
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function serializeComment(Comment $c): array
-    {
-        $author = $c->getAuthor();
-        \assert($author instanceof User);
-
-        $payload = [
-            'id' => $c->getId(),
-            'content' => $c->getContent(),
-            'createdAt' => $c->getCreatedAt()?->format(\DateTimeInterface::ATOM),
-            'updatedAt' => $c->getUpdatedAt()?->format(\DateTimeInterface::ATOM),
-            'isEdited' => $c->isEdited(),
-            'author' => [
-                'id' => $author->getId(),
-                'displayName' => $author->getDisplayName(),
-            ],
-            'activityId' => $c->getActivity()?->getId(),
-        ];
-
-        if ($this->security->isGranted('ROLE_ADMIN')) {
-            $payload['isHidden'] = $c->isHidden();
-        }
-
-        return $payload;
-    }
 }

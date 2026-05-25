@@ -6,15 +6,17 @@
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <h1 class="h3 mb-3 font-weight-normal">Configuration Google Authenticator</h1>
+            <h1 class="h3 mb-3 fw-normal" id="totp-setup-heading">Configuration Google Authenticator</h1>
 
-            <div class="alert alert-secondary">
-                1) Scannez le QR avec Google Authenticator.<br>
-                2) Entrez le code a 6 chiffres pour verifier la configuration.
+            <div class="alert alert-secondary" role="region" aria-labelledby="totp-setup-heading">
+                <ol class="mb-0 ps-3">
+                    <li>Scannez le QR avec Google Authenticator.</li>
+                    <li>Entrez le code à 6 chiffres pour vérifier la configuration.</li>
+                </ol>
             </div>
 
             {% if error %}
-                <div class="alert alert-danger">{{ error }}</div>
+                <div class="alert alert-danger" role="alert" id="totp-setup-error">{{ error }}</div>
             {% endif %}
 
             {% if info %}
@@ -38,14 +40,26 @@
                 </div>
             {% endif %}
 
-            <form method="post">
+            <form method="post" aria-labelledby="totp-setup-heading">
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token('admin_mfa_totp_setup') }}">
                 <div class="mb-3">
                     <label for="inputTotpCode" class="form-label">Code Google Authenticator</label>
-                    <input type="text" name="totp_code" id="inputTotpCode" class="form-control" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="6 chiffres">
+                    <input type="text"
+                           name="totp_code"
+                           id="inputTotpCode"
+                           class="form-control{% if error %} is-invalid{% endif %}"
+                           pattern="[0-9]{6}"
+                           maxlength="6"
+                           autocomplete="one-time-code"
+                           placeholder="6 chiffres"
+                           inputmode="numeric"
+                           aria-required="true"
+                           aria-describedby="totp-code-help{% if error %} totp-setup-error{% endif %}"
+                           {% if error %}aria-invalid="true" aria-errormessage="totp-setup-error"{% endif %}>
+                    <div id="totp-code-help" class="form-text">Code à 6 chiffres affiché dans l'application.</div>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-primary" type="submit">Verifier la configuration</button>
+                    <button class="btn btn-primary" type="submit">Vérifier la configuration</button>
                     <a class="btn btn-outline-secondary" href="{{ path('app_admin_mfa') }}">Retour MFA</a>
                 </div>
             </form>

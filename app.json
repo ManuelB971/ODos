@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "ebe06c04-0fab-4bc2-9e9c-fa33d0bd3694"
+      }
+    },
+    "android": {
+      "package": "com.manuel971.odos"
+    }
+  }
+}

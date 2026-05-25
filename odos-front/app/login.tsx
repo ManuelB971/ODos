@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -9,7 +10,8 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { AlertCircle, CheckCircle2, Mail } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AlertCircle, Check, CheckCircle2, Mail, Square } from 'lucide-react-native';
 
 import { signUp, signIn } from '@/services/AuthService';
 import { useAuth } from '@/context/AuthContext';
@@ -37,23 +39,31 @@ function isValidEmail(email: string): boolean {
 export default function LoginScreen() {
   const router = useRouter();
   const { setUser } = useAuth();
+  const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
 
   const [isLogin, setIsLogin] = useState(true);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const trimmedEmail = email.trim();
   const emailValid = isValidEmail(trimmedEmail);
   const passwordValid = password.length >= 6;
-  const canSubmit = emailValid && passwordValid && !loading;
+  const termsOk = isLogin || acceptTerms;
+  const canSubmit = emailValid && passwordValid && termsOk && !loading;
 
   const handleAuth = async () => {
     if (!canSubmit) {
       if (!emailValid) setError('Email invalide.');
       else if (!passwordValid) setError('Le mot de passe doit contenir au moins 6 caractères.');
+      else if (!isLogin && !acceptTerms) {
+        setError('Veuillez accepter les CGU et la politique de confidentialité.');
+      }
       return;
     }
 
@@ -73,7 +83,7 @@ export default function LoginScreen() {
           router.replace(hasInterests ? '/' : '/interests');
         }
       } else {
-        const { success: ok, errorMessage } = await signUp(trimmedEmail, password);
+        const { success: ok, errorMessage } = await signUp(trimmedEmail, password, acceptTerms);
         if (!ok) {
           setError(errorMessage ?? 'Une erreur est survenue.');
           return;
@@ -95,23 +105,52 @@ export default function LoginScreen() {
     setError('Connexion sociale temporairement indisponible.');
   };
 
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const scrollToPasswordField = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y: 120, animated: true });
+    });
+  }, []);
+
   return (
     <KeyboardAvoidingView
       style={styles.screen}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={insets.top}
     >
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        ref={scrollRef}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop: keyboardVisible ? insets.top + 8 : 56,
+            paddingBottom: Math.max(insets.bottom, 16) + (keyboardVisible ? 24 : 48),
+          },
+        ]}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.brandHeader}>
-          <View style={styles.logoCircle}>
-            <AppLogo width={44} height={44} />
+        {!keyboardVisible ? (
+          <View style={styles.brandHeader}>
+            <View style={styles.logoCircle}>
+              <AppLogo width={44} height={44} />
+            </View>
+            <Text style={styles.wordmark}>ODOS</Text>
+            <Text style={styles.tagline}>L&apos;aventure moderne commence ici</Text>
           </View>
-          <Text style={styles.wordmark}>ODOS</Text>
-          <Text style={styles.tagline}>L&apos;aventure moderne commence ici</Text>
-        </View>
+        ) : null}
 
         <View style={styles.card}>
           <Text style={styles.title}>{isLogin ? 'Heureux de vous revoir' : 'Bienvenue'}</Text>
@@ -161,18 +200,64 @@ export default function LoginScreen() {
               autoComplete={isLogin ? 'password' : 'password-new'}
               textContentType={isLogin ? 'password' : 'newPassword'}
               hint={!isLogin ? '6 caractères minimum.' : undefined}
+              onFocus={scrollToPasswordField}
+              returnKeyType="done"
+              onSubmitEditing={handleAuth}
             />
 
             {isLogin ? (
               <Pressable
                 onPress={() => setError('Fonction « mot de passe oublié » à venir.')}
                 style={styles.forgotBtn}
-                hitSlop={6}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Mot de passe oublié"
               >
                 <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
               </Pressable>
             ) : null}
           </View>
+
+          {!isLogin ? (
+            <Pressable
+              onPress={() => setAcceptTerms((v) => !v)}
+              style={styles.consentRow}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: acceptTerms }}
+              accessibilityLabel="Accepter les conditions générales et la politique de confidentialité"
+            >
+              {acceptTerms ? (
+                <View style={[styles.consentBox, styles.consentBoxChecked]}>
+                  <Check size={14} color="#fff" strokeWidth={3} />
+                </View>
+              ) : (
+                <Square size={22} color={Colors.light.muted} />
+              )}
+              <Text style={styles.consentText}>
+                J&apos;accepte les{' '}
+                <Text
+                  style={styles.consentLink}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    router.push({ pathname: '/legal', params: { section: 'cgu' } });
+                  }}
+                >
+                  CGU
+                </Text>
+                {' '}et la{' '}
+                <Text
+                  style={styles.consentLink}
+                  onPress={(e) => {
+                    e.stopPropagation?.();
+                    router.push({ pathname: '/legal', params: { section: 'privacy' } });
+                  }}
+                >
+                  politique de confidentialité
+                </Text>
+                .
+              </Text>
+            </Pressable>
+          ) : null}
 
           <CTAButton
             label={isLogin ? 'Continuer' : 'Créer mon compte'}
@@ -192,13 +277,31 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.socialRow}>
-                <Pressable onPress={socialAuthNotAvailable} disabled={loading} style={styles.socialBtn}>
+                <Pressable
+                  onPress={socialAuthNotAvailable}
+                  disabled={loading}
+                  style={styles.socialBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Connexion avec Google, indisponible"
+                >
                   <Text style={styles.socialText}>G</Text>
                 </Pressable>
-                <Pressable onPress={socialAuthNotAvailable} disabled={loading} style={styles.socialBtn}>
+                <Pressable
+                  onPress={socialAuthNotAvailable}
+                  disabled={loading}
+                  style={styles.socialBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Connexion avec Apple, indisponible"
+                >
                   <Text style={styles.socialText}></Text>
                 </Pressable>
-                <Pressable onPress={socialAuthNotAvailable} disabled={loading} style={styles.socialBtn}>
+                <Pressable
+                  onPress={socialAuthNotAvailable}
+                  disabled={loading}
+                  style={styles.socialBtn}
+                  accessibilityRole="button"
+                  accessibilityLabel="Connexion avec Facebook, indisponible"
+                >
                   <Text style={styles.socialText}>f</Text>
                 </Pressable>
               </View>
@@ -209,10 +312,15 @@ export default function LoginScreen() {
         <Pressable
           onPress={() => {
             setError(null);
+            setAcceptTerms(false);
             setIsLogin((v) => !v);
           }}
           style={styles.switchBtn}
-          hitSlop={6}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={
+            isLogin ? 'Créer un compte, passer en mode inscription' : 'Se connecter, passer en mode connexion'
+          }
         >
           <Text style={styles.switchText}>
             {isLogin ? 'Pas encore de compte ? ' : 'Déjà un compte ? '}
@@ -332,6 +440,31 @@ const styles = StyleSheet.create({
   fields: {
     gap: 14,
   },
+  consentRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  consentBox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  consentBoxChecked: {
+    backgroundColor: Colors.light.accent,
+  },
+  consentText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 20,
+    color: Colors.light.text,
+  },
+  consentLink: {
+    color: Colors.light.primary,
+    fontWeight: '600',
+  },
   forgotBtn: {
     alignSelf: 'flex-end',
     marginTop: -4,
@@ -366,6 +499,8 @@ const styles = StyleSheet.create({
   socialBtn: {
     width: 56,
     height: 56,
+    minWidth: 44,
+    minHeight: 44,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',

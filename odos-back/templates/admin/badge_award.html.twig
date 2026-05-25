@@ -1,0 +1,20 @@
+{% extends '@EasyAdmin/page/content.html.twig' %}
+
+{% block content_title %}Attribuer le badge « {{ badge.name }} »{% endblock %}
+
+{% block main %}
+    <p class="text-muted">Code : <code>{{ badge.code }}</code> — règle : {{ badge.ruleType.value }}</p>
+    <form method="post" class="ea-form">
+        <div class="field-group">
+            <label for="user_id">Utilisateur</label>
+            <select name="user_id" id="user_id" class="form-select" required>
+                <option value="">— Choisir —</option>
+                {% for u in users %}
+                    <option value="{{ u.id }}">{{ u.email }} (id {{ u.id }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary action-save">Attribuer</button>
+        <a href="{{ ea_url().setController('App\\Controller\\Admin\\BadgeDefinitionCrudController').setAction('index') }}" class="btn btn-secondary">Retour aux badges</a>
+    </form>
+{% endblock %}

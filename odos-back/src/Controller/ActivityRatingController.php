@@ -5,6 +5,8 @@ namespace App\Controller;
 use App\Entity\Activity;
 use App\Entity\ActivityRating;
 use App\Entity\User;
+use App\Gamification\GamificationEvent;
+use App\Gamification\GamificationService;
 use App\Repository\ActivityRatingRepository;
 use App\Repository\ActivityRepository;
 use App\Service\ThrottledActionException;
@@ -31,6 +33,7 @@ class ActivityRatingController extends AbstractController
         private ValidatorInterface $validator,
         private UserActionThrottleService $throttle,
         private LoggerInterface $logger,
+        private GamificationService $gamificationService,
     ) {}
 
     #[Route('', name: 'api_activity_rating_get', methods: ['GET'])]
@@ -94,6 +97,7 @@ class ActivityRatingController extends AbstractController
         }
 
         $rating = $this->ratingRepository->findOneByUserAndActivity($user, $activity);
+        $isNew = !$rating instanceof ActivityRating;
         if ($rating instanceof ActivityRating) {
             $rating->setScore($score);
             $rating->setUpdatedAt(new \DateTimeImmutable());
@@ -109,6 +113,11 @@ class ActivityRatingController extends AbstractController
         $this->ratingRepository->refreshActivityAggregates($activity);
         $this->em->flush();
 
+        $unlocked = [];
+        if ($isNew) {
+            $unlocked = $this->gamificationService->evaluateAndAward($user, GamificationEvent::RATING_CREATED);
+        }
+
         $this->throttle->markRatingAction((int) $user->getId());
         $this->logger->info('rating.upsert', ['activityId' => $activity->getId(), 'userId' => $user->getId(), 'score' => $score]);
 
@@ -116,6 +125,7 @@ class ActivityRatingController extends AbstractController
             'average' => $activity->getRatingAverage(),
             'count' => $activity->getRatingCount(),
             'userScore' => $score,
+            'unlockedBadges' => $unlocked,
         ]);
     }
 
