@@ -1,70 +1,112 @@
-# Procédure de réponse aux violations de données — ODOS
+# Réponse aux violations de données
 
-_Document interne — art. 33-34 RGPD. Délai réglementaire : **72 heures** pour notifier la CNIL si risque pour les droits des personnes._
+Que faire si des données personnelles sont compromises. Délai CNIL : **72 h** si risque pour les personnes.
+
+Index : [docs/README.md](README.md) · Registre : [RGPD_registre.md](RGPD_registre.md)
+
+---
+
+## Qui fait quoi
+
+| Rôle | Personne | Contact |
+|------|----------|---------|
+| Responsable incident | _À compléter — ex. Manuel_ | contact@odos-app.fr |
+| Suppléant | _À compléter_ | contact@odos-app.fr |
+| Responsable de traitement | ODOS | contact@odos-app.fr |
+
+---
 
 ## 1. Détection
 
 Sources possibles :
 
-- Alertes **Wazuh** / SIEM (`docker-compose.wazuh.yml`)
-- Logs applicatifs (`var/log/prod.log`), Nginx (`odos_error.log`)
-- Signalement utilisateur : contact@odos-app.fr
-- Monitoring externe (uptime, 5xx, accès admin anormaux)
+- alertes Wazuh / SIEM (`docker-compose.wazuh.yml`)
+- logs Symfony (`var/log/prod.log`), Nginx (`odos_error.log`)
+- signalement utilisateur : contact@odos-app.fr
+- monitoring externe (uptime, 5xx, accès admin bizarres)
 
-## 2. Qualification (≤ 4 h)
+---
+
+## 2. Qualifier (dans les 4 h)
 
 | Question | Action |
 |----------|--------|
-| Données personnelles concernées ? | Lister : emails, commentaires, tokens, logs admin |
-| Violation confirmée ou suspicion ? | Si confirmée → activer cellule incident |
+| Données perso touchées ? | Lister : emails, commentaires, tokens, logs admin |
+| Violation confirmée ou simple suspicion ? | Si confirmée → activer la cellule incident |
 | Risque élevé pour les personnes ? | Détermine notification CNIL **et** utilisateurs |
 
-**Responsable incident** : éditeur ODOS (contact@odos-app.fr) — à compléter avec nom / suppléant.
+---
 
-## 3. Confinement immédiat
+## 3. Confiner tout de suite
 
-1. Révoquer les tokens compromis : purge table `refresh_tokens`, rotation `JWT_PASSPHRASE` / clés si fuite de clé privée.
-2. Bloquer IP / comptes admin suspects (pare-feu Contabo, désactivation compte).
-3. Sauvegarder les preuves (logs, dumps horodatés) **avant** purge.
-4. Changer mots de passe admin / secrets `.env` exposés.
+1. Révoquer les tokens compromis — purge `refresh_tokens`, rotation clés JWT si fuite de la clé privée
+2. Bloquer IP / comptes admin suspects (pare-feu Contabo, désactivation compte)
+3. Sauvegarder les preuves (logs, dumps horodatés) **avant** toute purge
+4. Changer mots de passe admin et secrets `.env` exposés
 
-## 4. Évaluation (≤ 24 h)
+```bash
+docker compose exec -T php php bin/console app:data-retention:purge --env=prod
+```
 
-Documenter dans un registre d'incident :
+---
 
-- Date/heure de début estimée
-- Vecteur (bruteforce, fuite backup, XSS, etc.)
-- Nombre de personnes concernées (approx.)
-- Données exposées (catégories)
-- Mesures de correction déployées
+## 4. Évaluer (dans les 24 h)
 
-## 5. Notification CNIL (≤ 72 h)
+Noter dans un registre d'incident interne :
+
+- date/heure de début estimée
+- vecteur (bruteforce, fuite backup, XSS…)
+- nombre de personnes concernées (approx.)
+- données exposées
+- mesures déjà déployées
+
+---
+
+## 5. Notifier la CNIL (dans les 72 h)
 
 Si risque pour les droits et libertés :
 
-- Portail : https://www.cnil.fr/fr/notifier-une-violation-de-donnees-personnelles
-- Email : notifications@cnil.fr
-- Contenu : description, catégories de données, nombre approximatif de personnes, conséquences probables, mesures prises / prévues.
+- https://www.cnil.fr/fr/notifier-une-violation-de-donnees-personnelles
+- ou notifications@cnil.fr
 
-## 6. Information des personnes concernées
+Contenu : description, catégories de données, nombre approximatif de personnes, conséquences probables, mesures prises ou prévues.
+
+---
+
+## 6. Prévenir les personnes concernées
 
 Si **risque élevé** : email ou notification in-app, en langage clair :
 
-- nature de l'incident ;
-- données touchées ;
-- mesures recommandées (changement mot de passe, vigilance) ;
-- contact : contact@odos-app.fr.
+- nature de l'incident
+- données touchées
+- mesures recommandées (changement mot de passe, vigilance)
+- contact : contact@odos-app.fr
 
-## 7. Post-incident (≤ 2 semaines)
+---
 
-- Correctifs techniques (patch, durcissement CORS, rate limit, MFA admin).
-- Mise à jour `docs/RGPD_registre.md` si le traitement change.
-- Retour d'expérience interne.
+## 7. Après coup (dans les 2 semaines)
 
-## 8. Contacts utiles
+- correctifs techniques (patch, CORS, rate limit, MFA)
+- mise à jour du [registre](RGPD_registre.md) si le traitement change
+- mise à jour de l'[audit RGPD](RGPD_AUDIT_2026.md) si nouvel écart
+- retour d'expérience interne
 
-| Entité | Contact |
-|--------|---------|
+---
+
+## Contacts
+
+| | |
+|---|---|
 | CNIL | notifications@cnil.fr |
-| Hébergeur Contabo | Support client Contabo |
+| Contabo | support client |
 | ODOS | contact@odos-app.fr |
+
+---
+
+## Registre des incidents
+
+Fichier interne (hors dépôt public si données sensibles) :
+
+| Date | Réf. | Gravité | CNIL notifiée | Personnes informées | Clôture |
+|------|------|---------|---------------|---------------------|---------|
+| — | — | — | — | — | — |

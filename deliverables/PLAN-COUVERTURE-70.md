@@ -1,92 +1,97 @@
-# Plan de couverture vers 70%
+# Plan couverture 70 %
 
-## Etat actuel
+Objectif : monter la couverture de tests back et front. Les tests passent déjà au vert — c'est surtout le pourcentage qui est bas.
 
-Le run de tests est vert.
+---
 
-- Backend: tests OK
-- Frontend: tests OK
-- Exécution coverage globale: OK via `scripts/run-coverage.ps1`
+## Où on en est
 
-Couverture actuelle:
+| | Back (PHPUnit) | Front (Jest) |
+|---|----------------|--------------|
+| Lignes / stmts | ~7 % | ~2,5 % |
+| Méthodes / funcs | ~8 % | ~3 % |
 
-- Backend (PHPUnit/Xdebug):
-  - Classes: 2.63%
-  - Methods: 7.86%
-  - Lines: 7.23%
-- Frontend (Jest):
-  - Stmts: 2.71%
-  - Branch: 2.58%
-  - Funcs: 3.24%
-  - Lines: 2.54%
+Run complet : `scripts/run-coverage.ps1`
 
-## Objectif
+---
 
-Atteindre >= 70% de couverture globale (ou par périmètre défini dans le rendu).
+## Comment on monte
 
-## Strategie recommandee
+1. Viser 30–40 % avec des tests unitaires rapides (utils, hooks, services)
+2. Couvrir les flux critiques en intégration (auth, favoris, erreurs API)
+3. Combler les gros fichiers peu testés
+4. Bloquer en CI avec un seuil quand on est proche de 70 %
 
-1. Monter rapidement a 30-40% avec des tests unitaires peu couteux.
-2. Stabiliser les flux metier critiques avec des tests d integration.
-3. Cibler les zones faiblement couvertes qui pesent lourd en lignes.
-4. Verrouiller le seuil avec un gate coverage en CI.
+---
 
-## Backlog tests priorise
+## Backlog par lot
 
-### Lot A (impact rapide)
+### Lot A — impact rapide
 
-- Front:
-  - `utils/jwt.ts`
-  - `services/AuthService.ts`
-  - `hooks/useFavorites.ts`
-  - `hooks/useSearchActivities.ts`
-  - `scripts/api.ts` (fonctions utilitaires et erreurs)
-- Back:
-  - `Service/LlmRankingService` (cas limites/cache/erreurs)
-  - `State/RecommendationStateProvider` (user null, sans interets, avec interets)
-  - `Repository` utilitaires simples
+**Front :**
 
-### Lot B (metier/API)
+- `utils/jwt.ts`
+- `services/AuthService.ts`
+- `hooks/useFavorites.ts`
+- `hooks/useSearchActivities.ts`
+- `scripts/api.ts` (utils + gestion erreurs)
 
-- Back integration:
-  - auth (`/api/login`, `/api/me`)
-  - endpoints ressources publiques/protegees
-  - erreurs 401/403/422 standardisees
-- Front integration:
-  - context auth
-  - mapping erreurs API -> UI
+**Back :**
 
-### Lot C (fiabilisation)
+- `LlmRankingService` (cache, erreurs, cas limites)
+- `RecommendationStateProvider` (user null, sans intérêts, avec intérêts)
+- repositories simples
 
-- Tests de non regression sur cas deja corriges.
-- Ajout de seuils coverage dans scripts/CI.
+### Lot B — métier / API
 
-## Cadence suggeree
+**Back intégration :**
 
-- Sprint 1: Lots A -> viser 30-40%
-- Sprint 2: Lot B -> viser 50-60%
-- Sprint 3: Lot C + completement des trous -> viser >= 70%
+- auth (`/api/login`, `/api/me`)
+- endpoints publics vs protégés
+- erreurs 401 / 403 / 422
 
-## Commandes utiles
+**Front intégration :**
+
+- context auth
+- mapping erreurs API → UI
+
+### Lot C — verrouillage
+
+- tests de non-régression sur bugs déjà corrigés
+- seuils coverage dans scripts / CI
+
+---
+
+## Cadence suggérée
+
+- Sprint 1 : Lot A → ~30–40 %
+- Sprint 2 : Lot B → ~50–60 %
+- Sprint 3 : Lot C → ≥ 70 %
+
+---
+
+## Commandes
 
 ```powershell
-# couverture complete
+# tout
 powershell -ExecutionPolicy Bypass -File .\scripts\run-coverage.ps1
 
-# back uniquement
+# back seulement
 powershell -ExecutionPolicy Bypass -File .\scripts\run-coverage.ps1 -SkipFront
 
-# front uniquement
+# front seulement
 powershell -ExecutionPolicy Bypass -File .\scripts\run-coverage.ps1 -SkipBack
 ```
 
-Rapports:
+Rapports :
 
-- Backend HTML: `odos-back/var/coverage/html/index.html`
-- Frontend HTML: `odos-front/coverage/lcov-report/index.html`
+- Back : `odos-back/var/coverage/html/index.html`
+- Front : `odos-front/coverage/lcov-report/index.html`
 
-## Criteres de validation finale
+---
 
-- Tests verts localement et en CI
-- Couverture >= 70% (regle explicite documentee)
-- Rapport exportable fourni dans les livrables
+## Critères de fin
+
+- Tests verts en local et en CI
+- Couverture ≥ 70 % (seuil documenté)
+- Rapport exportable dans les livrables

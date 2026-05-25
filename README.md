@@ -1,218 +1,101 @@
-# ODOS — Back (Symfony/API Platform) & Front (Expo)
+# ODOS
 
-[https://github.com/ManuelB971/ODos.git](https://github.com/ManuelB971/ODos.git)
-Ce dépôt contient :
+Application mobile de découverte d'activités locales, avec API Symfony et back-office admin.
 
-- `odos-back/` : API Symfony + API Platform + JWT (LexikJWT) + EasyAdmin (`/admin`)
-- `odos-front/` : application mobile Expo/React Native
+- **Backend** — `odos-back/` : Symfony 7, API Platform, JWT, EasyAdmin (`/admin`)
+- **Frontend** — `odos-front/` : Expo / React Native (Android, iOS, web)
+- **Dépôt** — [github.com/ManuelB971/ODos](https://github.com/ManuelB971/ODos.git)
 
-## Documentation (à jour)
+---
 
-- `docs/CI_CD_V2_2026.md` : documentation de référence CI/CD actuelle (Contabo-ready).
-- `docs/CI_CD_V1.md` : version historique (archivée) conservée pour contexte.
-- `odos-front/TESTS_UNITAIRES_FRONT.md` : stratégie et commandes de tests front.
+## Ce qui tourne aujourd'hui
+
+### API & auth mobile
+
+- Login JWT (`POST /api/login`), refresh token (`POST /api/token/refresh`), logout (`POST /api/logout`)
+- Profil courant (`GET /api/me`), inscription publique, export et suppression de compte (RGPD)
+- Tokens stockés côté mobile via SecureStore, renouvellement automatique sur 401
+- Rate limiting login / inscription / commentaires / notes
+
+### Métier
+
+- Catalogue d'activités et catégories (API Platform)
+- Favoris (`POST` / `DELETE` sur `/api/activities/{id}/favorite`)
+- Recommandations personnalisées (`GET /api/recommendations`) — scoring + LLM local optionnel (Ollama)
+- Commentaires sur les activités (liste, création, édition, suppression soft)
+- Notes 1–5 étoiles avec moyenne agrégée
+- Avatar utilisateur (upload / suppression)
+
+### Admin (`/admin`)
+
+- CRUD utilisateurs, catégories, activités, commentaires
+- Import CSV d'activités + modèle téléchargeable
+- Dashboard stats, page recommandations, export CSV des logs admin
+- MFA obligatoire : TOTP, SMS OTP, WebAuthn
+- Journal d'audit des actions sensibles
+- Politique mot de passe (8 car., majuscule, chiffre, caractère spécial)
+
+### App mobile
+
+- Onglets : accueil, recherche, favoris, compte
+- Carte MapLibre, détail activité (note, commentaires, favori)
+- Choix des centres d'intérêt, paramètres, pages légales (CGU, confidentialité)
+- Build APK via EAS (`pnpm build:apk:preview` / `build:apk:prod`)
+
+### Infra & qualité
+
+- Docker Compose (Postgres, Redis, Nginx, PHP ; LLM en profile optionnel)
+- CI GitHub Actions : tests back (PHPUnit + PHPStan), lint + tests front, coverage sur `main`, build image prod
+- Déploiement Contabo documenté ; stack Wazuh optionnelle pour les logs
+- Docs RGPD, rétention, incident, prod — voir ci-dessous
+
+---
+
+## Documentation
+
+Index complet : **[docs/README.md](docs/README.md)**
+
+| Sujet | Fichier |
+|-------|---------|
+| Architecture & données | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) |
+| TODO badges & exploration | [docs/TODO_GAMIFICATION_BADGES.md](docs/TODO_GAMIFICATION_BADGES.md) |
+| RGPD (audit + registre) | [docs/RGPD_AUDIT_2026.md](docs/RGPD_AUDIT_2026.md) · [docs/RGPD_registre.md](docs/RGPD_registre.md) |
+| CI/CD | [docs/CI_CD_V2_2026.md](docs/CI_CD_V2_2026.md) |
+| Déploiement Contabo | [docs/PROD_SANS_DOMAINE.md](docs/PROD_SANS_DOMAINE.md) |
+| Rétention logs & cron | [docs/LOG_RETENTION.md](docs/LOG_RETENTION.md) |
+| Violation de données | [docs/INCIDENT_RESPONSE.md](docs/INCIDENT_RESPONSE.md) |
+| Tests front | voir `odos-front/` (Jest) et [PLAN-COUVERTURE-70.md](../deliverables/PLAN-COUVERTURE-70.md) |
+
+---
 
 ## Prérequis
 
 - Docker Desktop (Windows/Mac) ou Docker Engine + Compose v2
-- Node.js 20+ (pour lancer les tests front hors conteneur)
-- pnpm (optionnel, sinon npm)
-- (Optionnel) PHP 8.2+ + Composer pour exécution locale sans Docker
+- Node.js 20+ et pnpm (ou npm) pour le front
+- PHP 8.2+ et Composer si tu veux lancer le back sans Docker
 
-## Hébergement recommandé (Contabo)
+---
 
-### Avis sur ta config Contabo Cloud VPS 30
-
-Configuration proposée:
-
-- `8 vCPU`
-- `24 GB RAM`
-- `200 GB NVMe` (ou `400 GB SSD`)
-- `600 Mbit/s`
-- `3 snapshots`
-
-Verdict: **oui, c'est une très bonne base pour héberger ODOS en production** (API Symfony + PostgreSQL + Redis + front Expo publié séparément).
-
-### Recommandation pratique pour ODOS
-
-- Prendre **200 GB NVMe** plutôt que 400 GB SSD (meilleures latences DB, cache et migrations).
-- Garder la stack Docker actuelle (`docker-compose.yml` + `docker-compose.prod.yml`).
-- Prévoir un reverse proxy TLS (Nginx/Caddy + Let's Encrypt) devant l'API.
-- Conserver les snapshots Contabo, mais ajouter une vraie stratégie de backup DB (dump quotidien + rétention hors VPS).
-
-### Capacité estimée (ordre de grandeur)
-
-- Cette machine supporte largement un **MVP / petite à moyenne charge**.
-- Point d'attention principal: la **RAM**, surtout si tu actives plusieurs services lourds en même temps (LLM local, SIEM, etc.).
-- Si tu actives Wazuh/LLM en permanence sur la même VM, séparer les rôles (ou augmenter de palier) reste plus propre.
-
-## Objectif immédiat (demandé)
-
-- **Authentification fonctionnelle**
-  - Mobile/Front : login utilisateur via JWT
-  - Back : endpoint `/api/login` (json_login) + endpoints protégés sous `/api`
-- **Admin entièrement fonctionnel**
-  - Admin originel : `**admin@odos`**
-  - L'admin peut **créer** d'autres admins/utilisateurs via EasyAdmin (`/admin`)
-
-## Démarrage rapide
-
-### Option A — Docker (recommandé)
-
-Prérequis : Docker Desktop installé et lancé.
+## Démarrage rapide (Docker)
 
 ```bash
-# 1. Construire et démarrer les conteneurs
 docker compose up -d --build
-
-# 2. Installer les dépendances PHP
 docker compose exec php composer install
-
-# 3. Générer les clés JWT (première fois uniquement)
 docker compose exec php php bin/console lexik:jwt:generate-keypair --skip-if-exists
-
-# 4. Créer/migrer la base de données
 docker compose exec php php bin/console doctrine:migrations:migrate --no-interaction
-
-# 5. Créer l'admin originel
 docker compose exec php php bin/console app:ensure-admin admin@odos "CHANGE_ME" --promote-existing --set-password
+```
 
-# 6. (Optionnel) Charger les données de démo
+Données de démo (optionnel) :
+
+```bash
 docker compose exec php php bin/console doctrine:fixtures:load --no-interaction
 ```
 
-Backend accessible sur **[http://localhost:8000](http://localhost:8000)**
+API : [http://localhost:8000](http://localhost:8000)  
+Admin : [http://localhost:8000/admin](http://localhost:8000/admin) — login classique, puis MFA si activé
 
-### Stack complète en une commande (ODOS + SIEM)
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.wazuh.yml up -d
-```
-
-### Option C — Ajouter Wazuh (SIEM)
-
-Si tu veux activer Wazuh en local avec Docker :
-
-```bash
-# Démarrer la stack ODOS + Wazuh
-docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.wazuh.yml up -d
-
-# Vérifier que les services Wazuh sont bien up
-docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.wazuh.yml ps
-```
-
-Accès Wazuh Dashboard : **[http://localhost:5601](http://localhost:5601)**
-En mode local actuel (dev), l'accès se fait **sans login**.
-
-Ports exposés :
-
-- `5601` (Dashboard)
-- `55000` (API Wazuh manager)
-- `1514/udp`, `1515` (agents Wazuh)
-- `9200` (Indexer)
-
-Logs applicatifs envoyés vers Filebeat/Indexer :
-
-- Symfony (`odos-back/var/log/*.log`) -> index `odos-logs-symfony-`*
-- Nginx (`/var/log/nginx/odos_access.log`, `/var/log/nginx/odos_error.log`) -> index `odos-logs-nginx-*`
-
-Pour arrêter Wazuh (et garder le reste du projet) :
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.wazuh.yml stop wazuh.indexer wazuh.manager wazuh.dashboard
-```
-
-## Configuration
-
-### Variables d'environnement
-
-- Back: utiliser `odos-back/.env` et `odos-back/.env.local` selon l'environnement.
-- Front: utiliser `odos-front/.env` (ex: URL d'API).
-
-### Endpoints principaux
-
-- API Back: `http://localhost:8000`
-- Wazuh Dashboard: `http://localhost:5601`
-- Wazuh API Manager: `https://localhost:55000`
-
-### Logs applicatifs vers SIEM
-
-- Symfony logs: `odos-back/var/log/*.log`
-- Nginx access/error: `/var/log/nginx/odos_access.log` et `/var/log/nginx/odos_error.log`
-- Indices créés:
-  - `odos-logs-symfony-*`
-  - `odos-logs-nginx-access-*`
-  - `odos-logs-nginx-error-*`
-
-#### Commandes utiles Docker
-
-```bash
-# Voir les logs en temps réel
-docker compose logs -f
-
-# Logs d'un service précis
-docker compose logs -f php
-
-# Shell dans le conteneur PHP
-docker compose exec php sh
-
-# Status des services
-docker compose ps
-
-# Arrêter les conteneurs (conserve les données)
-docker compose down
-
-# Arrêter ET supprimer les données DB (attention !)
-docker compose down -v
-
-# Reconstruire après modification du Dockerfile
-docker compose up -d --build
-```
-
-### Option B — Local (sans Docker)
-
-Prérequis : PHP 8.2+ + Composer + PostgreSQL configurée.
-
-> Utiliser `DATABASE_URL` vers `127.0.0.1` dans `.env.local` (voir `.env.example`).
-
-1. Installer les dépendances
-
-```bash
-cd odos-back
-composer install
-```
-
-1. Base de données
-
-```bash
-php bin/console doctrine:database:create
-php bin/console doctrine:migrations:migrate
-```
-
-1. Créer/assurer l'admin originel `admin@odos`
-
-```bash
-php bin/console app:ensure-admin admin@odos "CHANGE_ME" --promote-existing --set-password
-```
-
-1. (Option dev) Données de démo
-
-```bash
-php bin/console doctrine:fixtures:load
-```
-
-1. Lancer le serveur
-
-```bash
-symfony server:start
-```
-
-#### Accès admin
-
-- URL : `/admin`
-- Login : via `/login` (form_login), puis redirection vers `/admin`
-
-### Frontend (`odos-front/`)
+### Frontend
 
 ```bash
 cd odos-front
@@ -220,224 +103,123 @@ pnpm install
 pnpm start
 ```
 
-> Selon ton réseau mobile, pense à configurer l'URL API (voir scripts/config front).
+Configurer l'URL de l'API dans `odos-front/.env` (voir `.env.example`). Sur un téléphone physique, mets l'IP de ta machine, pas `localhost`.
 
-## Tests automatisés et couverture
-
-### Backend (PHPUnit)
+### Commandes Docker utiles
 
 ```bash
-# tests
-docker compose exec php composer test
-
-# couverture (xdebug activé uniquement pour cette commande)
-docker compose exec -e XDEBUG_MODE=coverage php composer test:coverage
+docker compose logs -f php          # logs PHP
+docker compose exec php sh          # shell dans le conteneur
+docker compose ps                   # état des services
+docker compose down                 # arrêt (données conservées)
+docker compose down -v              # arrêt + suppression volumes DB
 ```
 
-Rapports générés:
+---
 
-- HTML: `odos-back/var/coverage/html/index.html`
-- Clover XML: `odos-back/var/coverage/clover.xml`
+## Lancer sans Docker
 
-### Frontend (Jest)
+PostgreSQL et Redis doivent tourner en local. Dans `odos-back/.env.local`, pointer `DATABASE_URL` vers `127.0.0.1`.
 
 ```bash
-cd odos-front
-
-# tests
-pnpm test:ci
-
-# couverture
-pnpm test:coverage
+cd odos-back
+composer install
+php bin/console doctrine:database:create
+php bin/console doctrine:migrations:migrate
+php bin/console app:ensure-admin admin@odos "CHANGE_ME" --promote-existing --set-password
+symfony server:start
 ```
 
-Rapports générés:
+---
 
-- HTML: `odos-front/coverage/lcov-report/index.html`
-- LCOV: `odos-front/coverage/lcov.info`
+## Stack Wazuh (optionnel)
 
-### Exécution coverage en une commande
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\run-coverage.ps1
+```bash
+docker compose -f docker-compose.yml -f docker-compose.override.yml -f docker-compose.wazuh.yml up -d
 ```
 
-## Export SIEM (dashboards, règles, alertes)
+Dashboard : [http://localhost:5601](http://localhost:5601) (sans login en dev).
 
-Commande:
+Logs Symfony et Nginx indexés dans OpenSearch. Export des dashboards et règles :
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\export-siem.ps1
 ```
 
-Sortie:
+Sortie dans `deliverables/siem/`.
 
-- `deliverables/siem/saved-objects-<timestamp>.ndjson`
-- `deliverables/siem/wazuh-apis-<timestamp>.json`
-- `deliverables/siem/local_rules-<timestamp>.xml`
-- `deliverables/siem/local_decoder-<timestamp>.xml`
+---
 
-## Checklist de remise
+## Tests
 
-- Fichier prêt: `deliverables/CHECKLIST-ENCADRANT.md`
-- Utiliser cette checklist avant envoi du dépôt à l'encadrant.
+### Backend
 
-## Ce qui est déjà en place (constaté dans le code)
+```bash
+docker compose exec php composer test
+docker compose exec -e XDEBUG_MODE=coverage php composer test:coverage
+```
 
-### Auth API
+Rapport : `odos-back/var/coverage/html/index.html`
 
-- `POST /api/login` : login JWT (email/password)
-- `GET /api/me` : profil courant (protégé `ROLE_USER`)
-- Règles d'accès dans `odos-back/config/packages/security.yaml`
+### Frontend
 
-### Admin
+```bash
+cd odos-front
+pnpm test:ci
+pnpm test:coverage
+```
 
-- EasyAdmin : `UserCrudController`, `CategoryCrudController`, `ActivityCrudController`
-- Accès : `^/admin` → `ROLE_ADMIN`
-- **Création/édition user avec mot de passe** : gérée dans `UserCrudController` (champ `plainPassword` hashé automatiquement)
+Rapport : `odos-front/coverage/lcov-report/index.html`
 
-## Liste des tâches restantes (mise à jour)
+### Les deux d'un coup (Windows)
 
-### P0 — Couverture de tests vers 70%
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run-coverage.ps1
+```
 
-- **Etat actuel** : run tests vert (back/front) et rapports coverage générés.
-- **Reste à faire** : augmenter la couverture (actuellement basse) pour atteindre `>= 70%`.
-- **Plan** : appliquer `deliverables/PLAN-COUVERTURE-70.md` par lots (utils/hooks/services puis intégration API).
+La CI tourne sur chaque PR et push `main`. Détails dans [docs/CI_CD_V2_2026.md](docs/CI_CD_V2_2026.md).
 
-### P0 — Stabilisation qualité test
+---
 
-- **Frontend** : nettoyer les warnings de test (`react-test-renderer` / `act(...)`) et fiabiliser l'environnement Jest.
-- **Backend** : étendre les tests métier (auth, recommandations, erreurs API) pour réduire le risque de régression.
+## Hébergement prod (Contabo)
 
-### P1 — Auth mobile "propre"
+Le VPS visé : Cloud VPS 30 (8 vCPU, 24 Go RAM, ~200 Go NVMe). Largement suffisant pour un MVP.
 
-- **Token** : finaliser cycle complet SecureStore/expiration/invalidations.
-- **Gestion 401** : logout automatique + reset navigation cohérent.
-- **UX auth** : états loading/erreurs/validation sur login/register.
+Points à ne pas oublier :
 
-### P1 — Admin et sécurité applicative
+- Reverse proxy TLS (Nginx/Caddy + Let's Encrypt) — requis pour les stores
+- Backups DB réguliers en plus des snapshots Contabo
+- Cron de purge RGPD : `scripts/prod-cron-purge.sh` (voir [LOG_RETENTION.md](docs/LOG_RETENTION.md))
+- Si Wazuh + LLM tournent en permanence sur la même machine, surveiller la RAM
 
-- **Politique mot de passe** : règles minimales + messages explicites.
-- **Admin safety** : empêcher l'auto-démotion d'un admin.
-- **Audit** : journaliser les actions admin sensibles (création/promotion/suppression).
+Guide pas à pas : [docs/PROD_SANS_DOMAINE.md](docs/PROD_SANS_DOMAINE.md)
 
-### P1 — API métier et hardening
+---
 
-- **Favoris** : confirmer API idempotente (`POST add`, `DELETE remove`) côté front.
-- **Standard erreurs** : harmoniser format (`message`, `code`, `details`) sur tous endpoints.
-- **Commentaires utilisateurs** : ajouter CRUD commentaires sur activités (avec modération minimale).
-- **Notation activités** : ajouter note utilisateur de `1` à `5` étoiles + agrégat (moyenne + nombre de votes).
-- **Sécurité** : durcir CORS prod, ajouter rate limiting, clarifier stratégie JWT.
+## Prochaines étapes
 
-### P1 — CI/CD
+Le gros du code est en place. Ce qui reste surtout :
 
-- Pipeline PR:
-  - Back : lint + analyse statique + tests + coverage gate
-  - Front : lint + typecheck + tests + coverage gate
-- Publication artifacts coverage + livrables SIEM dans CI.
+**Exploitation prod**
 
-### P2 — Produit / observabilité
+- Cron rétention + vérification CORS / secrets sur le VPS
+- HTTPS avec un vrai nom de domaine (stores Play / App Store)
+- Logrotate Nginx sur l'hôte
 
-- Onboarding intérêts, offline states, explication des recommandations.
-- Observabilité applicative: Sentry front/back + logs structurés + métriques.
+**Qualité**
 
-## Plan technique — futures features (commentaires + notation)
+- Monter la couverture de tests vers 70 % (`deliverables/PLAN-COUVERTURE-70.md`)
+- Quelques warnings Jest front à nettoyer
 
-### 1) Commentaires utilisateurs sur activité
+**Juridique & conformité**
 
-#### Modèle de données (Back / DB)
+- Compléter mentions légales (SIRET, statut) dans `odos-front/app/legal.tsx`
+- Nommer le responsable incident dans [INCIDENT_RESPONSE.md](docs/INCIDENT_RESPONSE.md)
 
-- Nouvelle entité `Comment`:
-  - `id` (PK)
-  - `content` (TEXT, min 2, max 1000)
-  - `createdAt`, `updatedAt`
-  - `isEdited` (bool)
-  - `isHidden` (bool, modération simple)
-  - relation `ManyToOne` vers `User` (auteur)
-  - relation `ManyToOne` vers `Activity`
-- Index recommandés:
-  - `(activity_id, created_at DESC)`
-  - `(user_id, created_at DESC)`
+Le détail des écarts RGPD et la feuille de route priorisée sont dans [docs/RGPD_AUDIT_2026.md](docs/RGPD_AUDIT_2026.md).
 
-#### Endpoints API (proposition)
+---
 
-- `GET /api/activities/{id}/comments` (public, paginé)
-- `POST /api/activities/{id}/comments` (ROLE_USER)
-- `PATCH /api/comments/{id}` (auteur ou admin)
-- `DELETE /api/comments/{id}` (auteur ou admin, soft-delete via `isHidden=true`)
-- Réponse standard:
-  - `id`, `content`, `createdAt`, `updatedAt`, `isEdited`
-  - `author` minimal (`id`, `displayName`)
-  - `activityId`
+## Livrables encadrant
 
-#### Règles métier
-
-- 1 utilisateur peut poster plusieurs commentaires par activité.
-- Edition autorisée uniquement à l’auteur (ou admin).
-- Suppression: soft-delete pour conserver la traçabilité.
-- Affichage public: exclure `isHidden=true` pour les non-admin.
-
-### 2) Notation activité (1 à 5 étoiles)
-
-#### Modèle de données (Back / DB)
-
-- Nouvelle entité `ActivityRating`:
-  - `id` (PK)
-  - `score` (int, 1..5)
-  - `createdAt`, `updatedAt`
-  - relation `ManyToOne` vers `User`
-  - relation `ManyToOne` vers `Activity`
-- Contrainte d’unicité:
-  - `UNIQUE(user_id, activity_id)` (1 note max par utilisateur et activité)
-- Champs agrégés dans `Activity`:
-  - `ratingAverage` (decimal/float)
-  - `ratingCount` (int)
-
-#### Endpoints API (proposition)
-
-- `GET /api/activities/{id}/rating` (public)
-  - `{ average, count, userScore? }`
-- `PUT /api/activities/{id}/rating` (ROLE_USER)
-  - crée ou met à jour la note utilisateur
-- `DELETE /api/activities/{id}/rating` (ROLE_USER)
-  - retire la note utilisateur
-
-#### Règles métier
-
-- Validation stricte `score in [1..5]`.
-- Recalcul agrégat (`average`, `count`) transactionnel après create/update/delete.
-- Anti-abus minimal:
-  - throttling léger sur `PUT/DELETE rating` par utilisateur.
-
-### 3) Ecrans Front (Expo)
-
-- Détail activité (`app/activity/[id].tsx`):
-  - bloc “Note moyenne” (étoiles + nombre d’avis)
-  - widget de note utilisateur (1..5)
-  - section commentaires (liste paginée + formulaire)
-- Actions UX:
-  - optimistic update pour note/commentaire
-  - rollback en cas d’erreur API
-  - états loading/empty/error
-
-### 4) Sécurité et modération (minimum viable)
-
-- Sanitization server-side du texte commentaire.
-- Limitation de longueur et fréquence de post.
-- Journalisation d’actions sensibles:
-  - suppression/masquage commentaire
-  - modification de note
-
-### 5) Tests à prévoir
-
-- Back unit:
-  - validation score 1..5
-  - unicité `(user, activity)`
-  - recalcul correct des agrégats
-- Back integration:
-  - permissions auteur/admin sur commentaires
-  - workflow note (create/update/delete)
-- Front:
-  - rendu étoiles + calcul affichage
-  - ajout/édition/suppression commentaire (UI + erreurs)
-
+- Plan couverture : [deliverables/PLAN-COUVERTURE-70.md](deliverables/PLAN-COUVERTURE-70.md)
