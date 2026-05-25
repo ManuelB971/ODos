@@ -14,7 +14,15 @@ final class MapExplorationZoneRegistry
 {
     public const PRECISION = 6;
 
-    /** @var array<string, array{zoneKey: string, precision: int, totalCells: int, cellIds: list<string>, bbox: array{west: float, south: float, east: float, north: float}>}|null */
+    /**
+     * @var array{
+     *     zoneKey: string,
+     *     precision: int,
+     *     totalCells: int,
+     *     cellIds: list<string>,
+     *     bbox: array{west: float, south: float, east: float, north: float}
+     * }|null
+     */
     private ?array $cached = null;
 
     public function __construct(
@@ -49,6 +57,7 @@ final class MapExplorationZoneRegistry
             $north = max($north, $lat);
         }
 
+        /** @var list<string> $cellIds */
         $cellIds = array_keys($cellSet);
         sort($cellIds);
 

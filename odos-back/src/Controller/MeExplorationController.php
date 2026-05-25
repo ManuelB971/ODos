@@ -68,8 +68,15 @@ final class MeExplorationController extends AbstractController
             return $this->json(['message' => 'Le champ cells doit être un tableau.'], Response::HTTP_BAD_REQUEST);
         }
 
+        $cellIds = [];
+        foreach ($cells as $cell) {
+            if (is_string($cell)) {
+                $cellIds[] = $cell;
+            }
+        }
+
         try {
-            $result = $this->explorationService->syncCells($user, $cells);
+            $result = $this->explorationService->syncCells($user, $cellIds);
         } catch (\InvalidArgumentException $e) {
             return $this->json(['message' => $e->getMessage()], Response::HTTP_FORBIDDEN);
         }

@@ -80,11 +80,20 @@ final class MapExplorationService
         }
 
         $zone = $this->zoneRegistry->getCatalogZone();
-        $unique = array_unique(array_slice(array_filter($cellIds, 'is_string'), 0, self::MAX_SYNC_CELLS));
+        $unique = [];
+        foreach (array_slice($cellIds, 0, self::MAX_SYNC_CELLS) as $rawCellId) {
+            if (!is_string($rawCellId)) {
+                continue;
+            }
+            $normalized = strtolower(trim($rawCellId));
+            if ('' === $normalized || isset($unique[$normalized])) {
+                continue;
+            }
+            $unique[$normalized] = true;
+        }
         $newCount = 0;
 
-        foreach ($unique as $cellId) {
-            $cellId = strtolower(trim($cellId));
+        foreach (array_keys($unique) as $cellId) {
             if (strlen($cellId) < 4 || strlen($cellId) > 12 || !$this->zoneRegistry->isValidCell($cellId)) {
                 continue;
             }

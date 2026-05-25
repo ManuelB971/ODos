@@ -23,7 +23,8 @@ class ActivityRepository extends ServiceEntityRepository
      */
     public function findPublishedGeoCoordinates(): array
     {
-        return $this->createQueryBuilder('a')
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->createQueryBuilder('a')
             ->select('a.latitude', 'a.longitude')
             ->andWhere('a.isPublished = :published')
             ->andWhere('a.latitude IS NOT NULL')
@@ -31,6 +32,21 @@ class ActivityRepository extends ServiceEntityRepository
             ->setParameter('published', true)
             ->getQuery()
             ->getArrayResult();
+
+        $coords = [];
+        foreach ($rows as $row) {
+            $latitude = $row['latitude'] ?? null;
+            $longitude = $row['longitude'] ?? null;
+            if (!is_numeric($latitude) || !is_numeric($longitude)) {
+                continue;
+            }
+            $coords[] = [
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+            ];
+        }
+
+        return $coords;
     }
 
     //    /**
