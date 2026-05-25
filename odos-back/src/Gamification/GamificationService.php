@@ -53,12 +53,9 @@ final class GamificationService
                 continue;
             }
 
-            $awarded = $this->awardBadge($user, $badge);
-            if ($awarded instanceof UserBadge) {
-                $display = $this->displayRepository->findOneForUserAndBadge($user, $badge);
-                if ($display instanceof UserBadgeDisplay) {
-                    $newlyUnlocked[] = $this->payloadFactory->unlocked($awarded, $display);
-                }
+            $award = $this->awardBadge($user, $badge);
+            if (null !== $award) {
+                $newlyUnlocked[] = $this->payloadFactory->unlocked($award['userBadge'], $award['display']);
             }
         }
 
@@ -69,14 +66,23 @@ final class GamificationService
         return $newlyUnlocked;
     }
 
-    public function awardBadge(User $user, BadgeDefinition $badge): ?UserBadge
+    /**
+     * @return array{userBadge: UserBadge, display: UserBadgeDisplay}|null
+     */
+    public function awardBadge(User $user, BadgeDefinition $badge): ?array
     {
         if (!$badge->isActive()) {
             return null;
         }
 
         if ($this->userBadgeRepository->userOwnsBadge($user, $badge)) {
-            return $this->userBadgeRepository->findOneForUserAndBadge($user, $badge);
+            $userBadge = $this->userBadgeRepository->findOneForUserAndBadge($user, $badge);
+            $display = $this->displayRepository->findOneForUserAndBadge($user, $badge);
+            if (!$userBadge instanceof UserBadge || !$display instanceof UserBadgeDisplay) {
+                return null;
+            }
+
+            return ['userBadge' => $userBadge, 'display' => $display];
         }
 
         $userBadge = new UserBadge();
@@ -95,7 +101,7 @@ final class GamificationService
             'badgeCode' => $badge->getCode(),
         ]);
 
-        return $userBadge;
+        return ['userBadge' => $userBadge, 'display' => $display];
     }
 
     /**
