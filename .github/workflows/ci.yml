@@ -178,6 +178,8 @@ jobs:
           coverage: xdebug
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
+      - name: Migrate test database
+        run: php bin/console doctrine:migrations:migrate --no-interaction
       - name: Generate coverage
         run: composer test:coverage
       - name: Upload backend coverage artifact
