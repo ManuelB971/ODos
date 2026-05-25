@@ -15,8 +15,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { InlineToast, InlineToastVariant } from '@/components/InlineToast';
 import { resolveImageUrl } from '@/utils/imageUrl';
-import type { ActivityComment } from '@/types';
-import type { User } from '@/types';
+import type { ActivityComment, User } from '@/types';
 
 const MAX_LEN = 1000;
 

@@ -4,9 +4,7 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  ActivityIndicator,
   Alert,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
   Image,
@@ -33,7 +31,7 @@ import { ActivityCommentsSection } from '@/components/comments/ActivityCommentsS
 import { useBadgeUnlock } from '@/context/BadgeUnlockContext';
 import { BADGES_QUERY_KEY } from '@/hooks/useBadges';
 import type { BadgeItem } from '@/types';
-import { ApiActivity, ActivityComment } from '@/types';
+import { ApiActivity } from '@/types';
 import { Colors, Spacing } from '@/constants/theme';
 import { logError, toAppError, AppError } from '@/utils/errorHandling';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';

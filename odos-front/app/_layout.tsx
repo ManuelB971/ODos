@@ -7,9 +7,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { InterestProvider } from '@/context/InterestContext';
 import { AuthProvider } from '@/context/AuthContext';
-import { BadgeUnlockProvider } from '@/context/BadgeUnlockContext';
+import { BadgeUnlockProvider, useBadgeUnlock } from '@/context/BadgeUnlockContext';
 import { BadgeUnlockModal } from '@/components/badges/BadgeUnlockModal';
-import { useBadgeUnlock } from '@/context/BadgeUnlockContext';
 import SplashScreen from '@/components/SplashScreen';
 
 const queryClient = new QueryClient({

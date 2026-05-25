@@ -6,6 +6,7 @@ use App\Entity\Comment;
 use App\Entity\User;
 use App\Repository\CommentRepository;
 use App\Service\CommentContentSanitizer;
+use App\Service\CommentSerializer;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -66,7 +67,7 @@ class CommentItemController extends AbstractController
 
         $this->logger->info('comment.updated', ['commentId' => $comment->getId(), 'userId' => $user->getId()]);
 
-        return $this->json($this->serializeComment($comment));
+        return $this->json($this->commentSerializer->toArray($comment));
     }
 
     #[Route('/{id}', name: 'api_comment_delete', methods: ['DELETE'])]
@@ -109,32 +110,4 @@ class CommentItemController extends AbstractController
         return $comment->getAuthor()?->getId() === $user->getId();
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    private function serializeComment(Comment $c): array
-    {
-        $author = $c->getAuthor();
-
-        $payload = [
-            'id' => $c->getId(),
-            'content' => $c->getContent(),
-            'createdAt' => $c->getCreatedAt()?->format(\DateTimeInterface::ATOM),
-            'updatedAt' => $c->getUpdatedAt()?->format(\DateTimeInterface::ATOM),
-            'isEdited' => $c->isEdited(),
-            'author' => $author instanceof User
-                ? [
-                    'id' => $author->getId(),
-                    'displayName' => $author->getDisplayName(),
-                ]
-                : null,
-            'activityId' => $c->getActivity()?->getId(),
-        ];
-
-        if ($this->security->isGranted('ROLE_ADMIN')) {
-            $payload['isHidden'] = $c->isHidden();
-        }
-
-        return $payload;
-    }
 }

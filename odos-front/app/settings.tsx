@@ -20,6 +20,7 @@ import {
   Camera,
   ChevronRight,
   FileText,
+  Map,
   Scale,
   Shield,
   Download,

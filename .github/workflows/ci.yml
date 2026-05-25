@@ -63,7 +63,7 @@ jobs:
           - 6379:6379
     env:
       APP_ENV: test
-      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/odos_test?serverVersion=16&charset=utf8
+      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/odos?serverVersion=16&charset=utf8
       REDIS_URL: redis://127.0.0.1:6379
       LLM_ENABLED: "false"
     steps:
@@ -87,6 +87,8 @@ jobs:
         run: composer validate --strict --no-check-publish
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
+      - name: Migrate test database
+        run: php bin/console doctrine:migrations:migrate --no-interaction
       - name: Run PHPUnit
         run: composer test
 
@@ -100,7 +102,7 @@ jobs:
         working-directory: odos-back
     env:
       APP_ENV: test
-      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/odos_test?serverVersion=16&charset=utf8
+      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/odos?serverVersion=16&charset=utf8
       REDIS_URL: redis://127.0.0.1:6379
       LLM_ENABLED: "false"
     steps:
@@ -153,7 +155,7 @@ jobs:
           - 6379:6379
     env:
       APP_ENV: test
-      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/odos_test?serverVersion=16&charset=utf8
+      DATABASE_URL: postgresql://postgres@127.0.0.1:5432/odos?serverVersion=16&charset=utf8
       REDIS_URL: redis://127.0.0.1:6379
       LLM_ENABLED: "false"
       XDEBUG_MODE: coverage

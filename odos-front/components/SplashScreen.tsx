@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from 'react';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -18,7 +18,6 @@ ExpoSplashScreen.preventAutoHideAsync();
 const AnimatedView = Animated.createAnimatedComponent(View);
 
 function OdosLogo({ size = 100 }: { size?: number }) {
-  const ratio = size / 100;
   return (
     <Svg width={size} height={size} viewBox="630 35 155 130">
       <G>
@@ -85,6 +84,8 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
         runOnJS(handleAnimationEnd)();
       }),
     );
+    // Shared values are stable; animation must run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const logoStyle = useAnimatedStyle(() => ({

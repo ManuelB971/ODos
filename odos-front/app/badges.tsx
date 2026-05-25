@@ -18,7 +18,7 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 import type { BadgeItem } from '@/types';
 import api from '@/scripts/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { logError, toAppError } from '@/utils/errorHandling';
+import { logError } from '@/utils/errorHandling';
 
 function BadgeCard({
   badge,
