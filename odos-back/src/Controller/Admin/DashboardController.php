@@ -3,6 +3,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Activity;
+use App\Entity\BadgeDefinition;
 use App\Entity\AdminAuditLog;
 use App\Entity\AdminWebauthnCredential;
 use App\Entity\Category;
@@ -90,6 +91,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Utilisateurs', 'fas fa-users', User::class);
         yield MenuItem::linkToCrud('Catégories', 'fas fa-list', Category::class);
         yield MenuItem::linkToCrud('Activités', 'fas fa-map-marker-alt', Activity::class);
+        yield MenuItem::linkToCrud('Badges', 'fas fa-award', BadgeDefinition::class);
         yield MenuItem::linkToRoute('Importer activités', 'fas fa-file-import', 'admin_activities_import');
         yield MenuItem::linkToCrud('Commentaires', 'fas fa-comments', Comment::class);
         yield MenuItem::linkToCrud('Jetons refresh (JWT)', 'fas fa-key', RefreshToken::class);
