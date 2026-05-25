@@ -7,6 +7,8 @@ use App\Entity\Comment;
 use App\Entity\User;
 use App\Repository\ActivityRepository;
 use App\Repository\CommentRepository;
+use App\Gamification\GamificationEvent;
+use App\Gamification\GamificationService;
 use App\Service\CommentContentSanitizer;
 use App\Service\ThrottledActionException;
 use App\Service\UserActionThrottleService;
@@ -35,6 +37,7 @@ class ActivityCommentsController extends AbstractController
         private ValidatorInterface $validator,
         private UserActionThrottleService $throttle,
         private LoggerInterface $logger,
+        private GamificationService $gamificationService,
     ) {}
 
     #[Route('', name: 'api_activity_comments_list', methods: ['GET'])]
@@ -110,7 +113,12 @@ class ActivityCommentsController extends AbstractController
         $this->throttle->markCommentPosted((int) $user->getId());
         $this->logger->info('comment.created', ['commentId' => $comment->getId(), 'activityId' => $activity->getId(), 'userId' => $user->getId()]);
 
-        return $this->json($this->serializeComment($comment), Response::HTTP_CREATED);
+        $unlocked = $this->gamificationService->evaluateAndAward($user, GamificationEvent::COMMENT_CREATED);
+
+        return $this->json(
+            array_merge($this->serializeComment($comment), ['unlockedBadges' => $unlocked]),
+            Response::HTTP_CREATED
+        );
     }
 
     private function findPublishedActivity(int $id): ?Activity
@@ -143,6 +151,7 @@ class ActivityCommentsController extends AbstractController
                 ? [
                     'id' => $author->getId(),
                     'displayName' => $author->getDisplayName(),
+                    'avatarUrl' => $author->getAvatarUrl(),
                 ]
                 : null,
             'activityId' => $c->getActivity()?->getId(),

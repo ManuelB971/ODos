@@ -16,6 +16,23 @@ class ActivityRepository extends ServiceEntityRepository
         parent::__construct($registry, Activity::class);
     }
 
+    /**
+     * Coordonnées des activités publiées et géolocalisées (grille d'exploration).
+     *
+     * @return list<array{latitude: float|string, longitude: float|string}>
+     */
+    public function findPublishedGeoCoordinates(): array
+    {
+        return $this->createQueryBuilder('a')
+            ->select('a.latitude', 'a.longitude')
+            ->andWhere('a.isPublished = :published')
+            ->andWhere('a.latitude IS NOT NULL')
+            ->andWhere('a.longitude IS NOT NULL')
+            ->setParameter('published', true)
+            ->getQuery()
+            ->getArrayResult();
+    }
+
     //    /**
     //     * @return Activity[] Returns an array of Activity objects
     //     */

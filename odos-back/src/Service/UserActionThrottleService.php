@@ -70,6 +70,20 @@ final class UserActionThrottleService
         $this->markSuccess('avatar_ok_'.$userId);
     }
 
+    public function assertCanPostGamificationEvent(int $userId): void
+    {
+        $this->assertMinGapSinceLastSuccess(
+            'gamification_evt_'.$userId,
+            2,
+            'Patience — les événements d\'exploration sont limités.'
+        );
+    }
+
+    public function markGamificationEventPosted(int $userId): void
+    {
+        $this->markSuccess('gamification_evt_'.$userId);
+    }
+
     private function assertMinGapSinceLastSuccess(string $key, int $minGapSeconds, string $message): void
     {
         $last = $this->cache->get($key, static function (ItemInterface $item) {

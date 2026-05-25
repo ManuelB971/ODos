@@ -9,6 +9,10 @@ use App\Entity\Category;
 use App\Entity\Comment;
 use App\Entity\User;
 use App\Repository\CommentRepository;
+use App\Repository\UserBadgeDisplayRepository;
+use App\Repository\UserBadgeRepository;
+use App\Repository\UserMapCellRepository;
+use App\Service\MapExplorationZoneRegistry;
 
 /**
  * Export des données personnelles (art. 20 RGPD) au format JSON structuré.
@@ -17,6 +21,10 @@ final class UserDataExportService
 {
     public function __construct(
         private readonly CommentRepository $commentRepository,
+        private readonly UserBadgeRepository $userBadgeRepository,
+        private readonly UserBadgeDisplayRepository $userBadgeDisplayRepository,
+        private readonly UserMapCellRepository $userMapCellRepository,
+        private readonly MapExplorationZoneRegistry $zoneRegistry,
     ) {
     }
 
@@ -30,7 +38,7 @@ final class UserDataExportService
 
         return [
             'exportedAt' => (new \DateTimeImmutable())->format(\DateTimeInterface::ATOM),
-            'format' => 'odos-gdpr-export-v1',
+            'format' => 'odos-gdpr-export-v2',
             'profile' => [
                 'id' => $user->getId(),
                 'email' => $user->getEmail(),
@@ -39,6 +47,9 @@ final class UserDataExportService
                 'avatarUrl' => $user->getAvatarUrl(),
                 'displayName' => $user->getDisplayName(),
                 'consentedAt' => $user->getConsentedAt()?->format(\DateTimeInterface::ATOM),
+                'hideBadgesOnProfile' => $user->isHideBadgesOnProfile(),
+                'mapExplorationConsentAt' => $user->getMapExplorationConsentAt()?->format(\DateTimeInterface::ATOM),
+                'mapExplorationEnabled' => $user->isMapExplorationEnabled(),
                 'interests' => array_map(
                     static fn (Category $c) => [
                         'id' => $c->getId(),
@@ -78,6 +89,36 @@ final class UserDataExportService
                 },
                 $ratings
             ),
+            'badges' => array_map(
+                static function ($userBadge) {
+                    $badge = $userBadge->getBadge();
+
+                    return [
+                        'code' => $badge?->getCode(),
+                        'name' => $badge?->getName(),
+                        'unlockedAt' => $userBadge->getUnlockedAt()->format(\DateTimeInterface::ATOM),
+                        'seenAt' => $userBadge->getSeenAt()?->format(\DateTimeInterface::ATOM),
+                    ];
+                },
+                $this->userBadgeRepository->findForUserOrdered($user)
+            ),
+            'badgeDisplayPreferences' => array_map(
+                static function ($display) {
+                    return [
+                        'badgeCode' => $display->getBadge()?->getCode(),
+                        'displayOnProfile' => $display->isDisplayedOnProfile(),
+                        'displayOrder' => $display->getDisplayOrder(),
+                    ];
+                },
+                $this->userBadgeDisplayRepository->findBy(['user' => $user])
+            ),
+            'mapExploration' => [
+                'zoneKey' => $this->zoneRegistry->getCatalogZone()['zoneKey'],
+                'visitedCellIds' => $this->userMapCellRepository->findCellIdsForUser(
+                    $user,
+                    $this->zoneRegistry->getCatalogZone()['zoneKey']
+                ),
+            ],
         ];
     }
 }
