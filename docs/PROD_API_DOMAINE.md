@@ -47,23 +47,39 @@ sudo apt install -y nginx certbot python3-certbot-nginx
 sudo mkdir -p /var/www/certbot
 ```
 
-### Config nginx
+### Config nginx (2 étapes)
 
-Fichier modèle dans le repo : [`deploy/nginx/api.odos-api.com.conf`](../deploy/nginx/api.odos-api.com.conf)
+Fichier modèle : [`deploy/nginx/api.odos-api.com.conf`](../deploy/nginx/api.odos-api.com.conf) — **HTTP seulement** (pas de `ssl_certificate` tant que certbot n’a pas tourné).
+
+**Étape A — nginx sans SSL**
 
 ```bash
+cd ~/ODos && git pull   # récupérer la conf corrigée
 sudo cp ~/ODos/deploy/nginx/api.odos-api.com.conf /etc/nginx/sites-available/api.odos-api.com
 sudo ln -sf /etc/nginx/sites-available/api.odos-api.com /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default   # si conflit port 80
-sudo nginx -t
+sudo mkdir -p /var/www/certbot
+sudo nginx -t && sudo systemctl reload nginx
 ```
 
-**Avant** d’avoir les certificats, commentez temporairement le bloc `server { listen 443 ...}` ou utilisez seulement le bloc port 80 pour la première passe certbot :
+Test : `curl -s -o /dev/null -w "%{http_code}\n" http://api.odos-api.com/api/categories`
+
+**Étape B — certbot ajoute HTTPS**
 
 ```bash
 sudo certbot --nginx -d api.odos-api.com
-sudo systemctl reload nginx
+sudo nginx -t && sudo systemctl reload nginx
 ```
+
+Certbot crée `/etc/letsencrypt/options-ssl-nginx.conf` et le bloc `listen 443 ssl`.
+
+Erreur fréquente si vous sautez l’étape A :
+
+```text
+open() "/etc/letsencrypt/options-ssl-nginx.conf" failed (2: No such file or directory)
+```
+
+→ reprenez avec la conf **HTTP only** du repo, puis relancez certbot.
 
 ### Firewall
 
