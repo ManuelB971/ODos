@@ -1,0 +1,13 @@
+# APK production — uniquement à la main (ou via eas workflow:run).
+# Lancer : eas workflow:run .eas/workflows/build-android-production.yml
+# Équivalent local : pnpm run build:apk:prod
+
+name: Build Android Production
+
+jobs:
+  build_android:
+    name: Android APK (production)
+    type: build
+    params:
+      platform: android
+      profile: production

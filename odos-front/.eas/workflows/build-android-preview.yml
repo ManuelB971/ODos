@@ -1,0 +1,20 @@
+# APK interne (preview) — déclenché sur push main si le front change.
+# Lancer à la main : eas workflow:run .eas/workflows/build-android-preview.yml
+# Prérequis : repo GitHub lié sur expo.dev → projet @manuel971/odos
+
+name: Build Android Preview
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - odos-front/**
+
+jobs:
+  build_android:
+    name: Android APK (preview)
+    type: build
+    params:
+      platform: android
+      profile: preview

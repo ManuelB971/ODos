@@ -11,6 +11,7 @@ Index des docs du dépôt. Dernière passe : **mai 2026**.
 | **TODO badges, exploration, UX commentaires** | **[TODO_GAMIFICATION_BADGES.md](TODO_GAMIFICATION_BADGES.md)** · **[GAMIFICATION.md](GAMIFICATION.md)** |
 | **Exploration carte (phase D)** | **[fonctionnalites/exploration-carte.md](fonctionnalites/exploration-carte.md)** |
 | Déployer sur Contabo (IP sans domaine) | [PROD_SANS_DOMAINE.md](PROD_SANS_DOMAINE.md) |
+| API prod `api.odos-api.com` (HTTPS) | [PROD_API_DOMAINE.md](PROD_API_DOMAINE.md) |
 | Comprendre la CI/CD | [CI_CD_V2_2026.md](CI_CD_V2_2026.md) |
 | Voir où on en est côté RGPD | [RGPD_AUDIT_2026.md](RGPD_AUDIT_2026.md) |
 | Le registre art. 30 | [RGPD_registre.md](RGPD_registre.md) |
@@ -38,6 +39,7 @@ Textes légaux in-app : `odos-front/app/legal.tsx`
 | Fichier | À quoi il sert |
 |---------|----------------|
 | [PROD_SANS_DOMAINE.md](PROD_SANS_DOMAINE.md) | Mise en prod Contabo par IP |
+| [PROD_API_DOMAINE.md](PROD_API_DOMAINE.md) | Sous-domaine API + Let's Encrypt |
 | [CI_CD_V2_2026.md](CI_CD_V2_2026.md) | GitHub Actions, secrets, deploy |
 | [../odos-config/env.prod.example](../odos-config/env.prod.example) | Modèle `.env` serveur |
 
