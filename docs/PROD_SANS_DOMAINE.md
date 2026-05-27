@@ -116,7 +116,13 @@ Recommandé — config dans [LOG_RETENTION.md](LOG_RETENTION.md).
 
 ## 7. APK mobile
 
-L'URL prod est dans `odos-front/eas.json` (`EXPO_PUBLIC_API_URL`).
+L'URL prod est dans `odos-front/eas.json` :
+
+```json
+"EXPO_PUBLIC_API_URL": "https://api.odos-api.com"
+```
+
+Voir aussi [PROD_API_DOMAINE.md](PROD_API_DOMAINE.md) (HTTPS + nginx).
 
 ```bash
 cd odos-front
