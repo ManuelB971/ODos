@@ -15,7 +15,9 @@
     "test:ci": "jest --runInBand --watchAll=false",
     "test:coverage": "jest --coverage --runInBand --watchAll=false",
     "build:apk:prod": "eas build --platform android --profile production",
-    "build:apk:preview": "eas build --platform android --profile preview"
+    "build:apk:preview": "eas build --platform android --profile preview",
+    "eas:workflow:preview": "eas workflow:run .eas/workflows/build-android-preview.yml",
+    "eas:workflow:prod": "eas workflow:run .eas/workflows/build-android-production.yml"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
