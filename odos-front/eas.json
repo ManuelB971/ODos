@@ -16,7 +16,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://167.86.75.36:8000"
+        "EXPO_PUBLIC_API_URL": "https://api.odos-api.com"
       }
     },
     "production": {
@@ -24,7 +24,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "http://167.86.75.36:8000"
+        "EXPO_PUBLIC_API_URL": "https://api.odos-api.com"
       }
     }
   }
