@@ -99,6 +99,11 @@ DEFAULT_URI=https://api.odos-api.com
 
 CORS_ALLOW_ORIGIN='^https?://(www\.)?odos\.world$|^https?://api\.odos-api\.com$|^https?://167\.86\.75\.36(:[0-9]+)?$'
 
+TRUSTED_PROXIES=127.0.0.1,REMOTE_ADDR,172.16.0.0/12
+
+JWT_TOKEN_TTL=900
+JWT_REFRESH_TTL=2592000
+
 ADMIN_WEBAUTHN_RP_ID=api.odos-api.com
 ```
 
@@ -153,8 +158,26 @@ Admin : `https://api.odos-api.com/admin`
 | DNS OK mais connexion refusée sur 443 | nginx hôte ou certbot pas installé ; ports 80/443 fermés |
 | `ERR_SSL_PROTOCOL_ERROR` | Certificat absent ; bloc 443 actif sans certificats |
 | 502 Bad Gateway | Docker pas démarré ou pas sur `:8000` |
-| 500 sur `/api/categories` | Backend (migrations, `.env`, DB) — pas le DNS |
+| 500 sur **toute** l’API (`/api/categories`, `/api/docs`, …) | `.env` prod incomplet (`JWT_TOKEN_TTL`, `JWT_REFRESH_TTL`, `TRUSTED_PROXIES`) ou syntaxe `%env(default:900:VAR)%` invalide — voir ci-dessous |
+| 500 sur `/api/categories` seul | Migrations, DB, ou données — rare si le reste de l’API répond |
 | APK ne joint pas | Ancien build avec IP/localhost ; rebuild EAS + HTTPS |
+
+### 500 sur toute l’API — diagnostic rapide
+
+```bash
+# 1. Variables JWT + proxy présentes ?
+docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T php \
+  printenv | grep -E 'JWT_TOKEN_TTL|JWT_REFRESH_TTL|TRUSTED_PROXIES'
+
+# 2. Smoke test local
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8000/api/categories
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:8000/api/docs
+
+# 3. Logs applicatifs (stderr → docker logs après deploy monolog fix)
+docker compose -f docker-compose.yml -f docker-compose.prod.yml logs php --tail 40
+```
+
+La CI exécute les mêmes checks en HTTPS après chaque deploy sur `main`.
 
 Test HTTP direct (sans TLS) :
 
@@ -169,6 +192,7 @@ curl -s -o /dev/null -w "%{http_code}\n" http://api.odos-api.com:8000/api/catego
 - [ ] `nslookup api.odos-api.com` → IP VPS
 - [ ] nginx hôte + certbot + HTTPS
 - [ ] `curl https://api.odos-api.com/api/categories` → 200
-- [ ] `~/odos-config/.env` mis à jour
+- [ ] `curl https://api.odos-api.com/api/docs` → 200
+- [ ] `~/odos-config/.env` : `JWT_TOKEN_TTL`, `JWT_REFRESH_TTL`, `TRUSTED_PROXIES`
 - [ ] `eas.json` + nouvel APK
 - [ ] Landing `odos.world` reste sur Render (domaine séparé)

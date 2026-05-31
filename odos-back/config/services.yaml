@@ -21,6 +21,9 @@ parameters:
     app.llm.enabled: '%env(bool:LLM_ENABLED)%'
     app.llm.cache_ttl_seconds: '%env(int:LLM_CACHE_TTL_SECONDS)%'
     app.admin.mfa_enabled: '%env(bool:ADMIN_MFA_ENABLED)%'
+    # Fallbacks for env(default:…:VAR) — must be parameter names, not literal numbers.
+    jwt_token_ttl_default: 900
+    jwt_refresh_ttl_default: 2592000
 
 services:
     # default configuration for services in *this* file
