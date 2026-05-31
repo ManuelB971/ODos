@@ -14,10 +14,12 @@ import { useInterests } from '@/context/InterestContext';
 import { useAuth } from '@/context/AuthContext';
 import { fetchCategories, updateUserInterests } from '@/scripts/api';
 import { Category } from '@/types';
-import { Colors, Fonts, Spacing } from '@/constants/theme';
-import { logError, toAppError } from '@/utils/errorHandling';
+import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
+import { BrandBaseline } from '@/components/BrandBaseline';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { SprayBackground } from '@/components/ui/SprayBackground';
+import { logError, toAppError } from '@/utils/errorHandling';
 
 /**
  * Écran de sélection des centres d'intérêt.
@@ -109,7 +111,8 @@ const InterestsScreen = () => {
   };
 
   return (
-    <View style={styles.screen}>
+    <SprayBackground>
+      <View style={styles.screen}>
       {/* Header de navigation (back seulement si on a déjà un user ; sinon onboarding direct). */}
       <View style={styles.topBar}>
         {user ? (
@@ -128,6 +131,7 @@ const InterestsScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
+          <BrandBaseline variant="short" style={styles.heroBaseline} />
           <View style={styles.eyebrowRow}>
             <Sparkles size={12} color={Colors.light.accent} />
             <Text style={styles.eyebrow}>PERSONNALISATION</Text>
@@ -214,7 +218,8 @@ const InterestsScreen = () => {
           fullWidth
         />
       </View>
-    </View>
+      </View>
+    </SprayBackground>
   );
 };
 
@@ -223,7 +228,6 @@ export default InterestsScreen;
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: Colors.light.background,
   },
   topBar: {
     flexDirection: 'row',
@@ -236,14 +240,14 @@ const styles = StyleSheet.create({
   backBtn: {
     width: 36,
     height: 36,
-    borderRadius: 12,
+    borderRadius: Radius.card,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.light.surface,
+    backgroundColor: Colors.light.elevated,
   },
   topBarTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: FontFamily.uiBold,
     color: Colors.light.text,
     letterSpacing: 0.2,
   },
@@ -255,6 +259,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 22,
   },
+  heroBaseline: {
+    fontSize: 16,
+    marginBottom: 14,
+    textAlign: 'left',
+  },
   eyebrowRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -264,18 +273,19 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 11,
     letterSpacing: 2,
-    color: Colors.light.muted,
-    fontWeight: '700',
+    color: Colors.light.accent,
+    fontFamily: FontFamily.uiBold,
+    textTransform: 'uppercase',
   },
   title: {
     fontSize: 28,
-    fontWeight: '800',
+    fontFamily: FontFamily.display,
     color: Colors.light.text,
-    fontFamily: Fonts?.serif,
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 15,
+    fontFamily: FontFamily.ui,
     lineHeight: 22,
     color: Colors.light.muted,
   },
@@ -287,19 +297,20 @@ const styles = StyleSheet.create({
   },
   counterText: {
     fontSize: 14,
+    fontFamily: FontFamily.ui,
     color: Colors.light.text,
   },
   counterValue: {
-    fontWeight: '800',
+    fontFamily: FontFamily.uiBold,
     color: Colors.light.accent,
   },
   counterMuted: {
     color: Colors.light.muted,
-    fontWeight: '600',
+    fontFamily: FontFamily.uiMedium,
   },
   resetText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: FontFamily.uiBold,
     color: Colors.light.primary,
   },
   errorBanner: {
@@ -332,8 +343,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 22,
-    backgroundColor: '#fff',
-    borderWidth: 1,
+    backgroundColor: Colors.light.elevated,
+    borderWidth: 1.5,
     borderColor: Colors.light.border,
   },
   chipActive: {
@@ -345,12 +356,12 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FontFamily.uiMedium,
     color: Colors.light.text,
   },
   chipTextActive: {
     color: '#ffffff',
-    fontWeight: '700',
+    fontFamily: FontFamily.uiBold,
   },
   chipTextDisabled: {
     color: Colors.light.muted,
@@ -363,7 +374,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 28 : 18,
-    backgroundColor: 'rgba(255,255,255,0.96)',
+    backgroundColor: `${Colors.light.background}F5`,
     borderTopWidth: 1,
     borderTopColor: Colors.light.border,
   },

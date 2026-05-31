@@ -24,6 +24,8 @@ parameters:
     # Fallbacks for env(default:…:VAR) — must be parameter names, not literal numbers.
     jwt_token_ttl_default: 900
     jwt_refresh_ttl_default: 2592000
+    app.oauth.apple_client_id_default: ''
+    app.oauth.google_client_ids_default: ''
 
 services:
     # default configuration for services in *this* file
@@ -61,6 +63,23 @@ services:
         arguments:
             $apiLoginLimiter: '@limiter.api_login'
             $apiRegisterLimiter: '@limiter.api_register'
+            $apiSocialAuthLimiter: '@limiter.api_social_auth'
+
+    App\Service\JwtAuthResponseFactory:
+        arguments:
+            $refreshTokenTtl: '%env(int:default:jwt_refresh_ttl_default:JWT_REFRESH_TTL)%'
+
+    App\Service\Auth\OAuthClientIdParser:
+        arguments:
+            $googleClientIdsRaw: '%env(default:app.oauth.google_client_ids_default:GOOGLE_OAUTH_CLIENT_IDS)%'
+
+    App\Service\Auth\GoogleIdTokenVerifier:
+        arguments:
+            $allowedClientIds: '@=service("App\\Service\\Auth\\OAuthClientIdParser").googleIds()'
+
+    App\Service\Auth\AppleIdTokenVerifier:
+        arguments:
+            $appleClientId: '%env(default:app.oauth.apple_client_id_default:APPLE_CLIENT_ID)%'
 
     App\Monolog\SensitiveDataProcessor:
         tags:

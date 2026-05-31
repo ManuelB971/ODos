@@ -20,37 +20,30 @@ import { useActivities } from '@/hooks/useActivities';
 import { useDebounce } from '@/hooks/useDebounce';
 import { resolveImageUrl } from '@/utils/imageUrl';
 
-/** Palette alignée sur la maquette « Search – ODOS » (bleu pâle + terre cuite). */
+/** Palette alignée sur docs/DESIGN_DIRECTION.md */
+import { Colors, FontFamily } from '@/constants/theme';
+
 const S = {
-  screenBg: '#E8F1F8',
-  chipInactiveBg: '#DCE8F2',
-  terracotta: '#9A5C32',
-  terracottaDark: '#7A4826',
-  locationBlue: '#2E6FBE',
-  text: '#1a1a1a',
-  textMuted: '#5c6570',
-  white: '#ffffff',
-  badgeBg: '#F5D4C4',
-  badgeText: '#3d2918',
+  screenBg: Colors.light.background,
+  chipInactiveBg: Colors.light.surface,
+  terracotta: Colors.light.accent,
+  terracottaDark: Colors.light.accentHover,
+  locationBlue: Colors.light.primary,
+  text: Colors.light.text,
+  textMuted: Colors.light.muted,
+  white: Colors.light.elevated,
+  badgeBg: Colors.light.accentSoft,
+  badgeText: Colors.light.text,
 };
+
+const serif = FontFamily.display;
+const sans = FontFamily.ui;
 
 const getCategoryName = (cat: ApiActivity['category']): string => {
   if (typeof cat === 'string') return cat;
   if (cat && typeof cat === 'object' && 'name' in cat) return cat.name;
   return '';
 };
-
-const serif = Platform.select({
-  ios: 'Georgia',
-  android: 'serif',
-  default: 'Georgia',
-});
-
-const sans = Platform.select({
-  ios: 'System',
-  android: 'sans-serif',
-  default: 'System',
-});
 
 function formatPrice(price: number | null): string | null {
   if (price == null || Number.isNaN(price)) return null;

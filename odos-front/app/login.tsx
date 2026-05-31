@@ -13,25 +13,22 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlertCircle, Check, CheckCircle2, Mail, Square } from 'lucide-react-native';
 
-import { signUp, signIn } from '@/services/AuthService';
+import { signUp, signIn, signInWithGoogleIdToken, signInWithAppleIdentityToken } from '@/services/AuthService';
 import { useAuth } from '@/context/AuthContext';
-import { Colors, Fonts, Spacing } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
+import { BRAND_TAGLINE } from '@/constants/brand';
 import { AppLogo } from '@/components/AppLogo';
+import { BrandBaseline } from '@/components/BrandBaseline';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { InputField } from '@/components/ui/InputField';
+import { SocialSignInButton } from '@/components/ui/SocialSignInButton';
+import { SprayBackground } from '@/components/ui/SprayBackground';
+import {
+  isAppleAuthAvailable,
+  isGoogleAuthConfigured,
+  useSocialAuth,
+} from '@/hooks/useSocialAuth';
 
-/**
- * Écran Auth unifié : login <-> signup via un switch, fortement designé pour
- * l'arrivée "première impression". Toute la logique métier d'auth est
- * inchangée — on ne retouche que l'UX.
- *
- * UX :
- * - Centré, grand logo + baseline éditoriale en serif.
- * - Inputs via le composant `<InputField>` (focus orange, password toggle).
- * - CTA principal via `<CTAButton>` → loading inline (pas de layout shift, bouton bloqué).
- * - Erreurs dans un banner rouge animé, succès en vert.
- * - Le mode signup n'affiche pas les connexions sociales (plus clair).
- */
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
@@ -50,6 +47,8 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
+  const { signInWithGoogle, signInWithApple, googleReady } = useSocialAuth();
 
   const trimmedEmail = email.trim();
   const emailValid = isValidEmail(trimmedEmail);
@@ -101,8 +100,59 @@ export default function LoginScreen() {
     }
   };
 
-  const socialAuthNotAvailable = () => {
-    setError('Connexion sociale temporairement indisponible.');
+  const completeSocialLogin = (user: NonNullable<Awaited<ReturnType<typeof signIn>>['user']>) => {
+    setUser(user);
+    const hasInterests = Array.isArray(user.interests) && user.interests.length > 0;
+    router.replace(hasInterests ? '/' : '/interests');
+  };
+
+  const handleGoogleAuth = async () => {
+    if (!isGoogleAuthConfigured()) {
+      setError('Connexion Google non configurée sur cette build.');
+      return;
+    }
+    setSocialLoading('google');
+    setError(null);
+    try {
+      const idToken = await signInWithGoogle();
+      if (!idToken) return;
+      const { success: ok, errorMessage, user } = await signInWithGoogleIdToken(idToken);
+      if (!ok || !user) {
+        setError(errorMessage ?? 'Connexion Google impossible.');
+        return;
+      }
+      completeSocialLogin(user);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Connexion Google impossible.');
+    } finally {
+      setSocialLoading(null);
+    }
+  };
+
+  const handleAppleAuth = async () => {
+    if (!isAppleAuthAvailable()) {
+      setError('Sign in with Apple est disponible sur iOS.');
+      return;
+    }
+    setSocialLoading('apple');
+    setError(null);
+    try {
+      const credential = await signInWithApple();
+      if (!credential) return;
+      const { success: ok, errorMessage, user } = await signInWithAppleIdentityToken(
+        credential.identityToken,
+        credential.email,
+      );
+      if (!ok || !user) {
+        setError(errorMessage ?? 'Connexion Apple impossible.');
+        return;
+      }
+      completeSocialLogin(user);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Connexion Apple impossible.');
+    } finally {
+      setSocialLoading(null);
+    }
   };
 
   useEffect(() => {
@@ -123,229 +173,221 @@ export default function LoginScreen() {
   }, []);
 
   return (
-    <KeyboardAvoidingView
-      style={styles.screen}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={insets.top}
-    >
-      <ScrollView
-        ref={scrollRef}
-        contentContainerStyle={[
-          styles.scroll,
-          {
-            paddingTop: keyboardVisible ? insets.top + 8 : 56,
-            paddingBottom: Math.max(insets.bottom, 16) + (keyboardVisible ? 24 : 48),
-          },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets
-        showsVerticalScrollIndicator={false}
+    <SprayBackground>
+      <KeyboardAvoidingView
+        style={styles.screen}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={insets.top}
       >
-        {!keyboardVisible ? (
-          <View style={styles.brandHeader}>
-            <View style={styles.logoCircle}>
-              <AppLogo width={44} height={44} />
-            </View>
+        <ScrollView
+          ref={scrollRef}
+          contentContainerStyle={[
+            styles.scroll,
+            {
+              paddingTop: keyboardVisible ? insets.top + 8 : 56,
+              paddingBottom: Math.max(insets.bottom, 16) + (keyboardVisible ? 24 : 48),
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          automaticallyAdjustKeyboardInsets
+          showsVerticalScrollIndicator={false}
+        >
+          {!keyboardVisible ? (
+            <View style={styles.brandHeader}>
+              <View style={styles.logoCircle}>
+                <AppLogo width={44} height={44} />
+              </View>
             <Text style={styles.wordmark}>ODOS</Text>
-            <Text style={styles.tagline}>L&apos;aventure moderne commence ici</Text>
-          </View>
-        ) : null}
-
-        <View style={styles.card}>
-          <Text style={styles.title}>{isLogin ? 'Heureux de vous revoir' : 'Bienvenue'}</Text>
-          <Text style={styles.subtitle}>
-            {isLogin
-              ? 'Connectez-vous pour continuer votre exploration.'
-              : 'Créez un compte pour commencer votre voyage.'}
-          </Text>
-
-          {error ? (
-            <View style={styles.banner}>
-              <AlertCircle size={16} color={Colors.light.danger} />
-              <Text style={styles.bannerError}>{error}</Text>
+            <BrandBaseline variant="short" style={styles.heroBaseline} />
+            <Text style={styles.tagline}>{BRAND_TAGLINE}</Text>
             </View>
           ) : null}
 
-          {success ? (
-            <View style={[styles.banner, styles.bannerSuccess]}>
-              <CheckCircle2 size={16} color="#16a34a" />
-              <Text style={styles.bannerSuccessText}>
-                Inscription réussie — vous pouvez vous connecter.
-              </Text>
+          <View style={styles.card}>
+            <Text style={styles.eyebrow}>{isLogin ? 'Connexion' : 'Inscription'}</Text>
+            <Text style={styles.title}>
+              {isLogin ? 'Heureux de vous revoir' : 'Bienvenue sur la voie'}
+            </Text>
+            <Text style={styles.subtitle}>
+              {isLogin
+                ? 'Connectez-vous pour continuer votre exploration.'
+                : 'Créez un compte pour commencer votre voyage.'}
+            </Text>
+
+            {error ? (
+              <View style={styles.banner}>
+                <AlertCircle size={16} color={Colors.light.danger} />
+                <Text style={styles.bannerError}>{error}</Text>
+              </View>
+            ) : null}
+
+            {success ? (
+              <View style={[styles.banner, styles.bannerSuccess]}>
+                <CheckCircle2 size={16} color="#16a34a" />
+                <Text style={styles.bannerSuccessText}>
+                  Inscription réussie — vous pouvez vous connecter.
+                </Text>
+              </View>
+            ) : null}
+
+            <View style={styles.fields}>
+              <InputField
+                label="Adresse email"
+                placeholder="exemple@email.com"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="email"
+                textContentType="emailAddress"
+                leftIcon={<Mail size={18} color={Colors.light.muted} />}
+                error={error && !emailValid ? 'Vérifiez votre email.' : null}
+              />
+
+              <InputField
+                label="Mot de passe"
+                placeholder="Au moins 6 caractères"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoComplete={isLogin ? 'password' : 'password-new'}
+                textContentType={isLogin ? 'password' : 'newPassword'}
+                hint={!isLogin ? '6 caractères minimum.' : undefined}
+                onFocus={scrollToPasswordField}
+                returnKeyType="done"
+                onSubmitEditing={handleAuth}
+              />
+
+              {isLogin ? (
+                <Pressable
+                  onPress={() => setError('Fonction « mot de passe oublié » à venir.')}
+                  style={styles.forgotBtn}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel="Mot de passe oublié"
+                >
+                  <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+                </Pressable>
+              ) : null}
             </View>
-          ) : null}
 
-          <View style={styles.fields}>
-            <InputField
-              label="Adresse email"
-              placeholder="exemple@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="email"
-              textContentType="emailAddress"
-              leftIcon={<Mail size={18} color={Colors.light.muted} />}
-              error={error && !emailValid ? 'Vérifiez votre email.' : null}
-            />
+            {!isLogin ? (
+              <Pressable
+                onPress={() => setAcceptTerms((v) => !v)}
+                style={styles.consentRow}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: acceptTerms }}
+                accessibilityLabel="Accepter les conditions générales et la politique de confidentialité"
+              >
+                {acceptTerms ? (
+                  <View style={[styles.consentBox, styles.consentBoxChecked]}>
+                    <Check size={14} color="#fff" strokeWidth={3} />
+                  </View>
+                ) : (
+                  <Square size={22} color={Colors.light.muted} />
+                )}
+                <Text style={styles.consentText}>
+                  J&apos;accepte les{' '}
+                  <Text
+                    style={styles.consentLink}
+                    onPress={(e) => {
+                      e.stopPropagation?.();
+                      router.push({ pathname: '/legal', params: { section: 'cgu' } });
+                    }}
+                  >
+                    CGU
+                  </Text>
+                  {' '}et la{' '}
+                  <Text
+                    style={styles.consentLink}
+                    onPress={(e) => {
+                      e.stopPropagation?.();
+                      router.push({ pathname: '/legal', params: { section: 'privacy' } });
+                    }}
+                  >
+                    politique de confidentialité
+                  </Text>
+                  .
+                </Text>
+              </Pressable>
+            ) : null}
 
-            <InputField
-              label="Mot de passe"
-              placeholder="Au moins 6 caractères"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete={isLogin ? 'password' : 'password-new'}
-              textContentType={isLogin ? 'password' : 'newPassword'}
-              hint={!isLogin ? '6 caractères minimum.' : undefined}
-              onFocus={scrollToPasswordField}
-              returnKeyType="done"
-              onSubmitEditing={handleAuth}
+            <CTAButton
+              label={isLogin ? 'Continuer' : 'Créer mon compte'}
+              onPress={handleAuth}
+              loading={loading}
+              disabled={!canSubmit}
+              fullWidth
+              size="lg"
             />
 
             {isLogin ? (
-              <Pressable
-                onPress={() => setError('Fonction « mot de passe oublié » à venir.')}
-                style={styles.forgotBtn}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel="Mot de passe oublié"
-              >
-                <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
-              </Pressable>
+              <>
+                <View style={styles.separatorRow}>
+                  <View style={styles.separatorLine} />
+                  <Text style={styles.separatorText}>ou</Text>
+                  <View style={styles.separatorLine} />
+                </View>
+
+                <View style={styles.socialStack}>
+                  <SocialSignInButton
+                    provider="google"
+                    onPress={handleGoogleAuth}
+                    disabled={loading || !googleReady}
+                    loading={socialLoading === 'google'}
+                  />
+                  {isAppleAuthAvailable() ? (
+                    <SocialSignInButton
+                      provider="apple"
+                      onPress={handleAppleAuth}
+                      disabled={loading}
+                      loading={socialLoading === 'apple'}
+                    />
+                  ) : null}
+                </View>
+              </>
             ) : null}
           </View>
 
-          {!isLogin ? (
-            <Pressable
-              onPress={() => setAcceptTerms((v) => !v)}
-              style={styles.consentRow}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: acceptTerms }}
-              accessibilityLabel="Accepter les conditions générales et la politique de confidentialité"
-            >
-              {acceptTerms ? (
-                <View style={[styles.consentBox, styles.consentBoxChecked]}>
-                  <Check size={14} color="#fff" strokeWidth={3} />
-                </View>
-              ) : (
-                <Square size={22} color={Colors.light.muted} />
-              )}
-              <Text style={styles.consentText}>
-                J&apos;accepte les{' '}
-                <Text
-                  style={styles.consentLink}
-                  onPress={(e) => {
-                    e.stopPropagation?.();
-                    router.push({ pathname: '/legal', params: { section: 'cgu' } });
-                  }}
-                >
-                  CGU
-                </Text>
-                {' '}et la{' '}
-                <Text
-                  style={styles.consentLink}
-                  onPress={(e) => {
-                    e.stopPropagation?.();
-                    router.push({ pathname: '/legal', params: { section: 'privacy' } });
-                  }}
-                >
-                  politique de confidentialité
-                </Text>
-                .
+          <Pressable
+            onPress={() => {
+              setError(null);
+              setAcceptTerms(false);
+              setIsLogin((v) => !v);
+            }}
+            style={styles.switchBtn}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isLogin ? 'Créer un compte, passer en mode inscription' : 'Se connecter, passer en mode connexion'
+            }
+          >
+            <Text style={styles.switchText}>
+              {isLogin ? 'Pas encore de compte ? ' : 'Déjà un compte ? '}
+              <Text style={styles.switchAction}>
+                {isLogin ? 'Créer un compte' : 'Se connecter'}
               </Text>
-            </Pressable>
-          ) : null}
-
-          <CTAButton
-            label={isLogin ? 'Continuer' : 'Créer mon compte'}
-            onPress={handleAuth}
-            loading={loading}
-            disabled={!canSubmit}
-            fullWidth
-            size="lg"
-          />
-
-          {isLogin ? (
-            <>
-              <View style={styles.separatorRow}>
-                <View style={styles.separatorLine} />
-                <Text style={styles.separatorText}>Ou continuer avec</Text>
-                <View style={styles.separatorLine} />
-              </View>
-
-              <View style={styles.socialRow}>
-                <Pressable
-                  onPress={socialAuthNotAvailable}
-                  disabled={loading}
-                  style={styles.socialBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel="Connexion avec Google, indisponible"
-                >
-                  <Text style={styles.socialText}>G</Text>
-                </Pressable>
-                <Pressable
-                  onPress={socialAuthNotAvailable}
-                  disabled={loading}
-                  style={styles.socialBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel="Connexion avec Apple, indisponible"
-                >
-                  <Text style={styles.socialText}></Text>
-                </Pressable>
-                <Pressable
-                  onPress={socialAuthNotAvailable}
-                  disabled={loading}
-                  style={styles.socialBtn}
-                  accessibilityRole="button"
-                  accessibilityLabel="Connexion avec Facebook, indisponible"
-                >
-                  <Text style={styles.socialText}>f</Text>
-                </Pressable>
-              </View>
-            </>
-          ) : null}
-        </View>
-
-        <Pressable
-          onPress={() => {
-            setError(null);
-            setAcceptTerms(false);
-            setIsLogin((v) => !v);
-          }}
-          style={styles.switchBtn}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={
-            isLogin ? 'Créer un compte, passer en mode inscription' : 'Se connecter, passer en mode connexion'
-          }
-        >
-          <Text style={styles.switchText}>
-            {isLogin ? 'Pas encore de compte ? ' : 'Déjà un compte ? '}
-            <Text style={styles.switchAction}>
-              {isLogin ? 'Créer un compte' : 'Se connecter'}
             </Text>
-          </Text>
-        </Pressable>
+          </Pressable>
 
-        <Text style={styles.legal}>
-          En continuant, vous acceptez nos{' '}
-          <Text style={styles.legalLink} onPress={() => router.push('/legal')}>
-            conditions d&apos;utilisation
+          <Text style={styles.legal}>
+            En continuant, vous acceptez nos{' '}
+            <Text style={styles.legalLink} onPress={() => router.push('/legal')}>
+              conditions d&apos;utilisation
+            </Text>
+            .
           </Text>
-          .
-        </Text>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SprayBackground>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: Colors.light.surface,
   },
   scroll: {
     flexGrow: 1,
@@ -361,52 +403,70 @@ const styles = StyleSheet.create({
   logoCircle: {
     width: 72,
     height: 72,
-    borderRadius: 24,
+    borderRadius: Radius.modal,
     backgroundColor: Colors.light.accent,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
-    shadowColor: '#f4a261',
+    shadowColor: Colors.light.accent,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 18,
     elevation: 6,
   },
   wordmark: {
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 28,
+    fontFamily: FontFamily.display,
     color: Colors.light.text,
-    letterSpacing: 6,
+    letterSpacing: 8,
+    marginBottom: 6,
+  },
+  heroBaseline: {
+    fontSize: 18,
+    fontFamily: FontFamily.displayItalic,
+    fontStyle: 'italic',
+    color: Colors.light.accent,
     marginBottom: 4,
-    fontFamily: Fonts?.serif,
   },
   tagline: {
     fontSize: 12,
-    letterSpacing: 1.2,
+    fontFamily: FontFamily.uiMedium,
+    letterSpacing: 1.4,
     color: Colors.light.muted,
     textTransform: 'uppercase',
   },
   card: {
     width: '100%',
     maxWidth: 480,
-    backgroundColor: '#fff',
-    borderRadius: 24,
+    backgroundColor: Colors.light.elevated,
+    borderRadius: Radius.modal,
     padding: 24,
     gap: 18,
-    shadowColor: '#000',
+    borderWidth: 1,
+    borderColor: Colors.light.border,
+    shadowColor: '#11181C',
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.06,
     shadowRadius: 28,
     elevation: 4,
   },
+  eyebrow: {
+    fontSize: 11,
+    fontFamily: FontFamily.uiMedium,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    color: Colors.light.accent,
+    marginBottom: -10,
+  },
   title: {
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 26,
+    fontFamily: FontFamily.display,
     color: Colors.light.text,
-    fontFamily: Fonts?.serif,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 15,
+    fontFamily: FontFamily.ui,
+    lineHeight: 22,
     color: Colors.light.muted,
     marginTop: -12,
   },
@@ -423,9 +483,9 @@ const styles = StyleSheet.create({
   },
   bannerError: {
     flex: 1,
+    fontFamily: FontFamily.uiMedium,
     color: Colors.light.danger,
     fontSize: 13,
-    fontWeight: '600',
   },
   bannerSuccess: {
     backgroundColor: '#ecfdf5',
@@ -433,9 +493,9 @@ const styles = StyleSheet.create({
   },
   bannerSuccessText: {
     flex: 1,
+    fontFamily: FontFamily.uiMedium,
     color: '#047857',
     fontSize: 13,
-    fontWeight: '600',
   },
   fields: {
     gap: 14,
@@ -458,12 +518,13 @@ const styles = StyleSheet.create({
   consentText: {
     flex: 1,
     fontSize: 13,
+    fontFamily: FontFamily.ui,
     lineHeight: 20,
     color: Colors.light.text,
   },
   consentLink: {
     color: Colors.light.primary,
-    fontWeight: '600',
+    fontFamily: FontFamily.uiMedium,
   },
   forgotBtn: {
     alignSelf: 'flex-end',
@@ -471,8 +532,8 @@ const styles = StyleSheet.create({
   },
   forgotText: {
     fontSize: 13,
-    color: Colors.light.accent,
-    fontWeight: '700',
+    fontFamily: FontFamily.uiMedium,
+    color: Colors.light.primary,
   },
   separatorRow: {
     flexDirection: 'row',
@@ -487,52 +548,35 @@ const styles = StyleSheet.create({
   },
   separatorText: {
     fontSize: 12,
+    fontFamily: FontFamily.uiMedium,
     color: Colors.light.muted,
-    fontWeight: '600',
+    textTransform: 'lowercase',
   },
-  socialRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  socialStack: {
     gap: 12,
-  },
-  socialBtn: {
-    width: 56,
-    height: 56,
-    minWidth: 44,
-    minHeight: 44,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: Colors.light.border,
-  },
-  socialText: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: Colors.light.text,
   },
   switchBtn: {
     marginTop: 20,
   },
   switchText: {
     fontSize: 14,
+    fontFamily: FontFamily.ui,
     color: Colors.light.muted,
   },
   switchAction: {
-    color: Colors.light.accent,
-    fontWeight: '700',
+    color: Colors.light.primary,
+    fontFamily: FontFamily.uiBold,
   },
   legal: {
     marginTop: 14,
     fontSize: 12,
+    fontFamily: FontFamily.ui,
     color: Colors.light.muted,
     textAlign: 'center',
     maxWidth: 320,
   },
   legalLink: {
     color: Colors.light.primary,
-    fontWeight: '600',
+    fontFamily: FontFamily.uiMedium,
   },
 });

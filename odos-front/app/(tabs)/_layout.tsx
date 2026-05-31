@@ -3,7 +3,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { Compass, Search, User } from 'lucide-react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useEffect } from 'react';
-import { Colors } from '@/constants/theme';
+import { Colors, FontFamily } from '@/constants/theme';
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -24,6 +24,10 @@ export default function TabLayout() {
           borderTopColor: Colors.light.border,
           height: 50,
           paddingBottom: 8,
+        },
+        tabBarLabelStyle: {
+          fontFamily: FontFamily.uiMedium,
+          fontSize: 11,
         },
         tabBarActiveTintColor: Colors.light.accent,
         tabBarInactiveTintColor: Colors.light.muted,

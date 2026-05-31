@@ -1,6 +1,36 @@
 import api, { safeStorage } from '@/scripts/api';
 import { toAppError, logError } from '@/utils/errorHandling';
 
+type AuthUser = {
+  id: number;
+  email: string;
+  alias: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  interests?: import('@/types').Category[];
+};
+
+async function persistTokensAndFetchUser(data: {
+  token: string;
+  refresh_token?: string;
+}): Promise<AuthUser> {
+  await safeStorage.setItem('user_token', data.token);
+  if (data.refresh_token) {
+    await safeStorage.setItem('refresh_token', data.refresh_token);
+  }
+  const userResponse = await api.get('/api/me');
+  return {
+    id: userResponse.data.id,
+    email: userResponse.data.email,
+    alias: userResponse.data.alias ?? null,
+    displayName: userResponse.data.displayName ?? null,
+    avatarUrl: userResponse.data.avatarUrl ?? null,
+    bio: userResponse.data.bio ?? null,
+    interests: userResponse.data.interests ?? [],
+  };
+}
+
 /**
  * Inscription d'un nouvel utilisateur
  */
@@ -8,7 +38,7 @@ export async function signUp(email: string, password: string, acceptTerms: boole
   try {
     const response = await api.post('/api/users', {
       email: email,
-      plainPassword: password, // Utilisation du champ plainPassword pour le processor Symfony
+      plainPassword: password,
       acceptTerms,
     });
 
@@ -38,34 +68,13 @@ export async function signUp(email: string, password: string, acceptTerms: boole
  */
 export async function signIn(email: string, password: string) {
   try {
-    const response = await api.post('/api/login', {
-      email,
-      password,
-    });
-
-    const { token, refresh_token } = response.data;
-
-    // Stockage sécurisé des tokens
-    await safeStorage.setItem('user_token', token);
-    if (refresh_token) {
-      await safeStorage.setItem('refresh_token', refresh_token);
-    }
-
-    // Optionnel : Récupérer les infos de l'utilisateur (id, email) via /api/me
-    const userResponse = await api.get('/api/me');
+    const response = await api.post('/api/login', { email, password });
+    const user = await persistTokensAndFetchUser(response.data);
 
     return {
       success: true,
       errorMessage: null,
-      user: {
-        id: userResponse.data.id,
-        email: userResponse.data.email,
-        alias: userResponse.data.alias ?? null,
-        displayName: userResponse.data.displayName ?? null,
-        avatarUrl: userResponse.data.avatarUrl ?? null,
-        bio: userResponse.data.bio ?? null,
-        interests: userResponse.data.interests ?? [],
-      },
+      user,
     };
   } catch (error: unknown) {
     const appError = toAppError(error, 'Email ou mot de passe incorrect');
@@ -79,18 +88,38 @@ export async function signIn(email: string, password: string) {
 }
 
 /**
- * Connexion avec Google (placeholder).
- *
- * Pour que cela marche réellement, il faut ajouter :
- * - un endpoint backend du type `POST /api/login/google` qui valide l'id_token Google
- * - la configuration des client IDs Google (iOS/Android/Web) sur le front
+ * Connexion via id_token Google (POST /api/auth/google).
  */
-export async function signInWithGoogle() {
-  return {
-    success: false,
-    errorMessage: 'Connexion Google non disponible pour le moment.',
-    user: null,
-  };
+export async function signInWithGoogleIdToken(idToken: string) {
+  try {
+    const response = await api.post('/api/auth/google', { idToken });
+    const user = await persistTokensAndFetchUser(response.data);
+
+    return { success: true, errorMessage: null, user };
+  } catch (error: unknown) {
+    const appError = toAppError(error, 'Connexion Google impossible.');
+    logError('AuthService.signInWithGoogleIdToken', error);
+    return { success: false, errorMessage: appError.userMessage, user: null };
+  }
+}
+
+/**
+ * Connexion via identityToken Apple (POST /api/auth/apple).
+ */
+export async function signInWithAppleIdentityToken(
+  identityToken: string,
+  email?: string | null,
+) {
+  try {
+    const response = await api.post('/api/auth/apple', { identityToken, email });
+    const user = await persistTokensAndFetchUser(response.data);
+
+    return { success: true, errorMessage: null, user };
+  } catch (error: unknown) {
+    const appError = toAppError(error, 'Connexion Apple impossible.');
+    logError('AuthService.signInWithAppleIdentityToken', error);
+    return { success: false, errorMessage: appError.userMessage, user: null };
+  }
 }
 
 /**
@@ -98,11 +127,10 @@ export async function signInWithGoogle() {
  */
 export async function signOut() {
   try {
-    // Invalide les refresh tokens côté serveur (best-effort si hors-ligne).
     try {
       await api.post('/api/logout');
     } catch {
-      // On purge quand même le stockage local.
+      // purge locale même hors-ligne
     }
     await safeStorage.deleteItem('user_token');
     await safeStorage.deleteItem('refresh_token');

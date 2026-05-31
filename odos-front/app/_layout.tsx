@@ -4,6 +4,17 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import {
+  CormorantGaramond_600SemiBold,
+  CormorantGaramond_600SemiBold_Italic,
+} from '@expo-google-fonts/cormorant-garamond';
+import {
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_700Bold,
+} from '@expo-google-fonts/dm-sans';
+import { Courgette_400Regular } from '@expo-google-fonts/courgette';
+import { useFonts } from 'expo-font';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { InterestProvider } from '@/context/InterestContext';
 import { AuthProvider } from '@/context/AuthContext';
@@ -28,6 +39,18 @@ function BadgeUnlockOverlay() {
 export default function RootLayout() {
   useFrameworkReady();
   const [splashDone, setSplashDone] = useState(false);
+  const [fontsLoaded] = useFonts({
+    CormorantGaramond_600SemiBold,
+    CormorantGaramond_600SemiBold_Italic,
+    DMSans_400Regular,
+    DMSans_500Medium,
+    DMSans_700Bold,
+    Courgette_400Regular,
+  });
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

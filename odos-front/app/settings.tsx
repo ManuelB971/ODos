@@ -15,6 +15,7 @@ import {
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   Camera,
@@ -97,8 +98,10 @@ export default function SettingsScreen() {
 
   const explorationMutation = useMutation({
     mutationFn: (enabled: boolean) => patchMapExplorationEnabled(enabled),
-    onSuccess: async (_overview, enabled) => {
-      setUser((u) => (u ? { ...u, mapExplorationEnabled: enabled } : u));
+    onSuccess: async (_overview: unknown, enabled: boolean) => {
+      if (user) {
+        setUser({ ...user, mapExplorationEnabled: enabled });
+      }
       await queryClient.invalidateQueries({ queryKey: MAP_EXPLORATION_QUERY_KEY });
       setSuccessMsg(
         enabled
