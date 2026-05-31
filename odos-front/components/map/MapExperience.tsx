@@ -7,20 +7,16 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import { Map, Camera, Marker, type CameraRef } from '@maplibre/maplibre-react-native';
 import { ArrowLeft, Compass } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
 import { Colors } from '@/constants/theme';
@@ -28,15 +24,11 @@ import { useAuth } from '@/context/AuthContext';
 import { useMapExploration } from '@/hooks/useMapExploration';
 import { ApiActivity } from '@/types';
 import { LatLngRegion, regionToBounds, regionToInitialCamera } from '@/utils/mapViewport';
-import { mapCameraPaddingForSheet } from '@/utils/mapCameraPadding';
 import {
-  ActivityCard,
-  ActivityCardSkeleton,
-  ACTIVITY_CARD_GAP,
-  ACTIVITY_CARD_WIDTH,
-} from './ActivityCard';
-import { ActivityPinsLayer } from './ActivityPinsLayer';
-import { BottomSheet, BottomSheetState } from './BottomSheet';
+  MAP_CAMERA_PADDING,
+  MAP_CAMERA_PADDING_WITH_CALLOUT,
+} from '@/utils/mapCameraPadding';
+import { ActivityCard } from './ActivityCard';
 import { CategoryChips, Chip } from './CategoryChips';
 import { ExplorationConsentModal } from './ExplorationConsentModal';
 import { ExplorationProgressChip } from './ExplorationProgressChip';
@@ -60,32 +52,20 @@ const FRANCE_FALLBACK_REGION: LatLngRegion = {
 const CAMERA_EASE_MS = 380;
 
 /**
- * Orchestrateur plein-écran : map + overlays + bottom sheet + synchro.
- *
- * Layers (z-order bas → haut dans MapLibre) :
- *  1. Exploration visitée (fill)
- *  2. Pins activités (cercles GL)
- *  3. Pin sélectionné (Marker React + label)
- *
- * Overlays RN au-dessus de la map :
- *  - Top : recherche, chips, jauge exploration
- *  - FAB recentrage (position liée au haut du bottom sheet)
- *  - Bottom sheet
+ * Carte plein écran : pins ODOS interactifs + callout sur sélection (tap pin).
+ * Pas de bottom sheet / liste — l’activité s’affiche au tap sur le marqueur.
  */
 export function MapExperience({ activities, loading = false, error = null }: MapExperienceProps) {
   const router = useRouter();
-  const { height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { isAuthenticated, user, setUser } = useAuth();
   const cameraRef = useRef<CameraRef | null>(null);
-  const listRef = useRef<FlatList<ApiActivity> | null>(null);
   const cameraBusyRef = useRef(false);
   const lastFilterKeyRef = useRef('');
 
   const [search, setSearch] = useState('');
   const [activeCategoryId, setActiveCategoryId] = useState<string>('all');
   const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [sheetState, setSheetState] = useState<BottomSheetState>('half');
-  const [sheetTopY, setSheetTopY] = useState(windowHeight * 0.55);
   const [consentDismissed, setConsentDismissed] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
 
@@ -156,15 +136,12 @@ export function MapExperience({ activities, loading = false, error = null }: Map
     [initialRegion]
   );
 
-  const cameraPadding = useMemo(
-    () => mapCameraPaddingForSheet(sheetState),
-    [sheetState]
-  );
-
   const selectedActivity = useMemo(
     () => filtered.find((a) => a.id === selectedId) ?? null,
     [filtered, selectedId]
   );
+
+  const cameraPadding = selectedActivity ? MAP_CAMERA_PADDING_WITH_CALLOUT : MAP_CAMERA_PADDING;
 
   const fitFilteredBounds = useCallback(
     (animated: boolean) => {
@@ -178,31 +155,32 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   );
 
   const focusActivity = useCallback(
-    (activity: ApiActivity, opts: { scrollList?: boolean; openSheet?: boolean } = {}) => {
+    (activity: ApiActivity) => {
       setSelectedId(activity.id);
       cameraBusyRef.current = true;
       cameraRef.current?.easeTo({
         center: [activity.longitude, activity.latitude],
         zoom: 14,
-        padding: cameraPadding,
+        padding: MAP_CAMERA_PADDING_WITH_CALLOUT,
         duration: CAMERA_EASE_MS,
         easing: 'ease',
       });
       setTimeout(() => {
         cameraBusyRef.current = false;
       }, CAMERA_EASE_MS + 80);
-
-      if (opts.scrollList !== false) {
-        const index = filtered.findIndex((a) => a.id === activity.id);
-        if (index >= 0) {
-          listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
-        }
-      }
-      if (opts.openSheet !== false && sheetState === 'collapsed') {
-        setSheetState('half');
-      }
     },
-    [filtered, sheetState, cameraPadding]
+    []
+  );
+
+  const handlePinPress = useCallback(
+    (activity: ApiActivity) => {
+      if (activity.id === selectedId) {
+        setSelectedId(null);
+        return;
+      }
+      focusActivity(activity);
+    },
+    [focusActivity, selectedId]
   );
 
   useEffect(() => {
@@ -221,7 +199,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   useEffect(() => {
     if (cameraBusyRef.current || selectedId != null) return;
     fitFilteredBounds(true);
-  }, [sheetState, cameraPadding, fitFilteredBounds, selectedId]);
+  }, [cameraPadding, fitFilteredBounds, selectedId]);
 
   useEffect(() => {
     if (
@@ -243,48 +221,10 @@ export function MapExperience({ activities, loading = false, error = null }: Map
     consentDismissed,
   ]);
 
-  const handleCardMomentumEnd = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offsetX = event.nativeEvent.contentOffset.x;
-      const pageWidth = ACTIVITY_CARD_WIDTH + ACTIVITY_CARD_GAP;
-      const index = Math.round(offsetX / pageWidth);
-      const activity = filtered[index];
-      if (activity && activity.id !== selectedId) {
-        focusActivity(activity, { scrollList: false });
-      }
-    },
-    [filtered, focusActivity, selectedId]
-  );
-
-  const renderCarouselItem = useCallback(
-    ({ item }: { item: ApiActivity }) => (
-      <ActivityCard
-        activity={item}
-        active={item.id === selectedId}
-        onPress={() => router.push(`/activity/${item.id}`)}
-      />
-    ),
-    [router, selectedId]
-  );
-
-  const renderListItem = useCallback(
-    ({ item }: { item: ApiActivity }) => (
-      <ActivityCard
-        activity={item}
-        active={item.id === selectedId}
-        fullWidth
-        onPress={() => router.push(`/activity/${item.id}`)}
-      />
-    ),
-    [router, selectedId]
-  );
-
   const resetViewport = useCallback(() => {
     setSelectedId(null);
     fitFilteredBounds(true);
   }, [fitFilteredBounds]);
-
-  const fabBottom = Math.max(24, windowHeight - sheetTopY + 12);
 
   const showEmpty = !loading && !error && filtered.length === 0;
 
@@ -305,18 +245,20 @@ export function MapExperience({ activities, loading = false, error = null }: Map
           <ExplorationVisitedLayer
             geoJson={exploration.active ? (exploration.visitedGeoJson ?? null) : null}
           />
-          <ActivityPinsLayer activities={filtered} selectedId={selectedId} />
-          {selectedActivity ? (
-            <Marker
-              key={`pin-selected-${selectedActivity.id}`}
-              id={`pin-selected-${selectedActivity.id}`}
-              lngLat={[selectedActivity.longitude, selectedActivity.latitude]}
-              anchor="bottom"
-              onPress={() => focusActivity(selectedActivity)}
-            >
-              <MapPin active label={selectedActivity.name} />
-            </Marker>
-          ) : null}
+          {filtered.map((activity) => {
+            const isActive = activity.id === selectedId;
+            return (
+              <Marker
+                key={`pin-${activity.id}`}
+                id={`pin-${activity.id}`}
+                lngLat={[activity.longitude, activity.latitude]}
+                anchor="bottom"
+                onPress={() => handlePinPress(activity)}
+              >
+                <MapPin active={isActive} label={isActive ? activity.name : undefined} />
+              </Marker>
+            );
+          })}
         </Map>
       </View>
 
@@ -344,8 +286,28 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         ) : null}
       </SafeAreaView>
 
+      {loading ? (
+        <View style={styles.banner}>
+          <ActivityIndicator color={Colors.light.mapPrimaryCta} size="small" />
+          <Text style={styles.bannerText}>Chargement des activités…</Text>
+        </View>
+      ) : null}
+
+      {error ? (
+        <View style={[styles.banner, styles.bannerError]}>
+          <Text style={styles.bannerErrorText}>{error}</Text>
+        </View>
+      ) : null}
+
+      {showEmpty ? (
+        <View style={styles.banner}>
+          <Text style={styles.bannerTitle}>Aucun lieu trouvé</Text>
+          <Text style={styles.bannerText}>Essaie un autre filtre ou élargis ta recherche.</Text>
+        </View>
+      ) : null}
+
       <Pressable
-        style={[styles.recenterBtn, { bottom: fabBottom }]}
+        style={[styles.recenterBtn, { bottom: 24 + insets.bottom + (selectedActivity ? 168 : 0) }]}
         onPress={resetViewport}
         accessibilityRole="button"
         accessibilityLabel="Recentrer la carte"
@@ -353,76 +315,25 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         <Compass size={18} color={Colors.light.text} />
       </Pressable>
 
-      <BottomSheet
-        state={sheetState}
-        onChangeState={setSheetState}
-        onSheetTopY={setSheetTopY}
-      >
-        <View style={styles.sheetHeader}>
-          <Text style={styles.sheetTitle}>
-            {filtered.length} lieu{filtered.length > 1 ? 'x' : ''} à explorer
-          </Text>
-          {activeCategoryId !== 'all' && (
-            <Text style={styles.sheetSubtitle}>
-              Filtre · {chips.find((c) => c.id === activeCategoryId)?.label}
-            </Text>
-          )}
+      {selectedActivity ? (
+        <View style={[styles.callout, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+          <ActivityCard
+            activity={selectedActivity}
+            active
+            fullWidth
+            onPress={() => router.push(`/activity/${selectedActivity.id}`)}
+          />
         </View>
-
-        {loading ? (
-          <View style={styles.stateBox}>
-            <ActivityIndicator color={Colors.light.mapPrimaryCta} />
-            <Text style={styles.stateText}>Chargement des activités…</Text>
-            <View style={styles.carouselRow}>
-              {[0, 1, 2].map((i) => (
-                <ActivityCardSkeleton key={i} />
-              ))}
-            </View>
-          </View>
-        ) : error ? (
-          <View style={styles.stateBox}>
-            <Text style={styles.stateTextError}>{error}</Text>
-          </View>
-        ) : showEmpty ? (
-          <View style={styles.stateBox}>
-            <Text style={styles.stateTitle}>Aucun lieu trouvé</Text>
-            <Text style={styles.stateText}>Essaie un autre filtre ou élargis ta recherche.</Text>
-          </View>
-        ) : sheetState === 'full' ? (
-          <FlatList
-            data={filtered}
-            keyExtractor={(item) => `list-${item.id}`}
-            renderItem={renderListItem}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-          />
-        ) : (
-          <FlatList
-            ref={listRef}
-            horizontal
-            data={filtered}
-            keyExtractor={(item) => `carousel-${item.id}`}
-            renderItem={renderCarouselItem}
-            snapToInterval={ACTIVITY_CARD_WIDTH + ACTIVITY_CARD_GAP}
-            decelerationRate="fast"
-            showsHorizontalScrollIndicator={false}
-            onMomentumScrollEnd={handleCardMomentumEnd}
-            contentContainerStyle={styles.carouselContent}
-            getItemLayout={(_, index) => ({
-              length: ACTIVITY_CARD_WIDTH + ACTIVITY_CARD_GAP,
-              offset: (ACTIVITY_CARD_WIDTH + ACTIVITY_CARD_GAP) * index,
-              index,
-            })}
-          />
-        )}
-      </BottomSheet>
+      ) : null}
 
       <ExplorationConsentModal
         visible={showConsentModal}
         loading={exploration.isConsentPending}
         onAccept={async () => {
           await exploration.giveConsent();
-          setUser((u) => (u ? { ...u, mapExplorationEnabled: true } : u));
+          if (user) {
+            setUser({ ...user, mapExplorationEnabled: true });
+          }
           setShowConsentModal(false);
         }}
         onDecline={() => {
@@ -481,6 +392,45 @@ const styles = StyleSheet.create({
   searchWrap: {
     flex: 1,
   },
+  banner: {
+    position: 'absolute',
+    top: '38%',
+    left: 24,
+    right: 24,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.94)',
+    alignItems: 'center',
+    gap: 6,
+    zIndex: 5,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
+      android: { elevation: 3 },
+    }),
+  },
+  bannerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.light.text,
+  },
+  bannerText: {
+    fontSize: 13,
+    color: Colors.light.muted,
+    textAlign: 'center',
+  },
+  bannerError: {
+    backgroundColor: '#fff5f5',
+  },
+  bannerErrorText: {
+    fontSize: 13,
+    color: Colors.light.danger,
+    textAlign: 'center',
+  },
   recenterBtn: {
     position: 'absolute',
     right: 18,
@@ -501,56 +451,11 @@ const styles = StyleSheet.create({
       android: { elevation: 4 },
     }),
   },
-  sheetHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 2,
-    paddingBottom: 12,
-  },
-  sheetTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.light.text,
-  },
-  sheetSubtitle: {
-    fontSize: 12,
-    marginTop: 2,
-    color: Colors.light.muted,
-  },
-  carouselContent: {
-    paddingLeft: 20,
-    paddingRight: 8,
-    paddingBottom: 24,
-  },
-  carouselRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    gap: 12,
-  },
-  listContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-    gap: 12,
-  },
-  stateBox: {
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-    alignItems: 'center',
-    gap: 8,
-  },
-  stateTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.light.text,
-  },
-  stateText: {
-    fontSize: 13,
-    color: Colors.light.muted,
-    textAlign: 'center',
-  },
-  stateTextError: {
-    fontSize: 13,
-    color: Colors.light.danger,
-    textAlign: 'center',
+  callout: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 0,
+    zIndex: 9,
   },
 });

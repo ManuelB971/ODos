@@ -1,19 +1,13 @@
-import type { BottomSheetState } from '@/components/map/BottomSheet';
+/** Padding caméra MapLibre (px) — carte plein écran sans bottom sheet. */
+export const MAP_CAMERA_PADDING = {
+  top: 128,
+  bottom: 96,
+  left: 28,
+  right: 28,
+} as const;
 
-/** Padding caméra MapLibre (px) selon l’état du bottom sheet — garde pins et bounds visibles. */
-export function mapCameraPaddingForSheet(state: BottomSheetState): {
-  top: number;
-  bottom: number;
-  left: number;
-  right: number;
-} {
-  switch (state) {
-    case 'collapsed':
-      return { top: 128, bottom: 140, left: 28, right: 28 };
-    case 'full':
-      return { top: 128, bottom: 48, left: 28, right: 28 };
-    case 'half':
-    default:
-      return { top: 128, bottom: 260, left: 28, right: 28 };
-  }
-}
+/** Padding supplémentaire bas quand le callout activité est visible. */
+export const MAP_CAMERA_PADDING_WITH_CALLOUT = {
+  ...MAP_CAMERA_PADDING,
+  bottom: 220,
+} as const;

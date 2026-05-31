@@ -1,6 +1,8 @@
 /**
- * Implémentation factice de MapLibre pour Metro quand {@code MAPLIBRE_STUB=1}
- * (typiquement scan avec **Expo Go**, qui n’embarque pas les TurboModules natifs).
+ * Implémentation factice de MapLibre quand le natif n’est pas disponible :
+ * - **Web** (Metro `platform === 'web'`, voir `metro.config.js`)
+ * - **Expo Go** (`MAPLIBRE_STUB=1`, voir `pnpm start:expo-go`)
+ *
  * Pour la carte réelle : `pnpm android` / `expo run:android` ou un build EAS.
  */
 import React, { forwardRef, useImperativeHandle } from 'react';
@@ -44,7 +46,7 @@ export const Map = forwardRef<View, MapProps>(function Map(
     <View ref={ref} {...rest}>
       <View style={styles.stubBanner} pointerEvents="none">
         <Text style={styles.stubText}>
-          Aperçu carte (Expo Go) — lancez « pnpm android » ou un build EAS pour MapLibre natif.
+          Aperçu carte (web / Expo Go) — lancez « pnpm android » ou un build EAS pour MapLibre natif.
         </Text>
       </View>
       {children}
