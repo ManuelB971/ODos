@@ -11,6 +11,7 @@ module.exports = {
     'hooks/useSearchActivities.ts',
     'scripts/api.ts',
     'services/AuthService.ts',
+    'components/map/MapExperience.tsx',
     'utils/errorHandling.ts',
     'utils/imageUrl.ts',
     'utils/jwt.ts',
