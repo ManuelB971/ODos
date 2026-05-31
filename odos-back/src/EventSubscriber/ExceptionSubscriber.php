@@ -3,6 +3,7 @@
 namespace App\EventSubscriber;
 
 use ApiPlatform\Validator\Exception\ValidationException;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,6 +13,11 @@ use Symfony\Component\HttpKernel\KernelEvents;
 
 class ExceptionSubscriber implements EventSubscriberInterface
 {
+    public function __construct(
+        private readonly LoggerInterface $logger,
+    ) {
+    }
+
     public function onKernelException(ExceptionEvent $event): void
     {
         $request = $event->getRequest();
@@ -42,6 +48,15 @@ class ExceptionSubscriber implements EventSubscriberInterface
                     'message' => $violation->getMessage(),
                 ];
             }
+        }
+
+        if ($code >= 500) {
+            $this->logger->error('API error: {message}', [
+                'message' => $exception->getMessage(),
+                'exception' => $exception,
+                'path' => $request->getPathInfo(),
+                'method' => $request->getMethod(),
+            ]);
         }
 
         // For other types of exceptions where you might want specific code
