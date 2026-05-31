@@ -19,6 +19,7 @@ final class ApiRateLimitSubscriber implements EventSubscriberInterface
     public function __construct(
         private readonly RateLimiterFactory $apiLoginLimiter,
         private readonly RateLimiterFactory $apiRegisterLimiter,
+        private readonly RateLimiterFactory $apiSocialAuthLimiter,
     ) {
     }
 
@@ -44,6 +45,7 @@ final class ApiRateLimitSubscriber implements EventSubscriberInterface
         $limiter = match ($path) {
             '/api/login' => $this->apiLoginLimiter,
             '/api/users' => $this->apiRegisterLimiter,
+            '/api/auth/google', '/api/auth/apple' => $this->apiSocialAuthLimiter,
             default => null,
         };
 

@@ -8,3 +8,7 @@ framework:
             policy: fixed_window
             limit: 3
             interval: '1 hour'
+        api_social_auth:
+            policy: fixed_window
+            limit: 10
+            interval: '1 minute'
