@@ -20,12 +20,14 @@ when@prod:
         handlers:
             main:
                 type: stream
-                path: "%kernel.logs_dir%/%kernel.environment%.log"
+                # En conteneur : écrire sur stderr (récupéré par `docker logs`) plutôt
+                # qu'un fichier, pour éviter les 500 dus aux permissions sur var/log.
+                path: php://stderr
                 level: warning
                 channels: ["!event", "!deprecation"]
             deprecation:
                 type: stream
-                path: "%kernel.logs_dir%/deprecation.log"
+                path: php://stderr
                 channels: [deprecation]
 
 when@test:

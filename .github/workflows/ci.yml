@@ -259,6 +259,8 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
+    env:
+      PRODUCTION_API_URL: https://api.odos-api.com
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1
@@ -267,12 +269,37 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
+            set -euo pipefail
             cd ~/ODos
+            COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
             git pull origin main
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml build --no-cache php
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-            docker compose exec -T php php bin/console doctrine:migrations:migrate --no-interaction
-            docker compose exec -T php php bin/console assets:install --env=prod
-            docker compose cp php:/app/public/bundles ~/ODos/odos-back/public/
-            docker compose exec -T php php bin/console cache:clear --env=prod
+            $COMPOSE build --no-cache php
+            $COMPOSE up -d
+            $COMPOSE exec -T php php bin/console doctrine:migrations:migrate --no-interaction
+            $COMPOSE exec -T php php bin/console assets:install --env=prod
+            $COMPOSE cp php:/app/public/bundles ~/ODos/odos-back/public/
+            $COMPOSE exec -T php sh -lc 'chown -R www-data:www-data var/cache var/log'
+            $COMPOSE exec -T --user www-data php php bin/console cache:clear --env=prod
+            echo "Smoke test (localhost)..."
+            for path in /api/categories /api/docs; do
+              code=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8000${path}")
+              echo "${path} -> ${code}"
+              if [ "${code}" != "200" ]; then
+                echo "Smoke test failed on ${path} (HTTP ${code})"
+                $COMPOSE logs php --tail 40
+                exit 1
+              fi
+            done
             echo "Deploy complete: $(date)"
+
+      - name: Smoke test production API (HTTPS)
+        run: |
+          set -euo pipefail
+          for path in /api/categories /api/docs; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "${PRODUCTION_API_URL}${path}")
+            echo "${PRODUCTION_API_URL}${path} -> ${code}"
+            if [ "${code}" != "200" ]; then
+              echo "Production smoke test failed (HTTP ${code})"
+              exit 1
+            fi
+          done
