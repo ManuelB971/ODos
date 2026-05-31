@@ -1,50 +1,80 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Tokens DA ODOS — alignés sur docs/DESIGN_DIRECTION.md (landing → app).
  */
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
+/** Palette canonique (§2). */
+export const OdosTokens = {
+  orangePrimary: '#F4A261',
+  orangeHover: '#E07D3A',
+  orangeSoft: '#F9C49A',
+  blueAction: '#3B82F6',
+  tealAccent: '#5FC2D8',
+  textPrimary: '#11181C',
+  textMuted: '#6B6560',
+  bgPage: '#FDF8F2',
+  bgSurface: '#F5EDE0',
+  bgElevated: '#FFFFFF',
+  borderWarm: '#E8DFD3',
+  darkBgPage: '#171412',
+  darkBgSurface: '#211D1A',
+  darkText: '#F4EFE9',
+  darkTextMuted: '#C8BCB1',
+  darkBorder: '#3B342E',
+} as const;
+
+export const Radius = {
+  pill: 100,
+  card: 20,
+  modal: 24,
+} as const;
+
+const tintColorLight = OdosTokens.blueAction;
 const tintColorDark = '#fff';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: OdosTokens.textPrimary,
+    background: OdosTokens.bgPage,
     tint: tintColorLight,
     icon: '#687076',
     tabIconDefault: '#687076',
     tabIconSelected: tintColorLight,
-    primary: '#3b82f6',
-    accent: '#f4a261',
-    turquoise: '#5fc2d8',
-    surface: '#f8fafc',
-    border: '#e2e8f0',
-    muted: '#64748b',
+    primary: OdosTokens.blueAction,
+    accent: OdosTokens.orangePrimary,
+    accentHover: OdosTokens.orangeHover,
+    accentSoft: OdosTokens.orangeSoft,
+    turquoise: OdosTokens.tealAccent,
+    surface: OdosTokens.bgSurface,
+    elevated: OdosTokens.bgElevated,
+    border: OdosTokens.borderWarm,
+    muted: OdosTokens.textMuted,
     danger: '#ef4444',
-    /** Couleurs sémantiques de la map (design system ODOS). */
-    mapPrimaryCta: '#f4a261',
-    mapSecondary: '#3b82f6',
-    mapAccent: '#5fc2d8',
+    mapPrimaryCta: OdosTokens.orangePrimary,
+    mapSecondary: OdosTokens.blueAction,
+    mapAccent: OdosTokens.tealAccent,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: OdosTokens.darkText,
+    background: OdosTokens.darkBgPage,
     tint: tintColorDark,
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
     primary: '#60a5fa',
-    accent: '#f4a261',
-    turquoise: '#5fc2d8',
-    surface: '#1e293b',
-    border: '#334155',
-    muted: '#94a3b8',
+    accent: OdosTokens.orangePrimary,
+    accentHover: OdosTokens.orangeHover,
+    accentSoft: OdosTokens.orangeSoft,
+    turquoise: OdosTokens.tealAccent,
+    surface: OdosTokens.darkBgSurface,
+    elevated: '#2A2520',
+    border: OdosTokens.darkBorder,
+    muted: OdosTokens.darkTextMuted,
     danger: '#f87171',
-    mapPrimaryCta: '#f4a261',
+    mapPrimaryCta: OdosTokens.orangePrimary,
     mapSecondary: '#60a5fa',
-    mapAccent: '#5fc2d8',
+    mapAccent: OdosTokens.tealAccent,
   },
 };
 
@@ -57,27 +87,34 @@ export const Spacing = {
   xxl: 32,
 } as const;
 
+/** Noms Expo Google Fonts (chargés dans `_layout.tsx`). */
+export const FontFamily = {
+  display: 'CormorantGaramond_600SemiBold',
+  displayItalic: 'CormorantGaramond_600SemiBold_Italic',
+  ui: 'DMSans_400Regular',
+  uiMedium: 'DMSans_500Medium',
+  uiBold: 'DMSans_700Bold',
+  accent: 'Courgette_400Regular',
+} as const;
+
+/** @deprecated Préférer `FontFamily` — conservé pour compatibilité. */
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
+    sans: FontFamily.ui,
+    serif: FontFamily.display,
+    rounded: FontFamily.ui,
     mono: 'ui-monospace',
   },
   default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
+    sans: FontFamily.ui,
+    serif: FontFamily.display,
+    rounded: FontFamily.ui,
     mono: 'monospace',
   },
   web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+    sans: `'DM Sans', system-ui, sans-serif`,
+    serif: `'Cormorant Garamond', Georgia, serif`,
+    rounded: `'DM Sans', system-ui, sans-serif`,
+    mono: "SFMono-Regular, Menlo, Monaco, Consolas, monospace",
   },
 });

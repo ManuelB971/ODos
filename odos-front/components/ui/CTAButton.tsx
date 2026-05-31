@@ -13,7 +13,7 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { Colors } from '@/constants/theme';
+import { Colors, FontFamily, Radius } from '@/constants/theme';
 
 export type CTAButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type CTAButtonSize = 'sm' | 'md' | 'lg';
@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 16,
+    borderRadius: Radius.pill,
     position: 'relative',
     overflow: 'hidden',
   },
@@ -192,6 +192,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   label: {
+    fontFamily: FontFamily.uiBold,
     fontWeight: '700',
     letterSpacing: 0.2,
     textAlign: 'center',
