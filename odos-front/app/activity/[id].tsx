@@ -32,7 +32,8 @@ import { useBadgeUnlock } from '@/context/BadgeUnlockContext';
 import { BADGES_QUERY_KEY } from '@/hooks/useBadges';
 import type { BadgeItem } from '@/types';
 import { ApiActivity } from '@/types';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, FontFamily, Spacing } from '@/constants/theme';
+import { useOdosColors } from '@/context/ThemeContext';
 import { logError, toAppError, AppError } from '@/utils/errorHandling';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
@@ -101,6 +102,7 @@ function StarsDisplay({ value, max = 5, size = 18 }: { value: number; max?: numb
 }
 
 export default function ActivityDetails() {
+  const colors = useOdosColors();
   const { id } = useLocalSearchParams();
   const { isAuthenticated, user } = useAuth();
   const [activity, setActivity] = useState<ApiActivity | null>(null);
@@ -332,7 +334,7 @@ export default function ActivityDetails() {
 
   if (loading) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Hero skeleton */}
         <View style={styles.heroWrap}>
           <Skeleton width="100%" height="100%" radius={0} />
@@ -362,7 +364,7 @@ export default function ActivityDetails() {
 
   if (error || !activity) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Pressable style={styles.backButtonStandalone} onPress={() => router.back()}>
           <ArrowLeft color={Colors.light.text} size={24} />
         </Pressable>
@@ -415,7 +417,7 @@ export default function ActivityDetails() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={88}
     >
@@ -718,12 +720,12 @@ const styles = StyleSheet.create({
   title: {
     flex: 1,
     fontSize: 24,
-    fontWeight: 'bold',
+    fontFamily: FontFamily.display,
     color: Colors.light.text,
   },
   priceTag: {
     fontSize: 18,
-    fontWeight: '700',
+    fontFamily: FontFamily.uiBold,
     color: Colors.light.accent,
     marginTop: 2,
   },
@@ -737,7 +739,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     color: Colors.light.primary,
-    fontWeight: '600',
+    fontFamily: FontFamily.uiMedium,
     fontSize: 14,
   },
   addressContainer: {
@@ -750,22 +752,24 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     flex: 1,
     fontSize: 15,
+    fontFamily: FontFamily.ui,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontFamily: FontFamily.display,
     color: Colors.light.text,
     marginTop: 8,
     marginBottom: 8,
   },
   subLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontFamily: FontFamily.uiMedium,
     color: Colors.light.text,
     marginBottom: 8,
   },
   description: {
     fontSize: 16,
+    fontFamily: FontFamily.ui,
     color: Colors.light.muted,
     lineHeight: 24,
     marginBottom: 24,

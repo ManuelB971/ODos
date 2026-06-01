@@ -9,8 +9,14 @@ const googleWebClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const googleIosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 const googleAndroidClientId = process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID;
 
+import { SOCIAL_AUTH_ENABLED } from '@/constants/featureFlags';
+
 export function isGoogleAuthConfigured(): boolean {
   return Boolean(googleWebClientId);
+}
+
+export function isSocialAuthActive(): boolean {
+  return SOCIAL_AUTH_ENABLED && isGoogleAuthConfigured();
 }
 
 export function isAppleAuthAvailable(): boolean {

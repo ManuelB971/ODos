@@ -141,6 +141,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $appleId = null;
 
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $passwordResetTokenHash = null;
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $passwordResetExpiresAt = null;
+
     #[Groups(['user:write'])]
     #[Assert\Length(
         min: 8,
@@ -391,6 +397,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setAppleId(?string $appleId): static
     {
         $this->appleId = $appleId;
+
+        return $this;
+    }
+
+    public function getPasswordResetTokenHash(): ?string
+    {
+        return $this->passwordResetTokenHash;
+    }
+
+    public function setPasswordResetTokenHash(?string $passwordResetTokenHash): static
+    {
+        $this->passwordResetTokenHash = $passwordResetTokenHash;
+
+        return $this;
+    }
+
+    public function getPasswordResetExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->passwordResetExpiresAt;
+    }
+
+    public function setPasswordResetExpiresAt(?\DateTimeImmutable $passwordResetExpiresAt): static
+    {
+        $this->passwordResetExpiresAt = $passwordResetExpiresAt;
 
         return $this;
     }

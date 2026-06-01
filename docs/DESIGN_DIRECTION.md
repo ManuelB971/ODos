@@ -236,6 +236,8 @@ export const radius = {
 | `docs/ARCHITECTURE.md` | Fonctionnalités produit |
 | `docs/fonctionnalites/exploration-carte.md` | Carte & GPS |
 | `docs/GAMIFICATION.md` | Badges |
+| `docs/OAUTH_SETUP.md` | Google / Apple OAuth prod |
+| `docs/DA_APP_GAP.md` | Audit écran par écran §10 |
 | `legal/*.html` | Ton légal / transparence |
 
 ---

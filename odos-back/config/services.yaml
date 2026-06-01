@@ -25,6 +25,8 @@ parameters:
     jwt_token_ttl_default: 900
     jwt_refresh_ttl_default: 2592000
     app.oauth.apple_client_id_default: ''
+    app.mailer.from_default: 'ODos <noreply@odos.world>'
+    app.mobile.scheme_default: 'odosfront'
     app.oauth.google_client_ids_default: ''
 
 services:
@@ -64,6 +66,14 @@ services:
             $apiLoginLimiter: '@limiter.api_login'
             $apiRegisterLimiter: '@limiter.api_register'
             $apiSocialAuthLimiter: '@limiter.api_social_auth'
+            $apiPasswordResetRequestLimiter: '@limiter.api_password_reset_request'
+            $apiPasswordResetConfirmLimiter: '@limiter.api_password_reset_confirm'
+
+    App\Service\Auth\PasswordResetService:
+        arguments:
+            $mailerFrom: '%env(default:app.mailer.from_default:MAILER_FROM)%'
+            $mobileAppScheme: '%env(default:app.mobile.scheme_default:APP_MOBILE_SCHEME)%'
+            $debugMode: '%kernel.debug%'
 
     App\Service\JwtAuthResponseFactory:
         arguments:

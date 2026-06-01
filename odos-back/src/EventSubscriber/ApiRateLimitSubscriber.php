@@ -20,6 +20,8 @@ final class ApiRateLimitSubscriber implements EventSubscriberInterface
         private readonly RateLimiterFactory $apiLoginLimiter,
         private readonly RateLimiterFactory $apiRegisterLimiter,
         private readonly RateLimiterFactory $apiSocialAuthLimiter,
+        private readonly RateLimiterFactory $apiPasswordResetRequestLimiter,
+        private readonly RateLimiterFactory $apiPasswordResetConfirmLimiter,
     ) {
     }
 
@@ -46,6 +48,8 @@ final class ApiRateLimitSubscriber implements EventSubscriberInterface
             '/api/login' => $this->apiLoginLimiter,
             '/api/users' => $this->apiRegisterLimiter,
             '/api/auth/google', '/api/auth/apple' => $this->apiSocialAuthLimiter,
+            '/api/auth/password-reset/request' => $this->apiPasswordResetRequestLimiter,
+            '/api/auth/password-reset/confirm' => $this->apiPasswordResetConfirmLimiter,
             default => null,
         };
 

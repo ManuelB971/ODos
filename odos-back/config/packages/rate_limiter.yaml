@@ -12,3 +12,11 @@ framework:
             policy: fixed_window
             limit: 10
             interval: '1 minute'
+        api_password_reset_request:
+            policy: fixed_window
+            limit: 3
+            interval: '1 hour'
+        api_password_reset_confirm:
+            policy: fixed_window
+            limit: 10
+            interval: '1 hour'

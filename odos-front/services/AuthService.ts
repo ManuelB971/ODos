@@ -123,6 +123,53 @@ export async function signInWithAppleIdentityToken(
 }
 
 /**
+ * Demande de réinitialisation du mot de passe (POST /api/auth/password-reset/request).
+ */
+export async function requestPasswordReset(email: string) {
+  try {
+    const response = await api.post('/api/auth/password-reset/request', { email: email.trim() });
+    return {
+      success: true,
+      errorMessage: null,
+      message: (response.data?.message as string) ?? null,
+    };
+  } catch (error: unknown) {
+    const appError = toAppError(error, 'Impossible d’envoyer l’email de réinitialisation.');
+    logError('AuthService.requestPasswordReset', error, { email });
+    return {
+      success: false,
+      errorMessage: appError.userMessage,
+      message: null,
+    };
+  }
+}
+
+/**
+ * Confirme un nouveau mot de passe avec le code reçu par email.
+ */
+export async function confirmPasswordReset(token: string, password: string) {
+  try {
+    const response = await api.post('/api/auth/password-reset/confirm', {
+      token: token.trim(),
+      password,
+    });
+    return {
+      success: true,
+      errorMessage: null,
+      message: (response.data?.message as string) ?? null,
+    };
+  } catch (error: unknown) {
+    const appError = toAppError(error, 'Réinitialisation impossible.');
+    logError('AuthService.confirmPasswordReset', error);
+    return {
+      success: false,
+      errorMessage: appError.userMessage,
+      message: null,
+    };
+  }
+}
+
+/**
  * Déconnexion de l'utilisateur
  */
 export async function signOut() {
