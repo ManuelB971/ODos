@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     right: 24,
     padding: 16,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.94)',
+    backgroundColor: `${Colors.light.elevated}F0`,
     alignItems: 'center',
     gap: 6,
     zIndex: 5,

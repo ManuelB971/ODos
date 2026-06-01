@@ -8,7 +8,7 @@ type AuthUser = {
   displayName: string | null;
   avatarUrl: string | null;
   bio: string | null;
-  interests: unknown[];
+  interests?: import('@/types').Category[];
 };
 
 async function persistTokensAndFetchUser(data: {
