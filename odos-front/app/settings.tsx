@@ -39,7 +39,9 @@ import {
   uploadAvatar,
 } from '@/scripts/api';
 import { MAP_EXPLORATION_QUERY_KEY } from '@/hooks/useMapExploration';
-import { Colors, Fonts, Spacing } from '@/constants/theme';
+import { Colors, FontFamily, Spacing } from '@/constants/theme';
+import { useOdosColors } from '@/context/ThemeContext';
+import { ThemePreferencePicker } from '@/components/settings/ThemePreferencePicker';
 import { logError, toAppError } from '@/utils/errorHandling';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { CTAButton } from '@/components/ui/CTAButton';
@@ -81,6 +83,7 @@ function validateAlias(alias: string): string | null {
 
 export default function SettingsScreen() {
   const { user, setUser, logout, isAuthenticated } = useAuth();
+  const colors = useOdosColors();
   const queryClient = useQueryClient();
 
   const [alias, setAlias] = useState(user?.alias ?? '');
@@ -300,17 +303,17 @@ export default function SettingsScreen() {
 
   const bioLen = bio.length;
   const bioCounterColor =
-    bioLen > BIO_MAX ? Colors.light.danger : bioLen > BIO_MAX * 0.9 ? '#b45309' : Colors.light.muted;
+    bioLen > BIO_MAX ? colors.danger : bioLen > BIO_MAX * 0.9 ? colors.accentHover : colors.muted;
 
   return (
     <KeyboardAvoidingView
-      style={styles.screen}
+      style={[styles.screen, { backgroundColor: colors.background }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.headerBtn} onPress={() => router.back()} hitSlop={8}>
-          <ArrowLeft color={Colors.light.text} size={22} />
+          <ArrowLeft color={colors.text} size={22} />
         </Pressable>
         <Text style={styles.headerTitle}>Paramètres</Text>
         <View style={styles.headerBtn} />
@@ -375,6 +378,15 @@ export default function SettingsScreen() {
             <Text style={styles.successBannerText}>{successMsg}</Text>
           </View>
         ) : null}
+
+        <Text style={styles.sectionTitle}>Apparence</Text>
+        <View style={[styles.card, { backgroundColor: colors.elevated, borderColor: colors.border }]}>
+          <Text style={[styles.switchLabel, { color: colors.text }]}>Thème de l&apos;application</Text>
+          <Text style={[styles.switchHint, { color: colors.muted, marginBottom: 12 }]}>
+            Clair, sombre ou celui du système.
+          </Text>
+          <ThemePreferencePicker />
+        </View>
 
         {/* ── Profil éditable ── */}
         <Text style={styles.sectionTitle}>Profil public</Text>
@@ -541,7 +553,6 @@ function MenuRow({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: Colors.light.background,
   },
   header: {
     flexDirection: 'row',
@@ -561,7 +572,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    fontFamily: FontFamily.uiBold,
     color: Colors.light.text,
   },
   scroll: {
@@ -621,14 +632,14 @@ const styles = StyleSheet.create({
   },
   avatarName: {
     fontSize: 18,
-    fontWeight: '800',
+    fontFamily: FontFamily.display,
     color: Colors.light.text,
-    fontFamily: Fonts?.serif,
     maxWidth: '90%',
   },
   avatarEmail: {
     marginTop: 2,
     fontSize: 12,
+    fontFamily: FontFamily.ui,
     color: Colors.light.muted,
     maxWidth: '90%',
   },
@@ -654,8 +665,8 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 11,
     letterSpacing: 2,
-    color: Colors.light.muted,
-    fontWeight: '700',
+    fontFamily: FontFamily.uiBold,
+    color: Colors.light.accent,
     marginTop: 10,
     marginBottom: 10,
     textTransform: 'uppercase',
@@ -681,7 +692,7 @@ const styles = StyleSheet.create({
   },
   bioLabel: {
     fontSize: 13,
-    fontWeight: '700',
+    fontFamily: FontFamily.uiBold,
     color: Colors.light.text,
     letterSpacing: 0.2,
   },
@@ -728,8 +739,8 @@ const styles = StyleSheet.create({
   menuRowText: {
     flex: 1,
     fontSize: 14,
+    fontFamily: FontFamily.uiMedium,
     color: Colors.light.text,
-    fontWeight: '600',
   },
   divider: {
     height: 1,
@@ -761,12 +772,13 @@ const styles = StyleSheet.create({
   },
   switchLabel: {
     fontSize: 14,
-    fontWeight: '700',
+    fontFamily: FontFamily.uiBold,
     color: Colors.light.text,
   },
   switchHint: {
     marginTop: 4,
     fontSize: 12,
+    fontFamily: FontFamily.ui,
     color: Colors.light.muted,
     lineHeight: 17,
   },

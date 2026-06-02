@@ -1,6 +1,9 @@
 import { Modal, Pressable, StyleSheet, Text, View, Image } from 'react-native';
+import { useMemo } from 'react';
 import { Award, X } from 'lucide-react-native';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing, FontFamily, Radius } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { BlobFrame } from '@/components/ui/BlobFrame';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import type { BadgeItem } from '@/types';
 
@@ -10,6 +13,9 @@ type Props = {
 };
 
 export function BadgeUnlockModal({ badge, onClose }: Props) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   if (!badge) return null;
 
   const imageUri = resolveImageUrl(badge.imageUrl);
@@ -19,15 +25,15 @@ export function BadgeUnlockModal({ badge, onClose }: Props) {
       <View style={styles.backdrop}>
         <View style={styles.card}>
           <Pressable style={styles.close} onPress={onClose} accessibilityLabel="Fermer">
-            <X size={20} color={Colors.light.muted} />
+            <X size={20} color={colors.muted} />
           </Pressable>
-          <View style={styles.iconWrap}>
+          <BlobFrame size={96} seed={badge.id} backgroundColor={colors.surface}>
             {imageUri ? (
               <Image source={{ uri: imageUri }} style={styles.badgeImage} resizeMode="cover" />
             ) : (
-              <Award size={48} color={Colors.light.accent} />
+              <Award size={48} color={colors.accent} />
             )}
-          </View>
+          </BlobFrame>
           <Text style={styles.kicker}>Nouveau badge !</Text>
           <Text style={styles.title}>{badge.name}</Text>
           <Text style={styles.desc}>{badge.description}</Text>
@@ -40,58 +46,58 @@ export function BadgeUnlockModal({ badge, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    padding: Spacing.lg,
-  },
-  card: {
-    backgroundColor: Colors.light.background,
-    borderRadius: 20,
-    padding: Spacing.lg,
-    alignItems: 'center',
-  },
-  close: { alignSelf: 'flex-end', padding: 4 },
-  iconWrap: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: '#f8f4ef',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    marginBottom: Spacing.md,
-  },
-  badgeImage: { width: 96, height: 96 },
-  kicker: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.light.accent,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: Colors.light.text,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  desc: {
-    fontSize: 15,
-    color: Colors.light.muted,
-    textAlign: 'center',
-    marginTop: Spacing.sm,
-    lineHeight: 22,
-  },
-  btn: {
-    marginTop: Spacing.lg,
-    backgroundColor: Colors.light.primary,
-    paddingHorizontal: 28,
-    paddingVertical: 12,
-    borderRadius: 24,
-  },
-  btnText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-});
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(17, 24, 28, 0.55)',
+      justifyContent: 'center',
+      padding: Spacing.lg,
+    },
+    card: {
+      backgroundColor: colors.elevated,
+      borderRadius: Radius.modal,
+      padding: Spacing.lg,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    close: { alignSelf: 'flex-end', padding: 4 },
+    badgeImage: { width: 96, height: 96 },
+    kicker: {
+      fontSize: 11,
+      fontFamily: FontFamily.uiBold,
+      color: colors.accent,
+      textTransform: 'uppercase',
+      letterSpacing: 1.4,
+      marginTop: Spacing.md,
+    },
+    title: {
+      fontSize: 24,
+      fontFamily: FontFamily.display,
+      color: colors.text,
+      marginTop: 4,
+      textAlign: 'center',
+    },
+    desc: {
+      fontSize: 15,
+      fontFamily: FontFamily.ui,
+      color: colors.muted,
+      textAlign: 'center',
+      marginTop: Spacing.sm,
+      lineHeight: 22,
+    },
+    btn: {
+      marginTop: Spacing.lg,
+      backgroundColor: colors.accent,
+      paddingHorizontal: 28,
+      paddingVertical: 12,
+      borderRadius: Radius.pill,
+    },
+    btnText: {
+      color: '#fff',
+      fontFamily: FontFamily.uiBold,
+      fontSize: 16,
+    },
+  });
+}

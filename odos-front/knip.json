@@ -1,0 +1,22 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "ignoreFiles": [
+    "babel.config.js",
+    "components/map/MapLibreStub.tsx"
+  ],
+  "ignoreDependencies": [
+    "@react-navigation/bottom-tabs",
+    "@react-navigation/elements",
+    "@react-navigation/native",
+    "expo-apple-authentication",
+    "expo-auth-session",
+    "expo-crypto",
+    "expo-web-browser",
+    "expo-updates"
+  ],
+  "ignoreBinaries": ["eas"],
+  "ignoreExportsUsedInFile": {
+    "interface": true,
+    "type": true
+  }
+}

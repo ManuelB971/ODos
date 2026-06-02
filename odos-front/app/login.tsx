@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlertCircle, Check, CheckCircle2, Mail, Square } from 'lucide-react-native';
 
-import { signUp, signIn, signInWithGoogleIdToken, signInWithAppleIdentityToken } from '@/services/AuthService';
+import { signUp, signIn } from '@/services/AuthService';
 import { useAuth } from '@/context/AuthContext';
 import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
 import { BRAND_TAGLINE } from '@/constants/brand';
@@ -21,13 +21,8 @@ import { AppLogo } from '@/components/AppLogo';
 import { BrandBaseline } from '@/components/BrandBaseline';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { InputField } from '@/components/ui/InputField';
-import { SocialSignInButton } from '@/components/ui/SocialSignInButton';
+import { SocialAuthSection } from '@/components/login/SocialAuthSection';
 import { SprayBackground } from '@/components/ui/SprayBackground';
-import {
-  isAppleAuthAvailable,
-  isGoogleAuthConfigured,
-  useSocialAuth,
-} from '@/hooks/useSocialAuth';
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -47,8 +42,6 @@ export default function LoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
-  const [socialLoading, setSocialLoading] = useState<'google' | 'apple' | null>(null);
-  const { signInWithGoogle, signInWithApple, googleReady } = useSocialAuth();
 
   const trimmedEmail = email.trim();
   const emailValid = isValidEmail(trimmedEmail);
@@ -104,55 +97,6 @@ export default function LoginScreen() {
     setUser(user);
     const hasInterests = Array.isArray(user.interests) && user.interests.length > 0;
     router.replace(hasInterests ? '/' : '/interests');
-  };
-
-  const handleGoogleAuth = async () => {
-    if (!isGoogleAuthConfigured()) {
-      setError('Connexion Google non configurée sur cette build.');
-      return;
-    }
-    setSocialLoading('google');
-    setError(null);
-    try {
-      const idToken = await signInWithGoogle();
-      if (!idToken) return;
-      const { success: ok, errorMessage, user } = await signInWithGoogleIdToken(idToken);
-      if (!ok || !user) {
-        setError(errorMessage ?? 'Connexion Google impossible.');
-        return;
-      }
-      completeSocialLogin(user);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connexion Google impossible.');
-    } finally {
-      setSocialLoading(null);
-    }
-  };
-
-  const handleAppleAuth = async () => {
-    if (!isAppleAuthAvailable()) {
-      setError('Sign in with Apple est disponible sur iOS.');
-      return;
-    }
-    setSocialLoading('apple');
-    setError(null);
-    try {
-      const credential = await signInWithApple();
-      if (!credential) return;
-      const { success: ok, errorMessage, user } = await signInWithAppleIdentityToken(
-        credential.identityToken,
-        credential.email,
-      );
-      if (!ok || !user) {
-        setError(errorMessage ?? 'Connexion Apple impossible.');
-        return;
-      }
-      completeSocialLogin(user);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Connexion Apple impossible.');
-    } finally {
-      setSocialLoading(null);
-    }
   };
 
   useEffect(() => {
@@ -262,7 +206,7 @@ export default function LoginScreen() {
 
               {isLogin ? (
                 <Pressable
-                  onPress={() => setError('Fonction « mot de passe oublié » à venir.')}
+                  onPress={() => router.push('/forgot-password')}
                   style={styles.forgotBtn}
                   hitSlop={8}
                   accessibilityRole="button"
@@ -331,22 +275,11 @@ export default function LoginScreen() {
                   <View style={styles.separatorLine} />
                 </View>
 
-                <View style={styles.socialStack}>
-                  <SocialSignInButton
-                    provider="google"
-                    onPress={handleGoogleAuth}
-                    disabled={loading || !googleReady}
-                    loading={socialLoading === 'google'}
-                  />
-                  {isAppleAuthAvailable() ? (
-                    <SocialSignInButton
-                      provider="apple"
-                      onPress={handleAppleAuth}
-                      disabled={loading}
-                      loading={socialLoading === 'apple'}
-                    />
-                  ) : null}
-                </View>
+                <SocialAuthSection
+                  loading={loading}
+                  onSuccess={completeSocialLogin}
+                  onError={setError}
+                />
               </>
             ) : null}
           </View>

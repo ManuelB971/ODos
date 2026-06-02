@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -18,6 +17,8 @@ import { useFonts } from 'expo-font';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { InterestProvider } from '@/context/InterestContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { ThemeProvider } from '@/context/ThemeContext';
+import { ThemedStatusBar } from '@/components/ThemedStatusBar';
 import { BadgeUnlockProvider, useBadgeUnlock } from '@/context/BadgeUnlockContext';
 import { BadgeUnlockModal } from '@/components/badges/BadgeUnlockModal';
 import SplashScreen from '@/components/SplashScreen';
@@ -56,12 +57,15 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
           <AuthProvider>
             <BadgeUnlockProvider>
               <InterestProvider>
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="login" options={{ headerShown: false }} />
+                  <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+                  <Stack.Screen name="reset-password" options={{ headerShown: false }} />
                   <Stack.Screen name="interests" options={{ headerShown: false }} />
                   <Stack.Screen name="settings" options={{ headerShown: false }} />
                   <Stack.Screen name="badges" options={{ headerShown: false }} />
@@ -70,13 +74,14 @@ export default function RootLayout() {
                   <Stack.Screen name="+not-found" />
                 </Stack>
                 <BadgeUnlockOverlay />
-                <StatusBar style="auto" />
+                <ThemedStatusBar />
                 {!splashDone && (
                   <SplashScreen onFinish={() => setSplashDone(true)} />
                 )}
               </InterestProvider>
             </BadgeUnlockProvider>
           </AuthProvider>
+          </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

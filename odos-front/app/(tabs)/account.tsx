@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -22,7 +22,9 @@ import { useAuth } from '@/context/AuthContext';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useBadges } from '@/hooks/useBadges';
 import { useInterests } from '@/context/InterestContext';
-import { Colors, Fonts, Spacing } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { FontFamily, Radius, Spacing } from '@/constants/theme';
+import { BlobFrame } from '@/components/ui/BlobFrame';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { resolveImageUrl } from '@/utils/imageUrl';
 
@@ -36,6 +38,8 @@ import { resolveImageUrl } from '@/utils/imageUrl';
  */
 export default function AccountScreen() {
   const router = useRouter();
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { user, logout } = useAuth();
   const { favorites } = useFavorites();
   const { interests } = useInterests();
@@ -114,11 +118,7 @@ export default function AccountScreen() {
           onPress={() => router.push('/interests')}
         />
         <View style={styles.statDivider} />
-        <StatCell
-          value={0}
-          label="Visites"
-          subtle
-        />
+        <StatCell value={0} label="Visites" subtle />
       </View>
 
       {profileBadges.length > 0 && (
@@ -130,16 +130,21 @@ export default function AccountScreen() {
         >
           <Text style={styles.badgesVitrineTitle}>Badges sur le profil</Text>
           <View style={styles.badgesRow}>
-            {profileBadges.slice(0, 6).map((b) => {
+            {profileBadges.slice(0, 6).map((b, index) => {
               const uri = resolveImageUrl(b.imageUrl);
               return (
-                <View key={b.id} style={styles.badgeChip}>
+                <BlobFrame
+                  key={b.id}
+                  size={44}
+                  seed={b.id + index}
+                  backgroundColor={colors.background}
+                >
                   {uri ? (
                     <Image source={{ uri }} style={styles.badgeChipImg} contentFit="cover" />
                   ) : (
-                    <Award size={20} color={Colors.light.accent} />
+                    <Award size={20} color={colors.accent} />
                   )}
-                </View>
+                </BlobFrame>
               );
             })}
           </View>
@@ -150,7 +155,7 @@ export default function AccountScreen() {
       {/* ── Menu ── */}
       <View style={styles.menuCard}>
         <MenuItem
-          icon={<Award size={18} color={Colors.light.text} />}
+          icon={<Award size={18} color={colors.text} />}
           label="Mes badges"
           helper={
             badgesOverview
@@ -161,28 +166,28 @@ export default function AccountScreen() {
         />
         <View style={styles.menuDivider} />
         <MenuItem
-          icon={<Heart size={18} color={Colors.light.text} />}
+          icon={<Heart size={18} color={colors.text} />}
           label="Mes favoris"
           helper={`${favorites.length} lieu${favorites.length > 1 ? 'x' : ''} sauvegardé${favorites.length > 1 ? 's' : ''}`}
           onPress={() => router.push('/(tabs)/favorites')}
         />
         <View style={styles.menuDivider} />
         <MenuItem
-          icon={<Edit3 size={18} color={Colors.light.text} />}
+          icon={<Edit3 size={18} color={colors.text} />}
           label="Mes centres d'intérêt"
           helper="Personnalisez vos recommandations"
           onPress={() => router.push('/interests')}
         />
         <View style={styles.menuDivider} />
         <MenuItem
-          icon={<Settings size={18} color={Colors.light.text} />}
+          icon={<Settings size={18} color={colors.text} />}
           label="Paramètres"
           helper="Notifications, confidentialité, compte"
           onPress={() => router.push('/settings')}
         />
         <View style={styles.menuDivider} />
         <MenuItem
-          icon={<FileText size={18} color={Colors.light.text} />}
+          icon={<FileText size={18} color={colors.text} />}
           label="Mentions légales"
           helper="Conditions d'utilisation et confidentialité"
           onPress={() => router.push('/legal')}
@@ -198,7 +203,7 @@ export default function AccountScreen() {
           variant="danger"
           size="md"
           fullWidth
-          leftIcon={<LogOut size={16} color={Colors.light.danger} />}
+          leftIcon={<LogOut size={16} color={colors.danger} />}
         />
       </View>
 
@@ -221,7 +226,9 @@ function StatCell({
   onPress?: () => void;
   subtle?: boolean;
 }) {
-  const Wrapper: any = onPress ? Pressable : View;
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const Wrapper: typeof Pressable | typeof View = onPress ? Pressable : View;
   return (
     <Wrapper onPress={onPress} style={styles.statCell} accessibilityRole={onPress ? 'button' : undefined}>
       <Text style={[styles.statValue, subtle && styles.statValueSubtle]}>{value}</Text>
@@ -230,9 +237,6 @@ function StatCell({
   );
 }
 
-/**
- * Entrée de menu unifiée (icône à gauche, label + helper, chevron à droite).
- */
 function MenuItem({
   icon,
   label,
@@ -244,6 +248,8 @@ function MenuItem({
   helper?: string;
   onPress: () => void;
 }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Pressable
       onPress={onPress}
@@ -256,15 +262,16 @@ function MenuItem({
         <Text style={styles.menuLabel}>{label}</Text>
         {helper ? <Text style={styles.menuHelper}>{helper}</Text> : null}
       </View>
-      <ChevronRight size={18} color={Colors.light.muted} />
+      <ChevronRight size={18} color={colors.muted} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: colors.background,
   },
   scrollContent: {
     paddingTop: 40,
@@ -295,35 +302,36 @@ const styles = StyleSheet.create({
     bottom: 0,
     borderRadius: 48,
     borderWidth: 2,
-    borderColor: Colors.light.accent,
+    borderColor: colors.accent,
   },
   nameText: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.light.text,
-    fontFamily: Fonts?.serif,
+    fontSize: 22,
+    fontFamily: FontFamily.display,
+    color: colors.text,
   },
   emailText: {
     marginTop: 2,
     fontSize: 13,
-    color: Colors.light.muted,
+    fontFamily: FontFamily.ui,
+    color: colors.muted,
   },
   avatarFallback: {
-    backgroundColor: Colors.light.accent,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarInitials: {
     color: '#fff',
     fontSize: 28,
-    fontWeight: '800',
+    fontFamily: FontFamily.uiBold,
     letterSpacing: 1,
   },
   bioText: {
     marginTop: 12,
     fontSize: 13,
+    fontFamily: FontFamily.ui,
     lineHeight: 19,
-    color: Colors.light.text,
+    color: colors.text,
     textAlign: 'center',
     paddingHorizontal: 20,
     fontStyle: 'italic',
@@ -332,8 +340,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.light.surface,
-    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderRadius: Radius.card,
     paddingVertical: 16,
     paddingHorizontal: 8,
     marginBottom: 22,
@@ -346,64 +354,54 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     height: 32,
-    backgroundColor: Colors.light.border,
+    backgroundColor: colors.border,
   },
   statValue: {
     fontSize: 22,
-    fontWeight: '800',
-    color: Colors.light.text,
-    fontFamily: Fonts?.serif,
+    fontFamily: FontFamily.display,
+    color: colors.text,
   },
   statValueSubtle: {
-    color: Colors.light.muted,
+    color: colors.muted,
   },
   statLabel: {
     marginTop: 2,
     fontSize: 11,
-    color: Colors.light.muted,
+    fontFamily: FontFamily.uiBold,
+    color: colors.muted,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
-    fontWeight: '700',
   },
   badgesVitrine: {
-    backgroundColor: Colors.light.surface,
-    borderRadius: 20,
+    backgroundColor: colors.surface,
+    borderRadius: Radius.card,
     padding: 16,
     marginBottom: 22,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: colors.border,
   },
   badgesVitrineTitle: {
     fontSize: 12,
-    fontWeight: '700',
-    color: Colors.light.muted,
+    fontFamily: FontFamily.uiBold,
+    color: colors.muted,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 10,
   },
   badgesRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  badgeChip: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.light.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
   badgeChipImg: { width: 44, height: 44 },
   badgesVitrineLink: {
     marginTop: 12,
     fontSize: 14,
-    fontWeight: '600',
-    color: Colors.light.primary,
+    fontFamily: FontFamily.uiMedium,
+    color: colors.primary,
   },
   menuCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
+    backgroundColor: colors.elevated,
+    borderRadius: Radius.card,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: colors.border,
     marginBottom: 20,
   },
   menuItem: {
@@ -414,13 +412,13 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   menuItemPressed: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
   },
   menuIcon: {
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -429,17 +427,18 @@ const styles = StyleSheet.create({
   },
   menuLabel: {
     fontSize: 15,
-    fontWeight: '700',
-    color: Colors.light.text,
+    fontFamily: FontFamily.uiBold,
+    color: colors.text,
   },
   menuHelper: {
     marginTop: 2,
     fontSize: 12,
-    color: Colors.light.muted,
+    fontFamily: FontFamily.ui,
+    color: colors.muted,
   },
   menuDivider: {
     height: 1,
-    backgroundColor: Colors.light.border,
+    backgroundColor: colors.border,
     marginLeft: 66,
   },
   logoutWrap: {
@@ -448,8 +447,10 @@ const styles = StyleSheet.create({
   versionText: {
     textAlign: 'center',
     fontSize: 11,
-    color: Colors.light.muted,
+    fontFamily: FontFamily.ui,
+    color: colors.muted,
     letterSpacing: 0.5,
     marginTop: 4,
   },
-});
+  });
+}

@@ -27,11 +27,10 @@ Critères §10 : fond `#FDF8F2` (clair), orange réservé aux accents/CTA, 3 pol
 | **Interests (onboarding)** | ✅ | ✅ | ✅ | ✅ chips actifs | ✅ |
 | **Home (tabs/index)** | ✅ | ✅ | 🟡 pas de spray (volontaire) | ✅ prix/CTA carte | 🟡 |
 | **Search** | ✅ tokens | ✅ display + ui | ❌ | 🟡 chips | 🟡 |
-| **Account** | 🟡 | 🟡 Fonts.serif partiel | ❌ | 🟡 | 🟡 |
-| **Settings** | 🟡 | ❌ system | ❌ | 🟡 | ❌ |
-| **Activity [id]** | 🟡 | 🟡 | ❌ | 🟡 | 🟡 |
-| **Map** | N/A (carte) | 🟡 | ❌ halos blobs | ✅ pins palette | 🟡 |
-| **Badges** | 🟡 | 🟡 | ❌ | 🟡 | 🟡 |
+| **Account** | ✅ | ✅ | 🟡 | ✅ | 🟡 |
+| **Settings** | ✅ | ✅ | 🟡 | ✅ + picker thème | 🟡 |
+| **Activity [id]** | ✅ | ✅ titres | ❌ | 🟡 | 🟡 |
+| **Badges** | ✅ | ✅ | ❌ | ✅ blobs | ✅ |
 | **Legal** | 🟡 | 🟡 | ❌ | — | 🟡 |
 
 ---
@@ -45,9 +44,8 @@ Critères §10 : fond `#FDF8F2` (clair), orange réservé aux accents/CTA, 3 pol
 | `SprayBackground` | ✅ | Texture atténuée |
 | `SocialSignInButton` | ✅ | Guidelines Google/Apple |
 | `InputField` | 🟡 | Vérifier focus bleu action vs orange |
-| Mode sombre | ❌ | Tokens définis, UI non basculée |
-| Motion fadeUp / stagger | ❌ | Splash seulement |
-| Icônes blob (§4) | ❌ | Badges/onboarding steps carrés |
+| Mode sombre | 🟡 | ThemeProvider + picker Paramètres ; cartes settings partielles |
+| Icônes blob (§4) | 🟡 | Badges + vitrine profil via `BlobFrame` |
 | Header blur (§6) | ❌ | Pas de barre verre native |
 
 ---
@@ -59,9 +57,9 @@ Critères §10 : fond `#FDF8F2` (clair), orange réservé aux accents/CTA, 3 pol
 | `POST /api/auth/google` | ✅ backend |
 | `POST /api/auth/apple` | ✅ backend |
 | Front `useSocialAuth` + AuthService | ✅ |
-| Config prod `GOOGLE_OAUTH_CLIENT_IDS` | ❌ à renseigner VPS |
-| Config prod `APPLE_CLIENT_ID` | ❌ à renseigner |
-| Config EAS `EXPO_PUBLIC_GOOGLE_*` | ❌ à renseigner |
+| Config prod `GOOGLE_OAUTH_CLIENT_IDS` | ❌ — voir [OAUTH_SETUP.md](OAUTH_SETUP.md) |
+| Config prod `APPLE_CLIENT_ID` | ❌ — voir [OAUTH_SETUP.md](OAUTH_SETUP.md) |
+| Config EAS `EXPO_PUBLIC_GOOGLE_*` | 🟡 clés dans `eas.json`, valeurs à renseigner |
 | Migration `google_id` / `apple_id` | ✅ — lancer en prod |
 
 ---
