@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AlertCircle, Check, CheckCircle2, Mail, Square } from 'lucide-react-native';
+import { AlertCircle, Check, Mail, Square } from 'lucide-react-native';
 
 import { signUp, signIn } from '@/services/AuthService';
 import { useAuth } from '@/context/AuthContext';
@@ -43,7 +43,6 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
 
   const trimmedEmail = email.trim();
@@ -66,28 +65,22 @@ export default function LoginScreen() {
     setError(null);
 
     try {
-      if (isLogin) {
-        const { success: ok, errorMessage, user } = await signIn(trimmedEmail, password);
-        if (!ok) {
-          setError(errorMessage ?? 'Erreur de connexion.');
-          return;
-        }
-        if (user) {
-          setUser(user);
-          const hasInterests = Array.isArray(user.interests) && user.interests.length > 0;
-          router.replace(hasInterests ? '/' : '/interests');
-        }
-      } else {
-        const { success: ok, errorMessage } = await signUp(trimmedEmail, password, acceptTerms);
-        if (!ok) {
-          setError(errorMessage ?? 'Une erreur est survenue.');
-          return;
-        }
-        setSuccess(true);
-        setTimeout(() => {
-          setSuccess(false);
-          setIsLogin(true);
-        }, 1800);
+      const { success: ok, errorMessage, user } = isLogin
+        ? await signIn(trimmedEmail, password)
+        : await signUp(trimmedEmail, password, acceptTerms);
+
+      if (!ok) {
+        setError(
+          errorMessage ??
+            (isLogin ? 'Erreur de connexion.' : 'Une erreur est survenue.'),
+        );
+        return;
+      }
+
+      if (user) {
+        setUser(user);
+        const hasInterests = Array.isArray(user.interests) && user.interests.length > 0;
+        router.replace(hasInterests ? '/' : '/interests');
       }
     } catch {
       setError(isLogin ? 'Erreur de connexion.' : 'Une erreur est survenue lors de l’inscription.');
@@ -166,15 +159,6 @@ export default function LoginScreen() {
               <View style={styles.banner}>
                 <AlertCircle size={16} color={colors.danger} />
                 <Text style={styles.bannerError}>{error}</Text>
-              </View>
-            ) : null}
-
-            {success ? (
-              <View style={[styles.banner, styles.bannerSuccess]}>
-                <CheckCircle2 size={16} color="#16a34a" />
-                <Text style={styles.bannerSuccessText}>
-                  Inscription réussie — vous pouvez vous connecter.
-                </Text>
               </View>
             ) : null}
 

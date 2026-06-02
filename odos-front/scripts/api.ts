@@ -1,5 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+
+import { isJwtExpired } from '@/utils/jwt';
 import {
     ApiActivity,
     ActivityComment,
@@ -92,6 +94,66 @@ const api = axios.create({
     },
 });
 
+/**
+ * Renouvelle l’access token via le refresh token (sans passer par les intercepteurs).
+ * @returns le nouvel access token, ou null si refresh impossible.
+ */
+export async function refreshAccessToken(): Promise<string | null> {
+    const refreshToken = await safeStorage.getItem('refresh_token');
+    if (!refreshToken) {
+        return null;
+    }
+
+    try {
+        const response = await axios.post(`${BASE_URL}/api/token/refresh`, {
+            refresh_token: refreshToken,
+        });
+        const newToken = response.data?.token;
+        const newRefreshToken = response.data?.refresh_token;
+        if (typeof newToken !== 'string' || !newToken) {
+            return null;
+        }
+
+        await safeStorage.setItem('user_token', newToken);
+        if (newRefreshToken) {
+            await safeStorage.setItem('refresh_token', newRefreshToken);
+        }
+        api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
+        return newToken;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Prépare la session au cold start : refresh proactif si l’access JWT est expiré.
+ */
+export async function ensureSessionReady(): Promise<boolean> {
+    const access = await safeStorage.getItem('user_token');
+    const refresh = await safeStorage.getItem('refresh_token');
+
+    if (!access && !refresh) {
+        return false;
+    }
+
+    if (access && !isJwtExpired(access)) {
+        api.defaults.headers.common.Authorization = `Bearer ${access}`;
+        return true;
+    }
+
+    if (refresh) {
+        const renewed = await refreshAccessToken();
+        return renewed !== null;
+    }
+
+    if (access) {
+        api.defaults.headers.common.Authorization = `Bearer ${access}`;
+        return true;
+    }
+
+    return false;
+}
+
 // Intercepteur pour ajouter le token JWT à chaque requête
 api.interceptors.request.use(async (config) => {
     const token = await safeStorage.getItem('user_token');
@@ -142,49 +204,26 @@ api.interceptors.response.use(
             originalRequest._retry = true;
             isRefreshing = true;
 
-            const refreshToken = await safeStorage.getItem('refresh_token');
-            if (refreshToken) {
-                try {
-                    // Appel direct avec axios pour éviter les intercepteurs en boucle (plus sûr)
-                    const response = await axios.post(`${BASE_URL}/api/token/refresh`, {
-                        refresh_token: refreshToken
-                    });
-
-                    const newToken = response.data.token;
-                    const newRefreshToken = response.data.refresh_token;
-
-                    await safeStorage.setItem('user_token', newToken);
-                    if (newRefreshToken) {
-                        await safeStorage.setItem('refresh_token', newRefreshToken);
-                    }
-
-                    // On met à jour le header par défaut
-                    api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
-                    originalRequest.headers['Authorization'] = `Bearer ${newToken}`;
-
+            try {
+                const newToken = await refreshAccessToken();
+                if (newToken) {
+                    originalRequest.headers.Authorization = `Bearer ${newToken}`;
                     processQueue(null, newToken);
-
                     return api(originalRequest);
-                } catch (refreshError) {
-                    processQueue(refreshError, null);
-                    
-                    await safeStorage.deleteItem('user_token');
-                    await safeStorage.deleteItem('refresh_token');
-                    for (const listener of authErrorListeners) {
-                        try { listener(refreshError); } catch { /* ignore */ }
-                    }
-                    return Promise.reject(refreshError);
-                } finally {
-                    isRefreshing = false;
                 }
-            } else {
-                // Pas de refresh token
-                isRefreshing = false;
+                processQueue(error, null);
                 await safeStorage.deleteItem('user_token');
+                await safeStorage.deleteItem('refresh_token');
                 for (const listener of authErrorListeners) {
-                    try { listener(error); } catch { /* ignore */ }
+                    try {
+                        listener(error);
+                    } catch {
+                        /* ignore */
+                    }
                 }
                 return Promise.reject(error);
+            } finally {
+                isRefreshing = false;
             }
         }
         return Promise.reject(error);

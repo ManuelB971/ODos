@@ -2,7 +2,8 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
-import api, { onAuthError, safeStorage } from '@/scripts/api';
+import api, { ensureSessionReady, onAuthError, safeStorage } from '@/scripts/api';
+import { mapMeResponseToUser } from '@/services/authSession';
 
 import { User, AuthContextType } from '@/types';
 import { logError } from '@/utils/errorHandling';
@@ -27,10 +28,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = async () => {
     await safeStorage.deleteItem('user_token');
     await safeStorage.deleteItem('refresh_token');
+    delete api.defaults.headers.common.Authorization;
     setUser(null);
-    // Purge TOTALE du cache React Query pour éviter toute fuite de données
-    // inter-comptes (favoris, recommandations, profil, commentaires…).
-    // Les requêtes en cours sont aussi annulées.
     queryClient.cancelQueries();
     queryClient.clear();
     router.replace('/login');
@@ -38,42 +37,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const checkAuth = async () => {
     try {
-      const token = await safeStorage.getItem('user_token');
-
-      // Pas de session stockée → rien à restaurer.
-      // NB : si le JWT d’accès est expiré mais qu’un refresh_token existe,
-      // on laisse passer : l’intercepteur axios (401) renouvelle la paire
-      // avant de rejouer /api/me. L’ancien comportement purgeait aussi le
-      // refresh_token au cold start → re-login obligatoire à chaque retour app.
-      if (!token) {
+      const sessionReady = await ensureSessionReady();
+      if (!sessionReady) {
         setUser(null);
-        setIsLoading(false);
         return;
       }
 
-      // Appel à l'endpoint /api/me pour récupérer l'utilisateur réel
       const response = await api.get('/api/me');
-
-      setUser({
-        id: response.data.id,
-        email: response.data.email,
-        alias: response.data.alias ?? null,
-        displayName: response.data.displayName ?? null,
-        avatarUrl: response.data.avatarUrl ?? null,
-        bio: response.data.bio ?? null,
-        interests: response.data.interests ?? [],
-        hideBadgesOnProfile: response.data.hideBadgesOnProfile ?? false,
-        mapExplorationEnabled: response.data.mapExplorationEnabled ?? false,
-      });
+      setUser(mapMeResponseToUser(response.data as Record<string, unknown>));
     } catch (error: unknown) {
       logError('AuthContext.checkAuth', error);
-      // Déjà nettoyé par l’intercepteur si refresh impossible ; on ne vide pas
-      // la session sur erreur réseau (sinon utilisateur hors-ligne perd la session).
       if (axios.isAxiosError(error) && error.response?.status === 401) {
         await safeStorage.deleteItem('user_token');
         await safeStorage.deleteItem('refresh_token');
+        delete api.defaults.headers.common.Authorization;
+        setUser(null);
+      } else if (axios.isAxiosError(error) && !error.response) {
+        // Réseau indisponible : on garde les jetons pour un prochain essai.
+        setUser(null);
+      } else {
+        setUser(null);
       }
-      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -85,7 +69,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     const unsubscribe = onAuthError(() => {
-      // 401 global: on purge la session et on force le retour login
       logout().catch(() => { });
     });
     return () => {

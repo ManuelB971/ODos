@@ -1,7 +1,7 @@
 const mockApi = {
   post: jest.fn(),
   get: jest.fn(),
-  defaults: { baseURL: 'http://localhost:8000' },
+  defaults: { baseURL: 'http://localhost:8000', headers: { common: {} as Record<string, string> } },
 };
 
 const mockSafeStorage = {
@@ -24,7 +24,7 @@ describe('AuthService', () => {
 
   it('signIn stores tokens and returns normalized user', async () => {
     mockApi.post.mockResolvedValueOnce({
-      data: { token: 'token-123', refresh_token: 'refresh-456' },
+      data: { token: 'token-123456', refresh_token: 'refresh-456789' },
     });
     mockApi.get.mockResolvedValueOnce({
       data: {
@@ -52,10 +52,12 @@ describe('AuthService', () => {
         avatarUrl: '/avatar.png',
         bio: 'bio',
         interests: ['/api/interests/1'],
+        hideBadgesOnProfile: false,
+        mapExplorationEnabled: false,
       },
     });
-    expect(mockSafeStorage.setItem).toHaveBeenCalledWith('user_token', 'token-123');
-    expect(mockSafeStorage.setItem).toHaveBeenCalledWith('refresh_token', 'refresh-456');
+    expect(mockSafeStorage.setItem).toHaveBeenCalledWith('user_token', 'token-123456');
+    expect(mockSafeStorage.setItem).toHaveBeenCalledWith('refresh_token', 'refresh-456789');
     expect(mockApi.get).toHaveBeenCalledWith('/api/me');
   });
 
@@ -72,6 +74,42 @@ describe('AuthService', () => {
     expect(result.success).toBe(false);
     expect(result.user).toBeNull();
     expect(result.errorMessage).toContain('Session expirée');
+  });
+
+  it('signUp registers then auto signIn stores tokens and returns user', async () => {
+    mockApi.post
+      .mockResolvedValueOnce({ data: { id: 9, email: 'new@odos.app' } })
+      .mockResolvedValueOnce({
+        data: { token: 'access-new-99', refresh_token: 'refresh-new-99' },
+      });
+    mockApi.get.mockResolvedValueOnce({
+      data: {
+        id: 9,
+        email: 'new@odos.app',
+        alias: null,
+        displayName: 'new',
+        avatarUrl: null,
+        bio: null,
+        interests: [],
+      },
+    });
+
+    const { signUp } = authService();
+    const result = await signUp('new@odos.app', 'secret12', true);
+
+    expect(result.success).toBe(true);
+    expect(result.user?.email).toBe('new@odos.app');
+    expect(mockApi.post).toHaveBeenNthCalledWith(
+      1,
+      '/api/users',
+      expect.objectContaining({ acceptTerms: true }),
+    );
+    expect(mockApi.post).toHaveBeenNthCalledWith(2, '/api/login', {
+      email: 'new@odos.app',
+      password: 'secret12',
+    });
+    expect(mockSafeStorage.setItem).toHaveBeenCalledWith('user_token', 'access-new-99');
+    expect(mockSafeStorage.setItem).toHaveBeenCalledWith('refresh_token', 'refresh-new-99');
   });
 
   it('signUp returns detailed message when server is unreachable', async () => {

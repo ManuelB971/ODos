@@ -1,52 +1,29 @@
 import api, { safeStorage } from '@/scripts/api';
+import { persistTokensAndFetchUser } from '@/services/authSession';
 import { toAppError, logError } from '@/utils/errorHandling';
+import type { User } from '@/types';
 
-type AuthUser = {
-  id: number;
-  email: string;
-  alias: string | null;
-  displayName: string | null;
-  avatarUrl: string | null;
-  bio: string | null;
-  interests?: import('@/types').Category[];
+type AuthResult = {
+  success: boolean;
+  errorMessage: string | null;
+  user: NonNullable<User> | null;
 };
 
-async function persistTokensAndFetchUser(data: {
-  token: string;
-  refresh_token?: string;
-}): Promise<AuthUser> {
-  await safeStorage.setItem('user_token', data.token);
-  if (data.refresh_token) {
-    await safeStorage.setItem('refresh_token', data.refresh_token);
-  }
-  const userResponse = await api.get('/api/me');
-  return {
-    id: userResponse.data.id,
-    email: userResponse.data.email,
-    alias: userResponse.data.alias ?? null,
-    displayName: userResponse.data.displayName ?? null,
-    avatarUrl: userResponse.data.avatarUrl ?? null,
-    bio: userResponse.data.bio ?? null,
-    interests: userResponse.data.interests ?? [],
-  };
-}
-
 /**
- * Inscription d'un nouvel utilisateur
+ * Inscription puis connexion automatique (même flux que signIn : tokens + /api/me).
  */
-export async function signUp(email: string, password: string, acceptTerms: boolean) {
+export async function signUp(
+  email: string,
+  password: string,
+  acceptTerms: boolean,
+): Promise<AuthResult> {
   try {
-    const response = await api.post('/api/users', {
-      email: email,
+    await api.post('/api/users', {
+      email,
       plainPassword: password,
       acceptTerms,
     });
-
-    return {
-      success: true,
-      errorMessage: null,
-      user: response.data,
-    };
+    return signIn(email, password);
   } catch (error: unknown) {
     const appError = toAppError(error, "Erreur lors de l'inscription");
     logError('AuthService.signUp', error, { email });
@@ -66,7 +43,7 @@ export async function signUp(email: string, password: string, acceptTerms: boole
 /**
  * Connexion de l'utilisateur
  */
-export async function signIn(email: string, password: string) {
+export async function signIn(email: string, password: string): Promise<AuthResult> {
   try {
     const response = await api.post('/api/login', { email, password });
     const user = await persistTokensAndFetchUser(response.data);
@@ -90,7 +67,7 @@ export async function signIn(email: string, password: string) {
 /**
  * Connexion via id_token Google (POST /api/auth/google).
  */
-export async function signInWithGoogleIdToken(idToken: string) {
+export async function signInWithGoogleIdToken(idToken: string): Promise<AuthResult> {
   try {
     const response = await api.post('/api/auth/google', { idToken });
     const user = await persistTokensAndFetchUser(response.data);
@@ -109,7 +86,7 @@ export async function signInWithGoogleIdToken(idToken: string) {
 export async function signInWithAppleIdentityToken(
   identityToken: string,
   email?: string | null,
-) {
+): Promise<AuthResult> {
   try {
     const response = await api.post('/api/auth/apple', { identityToken, email });
     const user = await persistTokensAndFetchUser(response.data);
@@ -181,6 +158,7 @@ export async function signOut() {
     }
     await safeStorage.deleteItem('user_token');
     await safeStorage.deleteItem('refresh_token');
+    delete api.defaults.headers.common.Authorization;
     return { success: true, errorMessage: null };
   } catch (error: unknown) {
     logError('AuthService.signOut', error);
