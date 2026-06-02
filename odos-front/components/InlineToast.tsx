@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 
 export type InlineToastVariant = 'info' | 'warning' | 'error' | 'success';
 
@@ -34,6 +34,9 @@ export function InlineToast({
   action,
   onDismiss,
 }: InlineToastProps) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(), []);
+  const variantPalettes = useMemo(() => createVariantPalettes(colors), [colors]);
   const [remaining, setRemaining] = useState<number | null>(
     typeof countdownSeconds === 'number' && countdownSeconds > 0 ? countdownSeconds : null
   );
@@ -58,7 +61,7 @@ export function InlineToast({
     return () => clearInterval(interval);
   }, [countdownSeconds]);
 
-  const palette = VARIANT_PALETTE[variant];
+  const palette = variantPalettes[variant];
   const isWaiting = remaining != null && remaining > 0;
   const actionDisabled = action?.disabled === true || isWaiting;
 
@@ -103,85 +106,87 @@ export function InlineToast({
   );
 }
 
-const VARIANT_PALETTE: Record<InlineToastVariant, {
-  bg: string;
-  border: string;
-  text: string;
-  button: string;
-}> = {
-  info: {
-    bg: '#eef6ff',
-    border: '#bfdbfe',
-    text: '#1d4ed8',
-    button: Colors.light.primary,
-  },
-  warning: {
-    bg: '#fff7ed',
-    border: '#fed7aa',
-    text: '#c2410c',
-    button: '#f97316',
-  },
-  error: {
-    bg: '#fef2f2',
-    border: '#fecaca',
-    text: '#b91c1c',
-    button: Colors.light.danger,
-  },
-  success: {
-    bg: '#ecfdf5',
-    border: '#a7f3d0',
-    text: '#047857',
-    button: '#10b981',
-  },
-};
+function createVariantPalettes(colors: OdosColorPalette): Record<
+  InlineToastVariant,
+  { bg: string; border: string; text: string; button: string }
+> {
+  return {
+    info: {
+      bg: '#eef6ff',
+      border: '#bfdbfe',
+      text: '#1d4ed8',
+      button: colors.primary,
+    },
+    warning: {
+      bg: '#fff7ed',
+      border: '#fed7aa',
+      text: '#c2410c',
+      button: '#f97316',
+    },
+    error: {
+      bg: colors.errorSurface,
+      border: `${colors.danger}55`,
+      text: colors.danger,
+      button: colors.danger,
+    },
+    success: {
+      bg: colors.successSurface,
+      border: `${colors.successText}44`,
+      text: colors.successText,
+      button: colors.turquoise,
+    },
+  };
+}
 
-const styles = StyleSheet.create({
-  wrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    marginBottom: 12,
-    gap: 12,
-  },
-  body: {
-    flex: 1,
-    paddingRight: 8,
-  },
-  message: {
-    fontSize: 14,
-    fontWeight: '600',
-    lineHeight: 18,
-  },
-  countdown: {
-    marginTop: 2,
-    fontSize: 12,
-    opacity: 0.85,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  actionText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  dismissBtn: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  dismissText: {
-    fontSize: 22,
-    lineHeight: 22,
-    fontWeight: '700',
-  },
-});
+function createStyles() {
+  return StyleSheet.create({
+    wrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: 12,
+      borderRadius: 10,
+      borderWidth: 1,
+      marginBottom: 12,
+      gap: 12,
+    },
+    body: {
+      flex: 1,
+      paddingRight: 8,
+    },
+    message: {
+      fontSize: 14,
+      fontWeight: '600',
+      lineHeight: 18,
+    },
+    countdown: {
+      marginTop: 2,
+      fontSize: 12,
+      opacity: 0.85,
+    },
+    actions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    actionBtn: {
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      borderRadius: 8,
+    },
+    actionText: {
+      color: '#fff',
+      fontWeight: '700',
+      fontSize: 13,
+    },
+    dismissBtn: {
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+    },
+    dismissText: {
+      fontSize: 22,
+      lineHeight: 22,
+      fontWeight: '700',
+    },
+  });
+}

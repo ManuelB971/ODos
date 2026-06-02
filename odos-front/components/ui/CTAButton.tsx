@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -13,7 +13,10 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import { Colors, FontFamily, Radius } from '@/constants/theme';
+
+import type { OdosColorPalette } from '@/constants/themes/types';
+import { FontFamily, Radius } from '@/constants/theme';
+import { useTheme } from '@/context/ThemeContext';
 
 export type CTAButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type CTAButtonSize = 'sm' | 'md' | 'lg';
@@ -21,40 +24,17 @@ export type CTAButtonSize = 'sm' | 'md' | 'lg';
 export type CTAButtonProps = {
   label: string;
   onPress: () => void;
-  /** Passe le bouton en état chargement : spinner affiché, action bloquée, taille stable. */
   loading?: boolean;
   disabled?: boolean;
   variant?: CTAButtonVariant;
   size?: CTAButtonSize;
-  /** Si `true`, le bouton prend toute la largeur disponible. */
   fullWidth?: boolean;
-  /** Icône optionnelle à gauche du label (ex. `<ArrowRight size={16} />`). */
   leftIcon?: React.ReactNode;
-  /** Icône optionnelle à droite du label. */
   rightIcon?: React.ReactNode;
   style?: ViewStyle;
   accessibilityLabel?: string;
 };
 
-/**
- * CTA principal de l'app ODOS.
- *
- * Principes clés :
- * - **Taille stable** : le spinner remplace uniquement la couleur du label
- *   (via `opacity`), la hauteur et la largeur ne bougent pas pendant le loading.
- * - **Double protection anti-submit** : `disabled` ET `loading` désactivent le press.
- * - **Micro-interaction** : pressed → scale 0.97 (ressort doux Reanimated).
- * - **Variantes strictes** au design system :
- *    - `primary` : orange `#F4A261` (CTA principal UNIQUEMENT)
- *    - `secondary` : outline + texte `#11181C`
- *    - `ghost` : transparent + texte primaire
- *    - `danger` : fond rouge (logout, suppression)
- *
- * Utilisation typique :
- * ```tsx
- * <CTAButton label="Se connecter" onPress={onSubmit} loading={isSubmitting} fullWidth />
- * ```
- */
 export function CTAButton({
   label,
   onPress,
@@ -68,10 +48,11 @@ export function CTAButton({
   style,
   accessibilityLabel,
 }: CTAButtonProps) {
+  const { colors } = useTheme();
+  const variantStyles = useMemo(() => buildVariantStyles(colors), [colors]);
   const pressProgress = useSharedValue(0);
   const isDisabled = disabled || loading;
 
-  // Fade du label pendant le loading — la largeur reste inchangée.
   const labelOpacity = useSharedValue(1);
   useEffect(() => {
     labelOpacity.value = withTiming(loading ? 0 : 1, { duration: 160 });
@@ -85,17 +66,11 @@ export function CTAButton({
   }));
 
   const sizeStyles = SIZE_STYLES[size];
-  const variantStyles = VARIANT_STYLES[variant];
-  const textColor = variantStyles.text;
+  const activeVariant = variantStyles[variant];
+  const textColor = activeVariant.text;
 
   return (
-    <Animated.View
-      style={[
-        animatedPressStyle,
-        fullWidth && styles.fullWidth,
-        style,
-      ]}
-    >
+    <Animated.View style={[animatedPressStyle, fullWidth && styles.fullWidth, style]}>
       <Pressable
         onPress={onPress}
         disabled={isDisabled}
@@ -110,20 +85,23 @@ export function CTAButton({
         accessibilityState={{ disabled: isDisabled, busy: loading }}
         style={[
           styles.base,
-          { backgroundColor: variantStyles.bg, borderColor: variantStyles.border ?? 'transparent' },
-          { borderWidth: variantStyles.border ? 1 : 0 },
-          { paddingVertical: sizeStyles.paddingV, paddingHorizontal: sizeStyles.paddingH, minHeight: sizeStyles.minH },
+          {
+            backgroundColor: activeVariant.bg,
+            borderColor: activeVariant.border ?? 'transparent',
+            borderWidth: activeVariant.border ? 1 : 0,
+          },
+          {
+            paddingVertical: sizeStyles.paddingV,
+            paddingHorizontal: sizeStyles.paddingH,
+            minHeight: sizeStyles.minH,
+          },
           isDisabled && !loading && styles.disabled,
         ]}
       >
-        {/* Contenu principal (label + icônes) — on fait fondre le label pendant le loading. */}
         <Animated.View style={[styles.contentRow, animatedLabelStyle]}>
           {leftIcon ? <View style={styles.icon}>{leftIcon}</View> : null}
           <Text
-            style={[
-              styles.label,
-              { fontSize: sizeStyles.fontSize, color: textColor },
-            ]}
+            style={[styles.label, { fontSize: sizeStyles.fontSize, color: textColor }]}
             numberOfLines={1}
           >
             {label}
@@ -131,7 +109,6 @@ export function CTAButton({
           {rightIcon ? <View style={styles.icon}>{rightIcon}</View> : null}
         </Animated.View>
 
-        {/* Overlay spinner visible uniquement pendant le loading (taille parent inchangée). */}
         {loading ? (
           <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
             <View style={styles.spinnerWrap}>
@@ -144,29 +121,30 @@ export function CTAButton({
   );
 }
 
-const VARIANT_STYLES: Record<
-  CTAButtonVariant,
-  { bg: string; text: string; border?: string }
-> = {
-  primary: {
-    bg: Colors.light.accent, // #F4A261 — orange CTA
-    text: '#ffffff',
-  },
-  secondary: {
-    bg: '#ffffff',
-    text: Colors.light.text,
-    border: Colors.light.border,
-  },
-  ghost: {
-    bg: 'transparent',
-    text: Colors.light.primary,
-  },
-  danger: {
-    bg: '#fef2f2',
-    text: Colors.light.danger,
-    border: '#fecaca',
-  },
-};
+function buildVariantStyles(
+  colors: OdosColorPalette,
+): Record<CTAButtonVariant, { bg: string; text: string; border?: string }> {
+  return {
+    primary: {
+      bg: colors.accent,
+      text: colors.onAccent,
+    },
+    secondary: {
+      bg: colors.elevated,
+      text: colors.text,
+      border: colors.border,
+    },
+    ghost: {
+      bg: 'transparent',
+      text: colors.primary,
+    },
+    danger: {
+      bg: colors.errorSurface,
+      text: colors.danger,
+      border: `${colors.danger}55`,
+    },
+  };
+}
 
 const SIZE_STYLES: Record<
   CTAButtonSize,

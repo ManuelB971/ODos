@@ -1,3 +1,5 @@
+import React from 'react';
+import { Pressable, View, Text } from 'react-native';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -51,8 +53,9 @@ jest.mock('@/components/map/ExplorationProgressChip', () => ({
 }));
 
 jest.mock('@maplibre/maplibre-react-native', () => {
-  const React = require('react');
-  const { Pressable, View } = require('react-native');
+  const mockReact = jest.requireActual<typeof import('react')>('react');
+  const { Pressable: MockPressable, View: MockView } =
+    jest.requireActual<typeof import('react-native')>('react-native');
 
   const Marker = ({
     id,
@@ -63,32 +66,34 @@ jest.mock('@maplibre/maplibre-react-native', () => {
     onPress?: () => void;
     children?: React.ReactNode;
   }) => (
-    <Pressable testID={id} onPress={onPress} accessibilityRole="button">
+    <MockPressable testID={id} onPress={onPress} accessibilityRole="button">
       {children}
-    </Pressable>
+    </MockPressable>
   );
 
   const Map = ({ children }: { children?: React.ReactNode }) => (
-    <View testID="map">{children}</View>
+    <MockView testID="map">{children}</MockView>
   );
 
-  const Camera = React.forwardRef(function Camera(_props: unknown, _ref: unknown) {
+  const Camera = mockReact.forwardRef(function Camera(_props: unknown, _ref: unknown) {
     return null;
   });
 
   return { Map, Camera, Marker };
 });
 
-jest.mock('@/components/map/MapPin', () => ({
-  MapPin: ({ active, label }: { active?: boolean; label?: string }) => {
-    const { Text, View } = require('react-native');
-    return (
-      <View testID={active ? 'map-pin-active' : 'map-pin'}>
-        {label ? <Text testID="map-pin-label">{label}</Text> : null}
-      </View>
-    );
-  },
-}));
+jest.mock('@/components/map/MapPin', () => {
+  const { View: MockView, Text: MockText } =
+    jest.requireActual<typeof import('react-native')>('react-native');
+
+  return {
+    MapPin: ({ active, label }: { active?: boolean; label?: string }) => (
+      <MockView testID={active ? 'map-pin-active' : 'map-pin'}>
+        {label ? <MockText testID="map-pin-label">{label}</MockText> : null}
+      </MockView>
+    ),
+  };
+});
 
 function makeActivity(overrides: Partial<ApiActivity> = {}): ApiActivity {
   return {
@@ -229,3 +234,9 @@ describe('MapExperience', () => {
     expect(within(screen.getByTestId('map')).queryByTestId('pin-1')).toBeNull();
   });
 });
+
+// Keep top-level RN imports referenced so eslint does not flag unused imports when
+// mock factories use jest.requireActual instead (Jest hoisting constraint).
+void Pressable;
+void View;
+void Text;

@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -16,7 +16,8 @@ import { BrandBaseline } from '@/components/BrandBaseline';
 import { AppLogo } from '@/components/AppLogo';
 import { SprayBackground } from '@/components/ui/SprayBackground';
 import { BRAND_TAGLINE } from '@/constants/brand';
-import { Colors, FontFamily } from '@/constants/theme';
+import { FontFamily } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 
 ExpoSplashScreen.preventAutoHideAsync();
 
@@ -28,6 +29,8 @@ interface SplashScreenProps {
 }
 
 export default function SplashScreen({ onFinish }: SplashScreenProps) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const logoScale = useSharedValue(0.3);
   const logoOpacity = useSharedValue(0);
   const titleOpacity = useSharedValue(0);
@@ -111,48 +114,50 @@ export default function SplashScreen({ onFinish }: SplashScreenProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 999,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 28,
-  },
-  logoCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 28,
-    backgroundColor: Colors.light.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 22,
-    shadowColor: Colors.light.accent,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.28,
-    shadowRadius: 20,
-    elevation: 8,
-  },
-  title: {
-    fontSize: 40,
-    fontFamily: FontFamily.display,
-    color: Colors.light.text,
-    letterSpacing: 8,
-    marginBottom: 10,
-  },
-  baseline: {
-    fontSize: 15,
-    paddingHorizontal: 8,
-    marginBottom: 10,
-  },
-  tagline: {
-    fontSize: 12,
-    fontFamily: FontFamily.uiMedium,
-    color: Colors.light.muted,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-  },
-});
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
+    overlay: {
+      ...StyleSheet.absoluteFillObject,
+      zIndex: 999,
+    },
+    content: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: 28,
+    },
+    logoCircle: {
+      width: 96,
+      height: 96,
+      borderRadius: 28,
+      backgroundColor: colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 22,
+      shadowColor: colors.accent,
+      shadowOffset: { width: 0, height: 10 },
+      shadowOpacity: 0.28,
+      shadowRadius: 20,
+      elevation: 8,
+    },
+    title: {
+      fontSize: 40,
+      fontFamily: FontFamily.display,
+      color: colors.text,
+      letterSpacing: 8,
+      marginBottom: 10,
+    },
+    baseline: {
+      fontSize: 15,
+      paddingHorizontal: 8,
+      marginBottom: 10,
+    },
+    tagline: {
+      fontSize: 12,
+      fontFamily: FontFamily.uiMedium,
+      color: colors.muted,
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+    },
+  });
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -39,8 +39,8 @@ import {
   uploadAvatar,
 } from '@/scripts/api';
 import { MAP_EXPLORATION_QUERY_KEY } from '@/hooks/useMapExploration';
-import { Colors, FontFamily, Spacing } from '@/constants/theme';
-import { useOdosColors } from '@/context/ThemeContext';
+import { FontFamily, Spacing } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { ThemePreferencePicker } from '@/components/settings/ThemePreferencePicker';
 import { logError, toAppError } from '@/utils/errorHandling';
 import { resolveImageUrl } from '@/utils/imageUrl';
@@ -84,6 +84,7 @@ function validateAlias(alias: string): string | null {
 export default function SettingsScreen() {
   const { user, setUser, logout, isAuthenticated } = useAuth();
   const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
 
   const [alias, setAlias] = useState(user?.alias ?? '');
@@ -358,7 +359,7 @@ export default function SettingsScreen() {
               loading={uploadingAvatar}
               variant="secondary"
               size="sm"
-              leftIcon={<Camera size={14} color={Colors.light.text} />}
+              leftIcon={<Camera size={14} color={colors.text} />}
             />
             {avatarUrl ? (
               <CTAButton
@@ -403,7 +404,7 @@ export default function SettingsScreen() {
             autoCapitalize="none"
             error={aliasError}
             hint="Affiché à la place de votre email dans les commentaires."
-            leftIcon={<UserIcon size={16} color={Colors.light.muted} />}
+            leftIcon={<UserIcon size={16} color={colors.muted} />}
           />
 
           <View style={{ height: 14 }} />
@@ -424,7 +425,7 @@ export default function SettingsScreen() {
               multiline
               maxLength={BIO_MAX}
               placeholder="Parlez un peu de vous — vos passions, vos envies d'explorer…"
-              placeholderTextColor={Colors.light.muted}
+              placeholderTextColor={colors.muted}
               style={[styles.bioInput, bioError ? styles.bioInputError : null]}
               textAlignVertical="top"
             />
@@ -449,7 +450,7 @@ export default function SettingsScreen() {
             <View style={styles.card}>
               <View style={styles.switchRow}>
                 <View style={styles.switchIcon}>
-                  <Map size={18} color={Colors.light.muted} />
+                  <Map size={18} color={colors.muted} />
                 </View>
                 <View style={styles.switchTextCol}>
                   <Text style={styles.switchLabel}>Exploration de la carte</Text>
@@ -462,7 +463,7 @@ export default function SettingsScreen() {
                   value={user?.mapExplorationEnabled ?? false}
                   onValueChange={(on) => explorationMutation.mutate(on)}
                   disabled={explorationMutation.isPending}
-                  trackColor={{ true: Colors.light.mapPrimaryCta }}
+                  trackColor={{ true: colors.mapPrimaryCta }}
                   accessibilityLabel="Activer l'exploration de la carte"
                 />
               </View>
@@ -474,7 +475,7 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>Mes données</Text>
         <View style={styles.card}>
           <MenuRow
-            icon={<Download size={18} color={Colors.light.muted} />}
+            icon={<Download size={18} color={colors.muted} />}
             label="Télécharger mes données (portabilité)"
             onPress={handleExportData}
           />
@@ -484,19 +485,19 @@ export default function SettingsScreen() {
         <Text style={styles.sectionTitle}>Informations légales</Text>
         <View style={styles.card}>
           <MenuRow
-            icon={<FileText size={18} color={Colors.light.muted} />}
+            icon={<FileText size={18} color={colors.muted} />}
             label="Conditions générales d'utilisation"
             onPress={() => router.push({ pathname: '/legal', params: { section: 'cgu' } })}
           />
           <View style={styles.divider} />
           <MenuRow
-            icon={<Shield size={18} color={Colors.light.muted} />}
+            icon={<Shield size={18} color={colors.muted} />}
             label="Politique de confidentialité"
             onPress={() => router.push({ pathname: '/legal', params: { section: 'privacy' } })}
           />
           <View style={styles.divider} />
           <MenuRow
-            icon={<Scale size={18} color={Colors.light.muted} />}
+            icon={<Scale size={18} color={colors.muted} />}
             label="Mentions légales"
             onPress={() => router.push({ pathname: '/legal', params: { section: 'mentions' } })}
           />
@@ -517,7 +518,7 @@ export default function SettingsScreen() {
             variant="danger"
             size="md"
             fullWidth
-            leftIcon={<Trash2 size={16} color={Colors.light.danger} />}
+            leftIcon={<Trash2 size={16} color={colors.danger} />}
           />
         </View>
 
@@ -537,6 +538,8 @@ function MenuRow({
   label: string;
   onPress: () => void;
 }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Pressable
       onPress={onPress}
@@ -545,12 +548,13 @@ function MenuRow({
     >
       <View style={styles.menuRowIcon}>{icon}</View>
       <Text style={styles.menuRowText}>{label}</Text>
-      <ChevronRight size={18} color={Colors.light.muted} />
+      <ChevronRight size={18} color={colors.muted} />
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
   },
@@ -568,12 +572,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
   },
   headerTitle: {
     fontSize: 16,
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.text,
+    color: colors.text,
   },
   scroll: {
     flex: 1,
@@ -590,7 +594,7 @@ const styles = StyleSheet.create({
     paddingVertical: 22,
     paddingHorizontal: 16,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: colors.border,
     marginBottom: 18,
   },
   avatarCircleWrap: {
@@ -601,13 +605,13 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
   },
   avatarFallback: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: Colors.light.accent,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -624,7 +628,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.light.text,
+    backgroundColor: colors.text,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
@@ -633,14 +637,14 @@ const styles = StyleSheet.create({
   avatarName: {
     fontSize: 18,
     fontFamily: FontFamily.display,
-    color: Colors.light.text,
+    color: colors.text,
     maxWidth: '90%',
   },
   avatarEmail: {
     marginTop: 2,
     fontSize: 12,
     fontFamily: FontFamily.ui,
-    color: Colors.light.muted,
+    color: colors.muted,
     maxWidth: '90%',
   },
   avatarActions: {
@@ -649,16 +653,16 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   successBanner: {
-    backgroundColor: '#ecfdf5',
+    backgroundColor: colors.successSurface,
     borderWidth: 1,
-    borderColor: '#86efac',
+    borderColor: `${colors.successText}44`,
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 14,
     marginBottom: 12,
   },
   successBannerText: {
-    color: '#047857',
+    color: colors.successText,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -666,20 +670,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 2,
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.accent,
+    color: colors.accent,
     marginTop: 10,
     marginBottom: 10,
     textTransform: 'uppercase',
   },
   dangerSectionTitle: {
-    color: Colors.light.danger,
+    color: colors.danger,
   },
   card: {
     backgroundColor: '#fff',
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: colors.border,
     marginBottom: 18,
   },
   bioBlock: {
@@ -693,7 +697,7 @@ const styles = StyleSheet.create({
   bioLabel: {
     fontSize: 13,
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.text,
+    color: colors.text,
     letterSpacing: 0.2,
   },
   bioCounter: {
@@ -703,20 +707,20 @@ const styles = StyleSheet.create({
   bioInput: {
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: colors.border,
     borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 14,
-    color: Colors.light.text,
+    color: colors.text,
     minHeight: 110,
   },
   bioInputError: {
-    borderColor: Colors.light.danger,
+    borderColor: colors.danger,
   },
   bioErrorText: {
     fontSize: 12,
-    color: Colors.light.danger,
+    color: colors.danger,
     marginTop: 2,
   },
   menuRow: {
@@ -732,7 +736,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -740,16 +744,16 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontFamily: FontFamily.uiMedium,
-    color: Colors.light.text,
+    color: colors.text,
   },
   divider: {
     height: 1,
-    backgroundColor: Colors.light.border,
+    backgroundColor: colors.border,
     marginLeft: 44,
   },
   dangerHelp: {
     fontSize: 13,
-    color: Colors.light.muted,
+    color: colors.muted,
     lineHeight: 18,
   },
   switchRow: {
@@ -761,7 +765,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -773,13 +777,14 @@ const styles = StyleSheet.create({
   switchLabel: {
     fontSize: 14,
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.text,
+    color: colors.text,
   },
   switchHint: {
     marginTop: 4,
     fontSize: 12,
     fontFamily: FontFamily.ui,
-    color: Colors.light.muted,
+    color: colors.muted,
     lineHeight: 17,
   },
 });
+}

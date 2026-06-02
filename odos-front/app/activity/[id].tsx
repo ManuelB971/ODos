@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { MapPin, ArrowLeft, Heart, Star, Navigation } from 'lucide-react-native';
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import api, {
@@ -32,8 +32,8 @@ import { useBadgeUnlock } from '@/context/BadgeUnlockContext';
 import { BADGES_QUERY_KEY } from '@/hooks/useBadges';
 import type { BadgeItem } from '@/types';
 import { ApiActivity } from '@/types';
-import { Colors, FontFamily, Spacing } from '@/constants/theme';
-import { useOdosColors } from '@/context/ThemeContext';
+import { FontFamily, Spacing } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { logError, toAppError, AppError } from '@/utils/errorHandling';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
@@ -86,6 +86,8 @@ function buildToast(
 }
 
 function StarsDisplay({ value, max = 5, size = 18 }: { value: number; max?: number; size?: number }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const full = Math.round(value);
   return (
     <View style={styles.starsRow}>
@@ -93,7 +95,7 @@ function StarsDisplay({ value, max = 5, size = 18 }: { value: number; max?: numb
         <Star
           key={`star-${i}`}
           size={size}
-          color={i < full ? '#f59e0b' : Colors.light.muted}
+          color={i < full ? '#f59e0b' : colors.muted}
           fill={i < full ? '#f59e0b' : 'none'}
         />
       ))}
@@ -103,6 +105,7 @@ function StarsDisplay({ value, max = 5, size = 18 }: { value: number; max?: numb
 
 export default function ActivityDetails() {
   const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { id } = useLocalSearchParams();
   const { isAuthenticated, user } = useAuth();
   const [activity, setActivity] = useState<ApiActivity | null>(null);
@@ -340,7 +343,7 @@ export default function ActivityDetails() {
           <Skeleton width="100%" height="100%" radius={0} />
           <View style={styles.heroOverlay}>
             <Pressable style={styles.heroButton} onPress={() => router.back()} hitSlop={8}>
-              <ArrowLeft color={Colors.light.text} size={22} />
+              <ArrowLeft color={colors.text} size={22} />
             </Pressable>
           </View>
         </View>
@@ -366,7 +369,7 @@ export default function ActivityDetails() {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <Pressable style={styles.backButtonStandalone} onPress={() => router.back()}>
-          <ArrowLeft color={Colors.light.text} size={24} />
+          <ArrowLeft color={colors.text} size={24} />
         </Pressable>
         <Text style={styles.errorText}>{error ?? 'Activité introuvable'}</Text>
       </View>
@@ -430,7 +433,7 @@ export default function ActivityDetails() {
           )}
           <View style={styles.heroOverlay}>
             <Pressable style={styles.heroButton} onPress={() => router.back()} hitSlop={8}>
-              <ArrowLeft color={Colors.light.text} size={22} />
+              <ArrowLeft color={colors.text} size={22} />
             </Pressable>
             <Pressable
               style={({ pressed }) => [styles.heroButton, pressed && styles.favoriteButtonPressed]}
@@ -441,8 +444,8 @@ export default function ActivityDetails() {
               accessibilityLabel={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
             >
               <Heart
-                color={isFavorite ? Colors.light.danger : Colors.light.primary}
-                fill={isFavorite ? Colors.light.danger : 'none'}
+                color={isFavorite ? colors.danger : colors.primary}
+                fill={isFavorite ? colors.danger : 'none'}
                 size={22}
               />
             </Pressable>
@@ -465,7 +468,7 @@ export default function ActivityDetails() {
 
           {activity.city && (
             <View style={styles.addressContainer}>
-              <MapPin color={Colors.light.muted} size={16} />
+              <MapPin color={colors.muted} size={16} />
               <Text style={styles.address}>{activity.city}</Text>
             </View>
           )}
@@ -514,7 +517,7 @@ export default function ActivityDetails() {
                   >
                     <Star
                       size={28}
-                      color={userScore != null && s <= userScore ? '#f59e0b' : Colors.light.muted}
+                      color={userScore != null && s <= userScore ? '#f59e0b' : colors.muted}
                       fill={userScore != null && s <= userScore ? '#f59e0b' : 'none'}
                     />
                   </Pressable>
@@ -537,7 +540,7 @@ export default function ActivityDetails() {
 
           {activity.latitude != null && activity.longitude != null && (
             <View style={styles.coordsContainer}>
-              <MapPin color={Colors.light.primary} size={14} />
+              <MapPin color={colors.primary} size={14} />
               <Text style={styles.coordsText}>
                 {activity.latitude.toFixed(4)}, {activity.longitude.toFixed(4)}
               </Text>
@@ -608,6 +611,8 @@ function StickyCTABar({
   longitude: number;
   name: string;
 }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [launching, setLaunching] = useState(false);
 
   const openDirections = async () => {
@@ -651,10 +656,11 @@ function StickyCTABar({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: colors.background,
   },
   scroll: {
     flex: 1,
@@ -665,7 +671,7 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: colors.background,
   },
   heroWrap: {
     position: 'relative',
@@ -677,7 +683,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   heroPlaceholder: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
   },
   heroOverlay: {
     position: 'absolute',
@@ -721,16 +727,16 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 24,
     fontFamily: FontFamily.display,
-    color: Colors.light.text,
+    color: colors.text,
   },
   priceTag: {
     fontSize: 18,
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.accent,
+    color: colors.accent,
     marginTop: 2,
   },
   categoryBadge: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -738,7 +744,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   categoryText: {
-    color: Colors.light.primary,
+    color: colors.primary,
     fontFamily: FontFamily.uiMedium,
     fontSize: 14,
   },
@@ -748,7 +754,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   address: {
-    color: Colors.light.muted,
+    color: colors.muted,
     marginLeft: 8,
     flex: 1,
     fontSize: 15,
@@ -757,20 +763,20 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontFamily: FontFamily.display,
-    color: Colors.light.text,
+    color: colors.text,
     marginTop: 8,
     marginBottom: 8,
   },
   subLabel: {
     fontSize: 14,
     fontFamily: FontFamily.uiMedium,
-    color: Colors.light.text,
+    color: colors.text,
     marginBottom: 8,
   },
   description: {
     fontSize: 16,
     fontFamily: FontFamily.ui,
-    color: Colors.light.muted,
+    color: colors.muted,
     lineHeight: 24,
     marginBottom: 24,
   },
@@ -778,18 +784,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
   },
   coordsText: {
     fontSize: 13,
-    color: Colors.light.muted,
+    color: colors.muted,
   },
   errorText: {
     fontSize: 18,
-    color: Colors.light.danger,
+    color: colors.danger,
     textAlign: 'center',
     marginTop: 24,
   },
@@ -799,7 +805,7 @@ const styles = StyleSheet.create({
   ratingMeta: {
     marginTop: 6,
     fontSize: 14,
-    color: Colors.light.muted,
+    color: colors.muted,
   },
   starsRow: {
     flexDirection: 'row',
@@ -809,22 +815,22 @@ const styles = StyleSheet.create({
   userRatingRow: {
     marginBottom: 20,
     padding: 12,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     borderRadius: 12,
   },
   removeRatingBtn: {
     marginTop: 8,
   },
   removeRatingText: {
-    color: Colors.light.muted,
+    color: colors.muted,
     fontSize: 13,
   },
   muted: {
-    color: Colors.light.muted,
+    color: colors.muted,
     fontSize: 14,
   },
   warnText: {
-    color: Colors.light.danger,
+    color: colors.danger,
     marginBottom: 8,
   },
   commentCard: {
@@ -855,17 +861,17 @@ const styles = StyleSheet.create({
   },
   commentAuthor: {
     fontWeight: '600',
-    color: Colors.light.text,
+    color: colors.text,
     marginBottom: 4,
   },
   commentBody: {
-    color: Colors.light.text,
+    color: colors.text,
     fontSize: 15,
     lineHeight: 22,
   },
   commentDate: {
     fontSize: 12,
-    color: Colors.light.muted,
+    color: colors.muted,
     marginTop: 6,
   },
   commentActions: {
@@ -874,11 +880,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   linkText: {
-    color: Colors.light.primary,
+    color: colors.primary,
     fontWeight: '600',
   },
   dangerText: {
-    color: Colors.light.danger,
+    color: colors.danger,
     fontWeight: '600',
   },
   commentInput: {
@@ -903,7 +909,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.OS === 'ios' ? 28 : 18,
     backgroundColor: 'rgba(255,255,255,0.96)',
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    borderTopColor: colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.06,
@@ -916,3 +922,4 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 });
+}

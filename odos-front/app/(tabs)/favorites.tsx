@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   FlatList,
   Pressable,
@@ -12,7 +12,8 @@ import { Compass, Heart } from 'lucide-react-native';
 
 import { useFavorites } from '@/hooks/useFavorites';
 import { useAuth } from '@/context/AuthContext';
-import { Colors, Fonts, Spacing } from '@/constants/theme';
+import { Fonts, Spacing } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { toAppError } from '@/utils/errorHandling';
 import { toggleFavoriteActivity } from '@/scripts/api';
 import { FavoriteCard } from '@/components/FavoriteCard';
@@ -29,6 +30,8 @@ import { CTAButton } from '@/components/ui/CTAButton';
  * - État vide éditorial (titre serif, sous-texte, CTA vers la découverte).
  */
 export default function FavoritesScreen() {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
@@ -75,7 +78,7 @@ export default function FavoritesScreen() {
         <Header count={null} />
         <View style={styles.emptyState}>
           <View style={styles.emptyIconWrap}>
-            <Heart size={28} color={Colors.light.muted} />
+            <Heart size={28} color={colors.muted} />
           </View>
           <Text style={styles.emptyTitle}>Connectez-vous pour commencer</Text>
           <Text style={styles.emptySubtitle}>
@@ -131,7 +134,7 @@ export default function FavoritesScreen() {
         <Header count={0} />
         <View style={styles.emptyState}>
           <View style={styles.emptyIconWrap}>
-            <Heart size={28} color={Colors.light.muted} />
+            <Heart size={28} color={colors.muted} />
           </View>
           <Text style={styles.emptyTitle}>Votre première étape commence ici</Text>
           <Text style={styles.emptySubtitle}>
@@ -175,6 +178,8 @@ export default function FavoritesScreen() {
  * Header éditorial de la page, avec compteur (ou rien quand non-authentifié / loading).
  */
 function Header({ count }: { count: number | null }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.header}>
       <Text style={styles.subtitleEyebrow}>MA COLLECTION</Text>
@@ -188,10 +193,11 @@ function Header({ count }: { count: number | null }) {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: colors.background,
     paddingTop: 28,
   },
   header: {
@@ -201,20 +207,20 @@ const styles = StyleSheet.create({
   subtitleEyebrow: {
     fontSize: 11,
     letterSpacing: 2,
-    color: Colors.light.muted,
+    color: colors.muted,
     fontWeight: '700',
     marginBottom: 4,
   },
   pageTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: Colors.light.text,
+    color: colors.text,
     fontFamily: Fonts?.serif,
   },
   countText: {
     marginTop: 6,
     fontSize: 13,
-    color: Colors.light.muted,
+    color: colors.muted,
   },
   gridPad: {
     paddingHorizontal: Spacing.lg,
@@ -237,7 +243,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
@@ -245,13 +251,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 19,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: colors.text,
     textAlign: 'center',
     fontFamily: Fonts?.serif,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: Colors.light.muted,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 320,
@@ -261,7 +267,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: Colors.light.accent,
+    backgroundColor: colors.accent,
     paddingVertical: 12,
     paddingHorizontal: 20,
     borderRadius: 16,
@@ -272,3 +278,4 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
+}

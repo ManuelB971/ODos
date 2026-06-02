@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,7 +11,8 @@ import {
 import { Image } from 'expo-image';
 import { Pencil, Trash2, Send } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { InlineToast, InlineToastVariant } from '@/components/InlineToast';
@@ -31,6 +33,8 @@ function relativeTime(iso: string): string {
 }
 
 function AuthorAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string | null }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const uri = resolveImageUrl(avatarUrl ?? null);
   const initials = name.slice(0, 2).toUpperCase();
   if (uri) {
@@ -95,6 +99,8 @@ export function ActivityCommentsSection({
   onDismissToast,
   onLoginPress,
 }: ActivityCommentsSectionProps) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const draftLen = commentDraft.length;
 
   const handlePost = () => {
@@ -194,7 +200,7 @@ export function ActivityCommentsSection({
                           style={styles.actionBtn}
                           accessibilityLabel="Modifier"
                         >
-                          <Pencil size={14} color={isMine ? '#fff' : Colors.light.primary} />
+                          <Pencil size={14} color={isMine ? '#fff' : colors.primary} />
                         </Pressable>
                         <Pressable
                           onPress={() =>
@@ -211,7 +217,7 @@ export function ActivityCommentsSection({
                           disabled={deletePending}
                           accessibilityLabel="Supprimer"
                         >
-                          <Trash2 size={14} color={isMine ? '#fff' : Colors.light.danger} />
+                          <Trash2 size={14} color={isMine ? '#fff' : colors.danger} />
                         </Pressable>
                       </View>
                     )}
@@ -229,7 +235,7 @@ export function ActivityCommentsSection({
           <TextInput
             style={styles.composeInput}
             placeholder="Une idée, un conseil, un coup de cœur…"
-            placeholderTextColor={Colors.light.muted}
+            placeholderTextColor={colors.muted}
             value={commentDraft}
             onChangeText={onChangeDraft}
             multiline
@@ -239,7 +245,7 @@ export function ActivityCommentsSection({
             <Text
               style={[
                 styles.counter,
-                draftLen > MAX_LEN * 0.9 && { color: Colors.light.accent },
+                draftLen > MAX_LEN * 0.9 && { color: colors.accent },
               ]}
             >
               {draftLen}/{MAX_LEN}
@@ -264,27 +270,28 @@ export function ActivityCommentsSection({
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   wrap: { marginTop: Spacing.md },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: colors.text,
     marginBottom: Spacing.sm,
   },
   skeletonList: { gap: Spacing.md },
   skeletonRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' },
-  warn: { color: Colors.light.danger, marginBottom: Spacing.sm },
+  warn: { color: colors.danger, marginBottom: Spacing.sm },
   empty: {
     alignItems: 'center',
     paddingVertical: Spacing.lg,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
     marginBottom: Spacing.md,
   },
   emptyEmoji: { fontSize: 32 },
-  emptyTitle: { fontSize: 17, fontWeight: '600', color: Colors.light.text, marginTop: 8 },
-  emptySub: { fontSize: 14, color: Colors.light.muted, marginTop: 4 },
+  emptyTitle: { fontSize: 17, fontWeight: '600', color: colors.text, marginTop: 8 },
+  emptySub: { fontSize: 14, color: colors.muted, marginTop: 4 },
   bubbleRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -296,7 +303,7 @@ const styles = StyleSheet.create({
   bubbleRowOther: { justifyContent: 'flex-start' },
   avatar: { width: 36, height: 36, borderRadius: 18 },
   avatarFallback: {
-    backgroundColor: Colors.light.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -307,42 +314,42 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   bubbleMine: {
-    backgroundColor: Colors.light.primary,
+    backgroundColor: colors.primary,
     borderBottomRightRadius: 4,
   },
   bubbleOther: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     borderBottomLeftRadius: 4,
   },
-  authorName: { fontSize: 12, fontWeight: '600', color: Colors.light.muted, marginBottom: 4 },
-  hiddenTag: { fontSize: 11, color: Colors.light.danger, marginBottom: 4 },
-  body: { fontSize: 15, lineHeight: 21, color: Colors.light.text },
+  authorName: { fontSize: 12, fontWeight: '600', color: colors.muted, marginBottom: 4 },
+  hiddenTag: { fontSize: 11, color: colors.danger, marginBottom: 4 },
+  body: { fontSize: 15, lineHeight: 21, color: colors.text },
   bodyMine: { color: '#fff' },
-  time: { fontSize: 11, color: Colors.light.muted, marginTop: 6 },
+  time: { fontSize: 11, color: colors.muted, marginTop: 6 },
   timeMine: { color: 'rgba(255,255,255,0.75)' },
   actions: { flexDirection: 'row', gap: 12, marginTop: 8, alignItems: 'center' },
   actionBtn: { padding: 4 },
-  link: { color: Colors.light.primary, fontWeight: '600' },
-  muted: { color: Colors.light.muted },
+  link: { color: colors.primary, fontWeight: '600' },
+  muted: { color: colors.muted },
   input: {
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: colors.border,
     borderRadius: 12,
     padding: 10,
     minHeight: 72,
-    color: Colors.light.text,
+    color: colors.text,
   },
   compose: {
     marginTop: Spacing.md,
     padding: Spacing.md,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     borderRadius: 16,
   },
-  composeLabel: { fontSize: 14, fontWeight: '600', color: Colors.light.text, marginBottom: 8 },
+  composeLabel: { fontSize: 14, fontWeight: '600', color: colors.text, marginBottom: 8 },
   composeInput: {
     minHeight: 88,
     fontSize: 15,
-    color: Colors.light.text,
+    color: colors.text,
     textAlignVertical: 'top',
   },
   composeFooter: {
@@ -351,14 +358,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 8,
   },
-  counter: { fontSize: 12, color: Colors.light.muted },
+  counter: { fontSize: 12, color: colors.muted },
   sendBtn: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.light.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sendBtnDisabled: { opacity: 0.45 },
 });
+}

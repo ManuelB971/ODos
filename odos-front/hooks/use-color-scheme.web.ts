@@ -1,21 +1,22 @@
 import { useEffect, useState } from 'react';
-import { useColorScheme as useRNColorScheme } from 'react-native';
+
+import { useTheme } from '@/context/ThemeContext';
+import type { ColorScheme } from '@/constants/themes/types';
 
 /**
- * To support static rendering, this value needs to be re-calculated on the client side for web
+ * Web : attend l’hydratation avant d’exposer le schéma (évite flash SSR).
  */
-export function useColorScheme() {
+export function useColorScheme(): ColorScheme {
+  const { colorScheme } = useTheme();
   const [hasHydrated, setHasHydrated] = useState(false);
 
   useEffect(() => {
     setHasHydrated(true);
   }, []);
 
-  const colorScheme = useRNColorScheme();
-
-  if (hasHydrated) {
-    return colorScheme;
+  if (!hasHydrated) {
+    return 'light';
   }
 
-  return 'light';
+  return colorScheme;
 }

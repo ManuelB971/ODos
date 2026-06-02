@@ -1,8 +1,9 @@
-import React from 'react';
-import { StyleSheet, Text, type TextStyle, type ViewStyle } from 'react-native';
+import React, { useMemo } from 'react';
+import { StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 
 import { HERO_BASELINE } from '@/constants/brand';
-import { Colors, FontFamily } from '@/constants/theme';
+import { FontFamily } from '@/constants/theme';
+import { useOdosColors } from '@/context/ThemeContext';
 
 type BrandBaselineProps = {
   /** Afficher la baseline complète multilingue (défaut) ou seulement « ὁδός · La voie ». */
@@ -17,25 +18,32 @@ type BrandBaselineProps = {
  */
 export function BrandBaseline({
   variant = 'full',
-  color = Colors.light.accent,
+  color,
   style,
   containerStyle,
 }: BrandBaselineProps) {
-  const text = variant === 'short' ? 'ὁδός · La voie' : HERO_BASELINE;
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(), []);
+  const content = variant === 'short' ? 'ὁδός · La voie' : HERO_BASELINE;
+  const textColor = color ?? colors.accent;
 
-  return (
-    <Text style={[styles.base, { color }, containerStyle, style]} accessibilityRole="text">
-      {text}
+  const text = (
+    <Text style={[styles.base, { color: textColor }, style]} accessibilityRole="text">
+      {content}
     </Text>
   );
+
+  return containerStyle ? <View style={containerStyle}>{text}</View> : text;
 }
 
-const styles = StyleSheet.create({
-  base: {
-    fontSize: 17,
-    fontFamily: FontFamily.displayItalic,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-});
+function createStyles() {
+  return StyleSheet.create({
+    base: {
+      fontSize: 17,
+      fontFamily: FontFamily.displayItalic,
+      fontStyle: 'italic',
+      textAlign: 'center',
+      lineHeight: 24,
+    },
+  });
+}
