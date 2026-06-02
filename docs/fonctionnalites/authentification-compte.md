@@ -41,7 +41,9 @@ Inscription : le `UserRegistrationProcessor` hash le mot de passe et enregistre 
 
 **Validation côté client :** email format valide, mot de passe ≥ 6 caractères, acceptation CGU obligatoire à l’inscription.
 
-**Après connexion :** redirection vers l’accueil ; le cache React Query est invalidé au changement de compte pour éviter les fuites inter-utilisateurs.
+**Après connexion ou inscription :** inscription puis `POST /api/login` automatique (tokens + `/api/me`), redirection vers l’accueil ou les centres d’intérêt ; le cache React Query est invalidé au changement de compte pour éviter les fuites inter-utilisateurs.
+
+**Au redémarrage de l’app :** `ensureSessionReady()` renouvelle proactivement l’access JWT expiré via le refresh token avant `GET /api/me`.
 
 ---
 
