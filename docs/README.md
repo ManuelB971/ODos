@@ -15,6 +15,7 @@ Index des docs du dépôt. Dernière passe : **mai 2026**.
 | Comprendre la CI/CD | [CI_CD_V2_2026.md](CI_CD_V2_2026.md) |
 | Voir où on en est côté RGPD | [RGPD_AUDIT_2026.md](RGPD_AUDIT_2026.md) |
 | Le registre art. 30 | [RGPD_registre.md](RGPD_registre.md) |
+| **Soutenance jury RNCP (démo + tests)** | **[JURY_RNCP.md](JURY_RNCP.md)** |
 
 ---
 
@@ -54,6 +55,7 @@ Docker : `docker-compose.yml`, `docker-compose.prod.yml`, `docker-compose.wazuh.
 | Plan couverture 70 % | [deliverables/PLAN-COUVERTURE-70.md](../deliverables/PLAN-COUVERTURE-70.md) |
 | TODO badges & exploration | [TODO_GAMIFICATION_BADGES.md](TODO_GAMIFICATION_BADGES.md) |
 | Fiches fonctionnalités | [fonctionnalites/](fonctionnalites/) |
+| Soutenance jury RNCP | [JURY_RNCP.md](JURY_RNCP.md) |
 | Idées LLM, trajets, forum (à juger) | [IDEES_POTENTIELLES.md](IDEES_POTENTIELLES.md) |
 
 ---
