@@ -9,16 +9,27 @@ import React, {
 import { useColorScheme as useSystemColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-import { Colors } from '@/constants/theme';
-
-export type ThemePreference = 'system' | 'light' | 'dark';
-export type OdosColorPalette = (typeof Colors)['light'];
+import { resolvePalette } from '@/constants/themes/registry';
+import type {
+  ColorScheme,
+  OdosColorPalette,
+  ThemePreference,
+  ThemeVariantId,
+} from '@/constants/themes/types';
 
 const STORAGE_KEY = 'odos_theme_preference';
+const VARIANT_STORAGE_KEY = 'odos_theme_variant';
+
+export type { OdosColorPalette, ThemePreference, ThemeVariantId };
 
 type ThemeContextValue = {
+  /** Variante visuelle (ville / pays) — `default` pour l’instant. */
+  variantId: ThemeVariantId;
+  setVariantId: (id: ThemeVariantId) => void;
   preference: ThemePreference;
   setPreference: (pref: ThemePreference) => void;
+  /** Schéma effectif après résolution system/light/dark. */
+  colorScheme: ColorScheme;
   colors: OdosColorPalette;
   isDark: boolean;
 };
@@ -31,9 +42,20 @@ async function readPreference(): Promise<ThemePreference> {
     const raw = await SecureStore.getItemAsync(STORAGE_KEY);
     if (raw === 'light' || raw === 'dark' || raw === 'system') return raw;
   } catch {
-    // fallback system
+    // fallback
   }
   return 'system';
+}
+
+async function readVariantId(): Promise<ThemeVariantId> {
+  try {
+    if (!(await SecureStore.isAvailableAsync())) return 'default';
+    const raw = await SecureStore.getItemAsync(VARIANT_STORAGE_KEY);
+    if (raw === 'default') return raw;
+  } catch {
+    // fallback
+  }
+  return 'default';
 }
 
 async function writePreference(pref: ThemePreference): Promise<void> {
@@ -46,12 +68,26 @@ async function writePreference(pref: ThemePreference): Promise<void> {
   }
 }
 
+async function writeVariantId(id: ThemeVariantId): Promise<void> {
+  try {
+    if (await SecureStore.isAvailableAsync()) {
+      await SecureStore.setItemAsync(VARIANT_STORAGE_KEY, id);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useSystemColorScheme();
   const [preference, setPreferenceState] = useState<ThemePreference>('system');
+  const [variantId, setVariantIdState] = useState<ThemeVariantId>('default');
 
   useEffect(() => {
-    readPreference().then(setPreferenceState);
+    void Promise.all([readPreference(), readVariantId()]).then(([pref, variant]) => {
+      setPreferenceState(pref);
+      setVariantIdState(variant);
+    });
   }, []);
 
   const setPreference = useCallback((pref: ThemePreference) => {
@@ -59,19 +95,36 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     void writePreference(pref);
   }, []);
 
-  const isDark = useMemo(() => {
-    const scheme = preference === 'system' ? systemScheme : preference;
-    return scheme === 'dark';
+  const setVariantId = useCallback((id: ThemeVariantId) => {
+    setVariantIdState(id);
+    void writeVariantId(id);
+  }, []);
+
+  const colorScheme: ColorScheme = useMemo(() => {
+    if (preference === 'system') {
+      return systemScheme === 'dark' ? 'dark' : 'light';
+    }
+    return preference;
   }, [preference, systemScheme]);
 
+  const isDark = colorScheme === 'dark';
+
   const colors = useMemo(
-    () => (isDark ? Colors.dark : Colors.light),
-    [isDark],
+    () => resolvePalette(variantId, colorScheme),
+    [variantId, colorScheme],
   );
 
   const value = useMemo(
-    () => ({ preference, setPreference, colors, isDark }),
-    [preference, setPreference, colors, isDark],
+    () => ({
+      variantId,
+      setVariantId,
+      preference,
+      setPreference,
+      colorScheme,
+      colors,
+      isDark,
+    }),
+    [variantId, setVariantId, preference, setPreference, colorScheme, colors, isDark],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;

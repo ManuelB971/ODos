@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -13,12 +13,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AlertCircle, ArrowLeft, CheckCircle2, KeyRound } from 'lucide-react-native';
 
 import { confirmPasswordReset } from '@/services/AuthService';
-import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
+import { FontFamily, Radius, Spacing } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { InputField } from '@/components/ui/InputField';
 import { SprayBackground } from '@/components/ui/SprayBackground';
 
 export default function ResetPasswordScreen() {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ token?: string; email?: string }>();
@@ -94,7 +97,7 @@ export default function ResetPasswordScreen() {
             accessibilityRole="button"
             accessibilityLabel="Retour"
           >
-            <ArrowLeft size={20} color={Colors.light.text} />
+            <ArrowLeft size={20} color={colors.text} />
             <Text style={styles.backText}>Retour</Text>
           </Pressable>
 
@@ -109,7 +112,7 @@ export default function ResetPasswordScreen() {
 
             {error ? (
               <View style={styles.banner}>
-                <AlertCircle size={16} color={Colors.light.danger} />
+                <AlertCircle size={16} color={colors.danger} />
                 <Text style={styles.bannerError}>{error}</Text>
               </View>
             ) : null}
@@ -130,7 +133,7 @@ export default function ResetPasswordScreen() {
                   onChangeText={setToken}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  leftIcon={<KeyRound size={18} color={Colors.light.muted} />}
+                  leftIcon={<KeyRound size={18} color={colors.muted} />}
                 />
 
                 <InputField
@@ -180,7 +183,8 @@ export default function ResetPasswordScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
   },
@@ -199,17 +203,17 @@ const styles = StyleSheet.create({
   backText: {
     fontSize: 15,
     fontFamily: FontFamily.uiMedium,
-    color: Colors.light.text,
+    color: colors.text,
   },
   card: {
     width: '100%',
     maxWidth: 480,
-    backgroundColor: Colors.light.elevated,
+    backgroundColor: colors.elevated,
     borderRadius: Radius.modal,
     padding: 24,
     gap: 18,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: colors.border,
     shadowColor: '#11181C',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.06,
@@ -221,19 +225,19 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.uiMedium,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    color: Colors.light.accent,
+    color: colors.accent,
     marginBottom: -10,
   },
   title: {
     fontSize: 26,
     fontFamily: FontFamily.display,
-    color: Colors.light.text,
+    color: colors.text,
   },
   subtitle: {
     fontSize: 15,
     fontFamily: FontFamily.ui,
     lineHeight: 22,
-    color: Colors.light.muted,
+    color: colors.muted,
     marginTop: -12,
   },
   fields: {
@@ -243,9 +247,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#fef2f2',
+    backgroundColor: colors.errorSurface,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: `${colors.danger}55`,
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -253,17 +257,18 @@ const styles = StyleSheet.create({
   bannerError: {
     flex: 1,
     fontFamily: FontFamily.uiMedium,
-    color: Colors.light.danger,
+    color: colors.danger,
     fontSize: 13,
   },
   bannerSuccess: {
-    backgroundColor: '#ecfdf5',
-    borderColor: '#86efac',
+    backgroundColor: colors.successSurface,
+    borderColor: `${colors.successText}44`,
   },
   bannerSuccessText: {
     flex: 1,
     fontFamily: FontFamily.uiMedium,
-    color: '#047857',
+    color: colors.successText,
     fontSize: 13,
   },
 });
+}

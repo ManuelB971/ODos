@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import Animated, {
   Easing,
@@ -7,7 +7,7 @@ import Animated, {
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import { Colors } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 
 export type SkeletonProps = {
   width?: number | `${number}%`;
@@ -19,18 +19,10 @@ export type SkeletonProps = {
 
 /**
  * Bloc shimmer minimal — à composer pour dessiner n'importe quelle forme.
- *
- * Implémentation : une `View` grise claire + un gradient translucide (fake via
- * `backgroundColor` alterné) animé en translation via Reanimated. Pas de dep
- * externe (ex. `expo-linear-gradient`), on reste léger.
- *
- * Utilisation :
- * ```tsx
- * <Skeleton width="60%" height={16} radius={8} />
- * <SkeletonCard />
- * ```
  */
 export function Skeleton({ width = '100%', height = 16, radius = 8, style }: SkeletonProps) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const shimmer = useSharedValue(0);
 
   useEffect(() => {
@@ -61,6 +53,7 @@ export function Skeleton({ width = '100%', height = 16, radius = 8, style }: Ske
  * Card squelette pour les listes d'activités (format vignette horizontale).
  */
 export function SkeletonActivityRow() {
+  const styles = useMemo(() => createLayoutStyles(), []);
   return (
     <View style={styles.row}>
       <Skeleton width={80} height={80} radius={16} />
@@ -77,6 +70,7 @@ export function SkeletonActivityRow() {
  * Card squelette pour la grille favoris (format 2 colonnes).
  */
 export function SkeletonFavoriteCard() {
+  const styles = useMemo(() => createLayoutStyles(), []);
   return (
     <View style={styles.favCard}>
       <Skeleton width="100%" height={140} radius={16} />
@@ -92,6 +86,7 @@ export function SkeletonFavoriteCard() {
  * Card squelette pour le carrousel "Recommandations" (format grande vignette).
  */
 export function SkeletonRecommendationCard() {
+  const styles = useMemo(() => createLayoutStyles(), []);
   return (
     <View style={styles.recoCard}>
       <Skeleton width="100%" height={160} radius={20} />
@@ -104,38 +99,45 @@ export function SkeletonRecommendationCard() {
   );
 }
 
-const styles = StyleSheet.create({
-  block: {
-    backgroundColor: Colors.light.surface,
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    paddingVertical: 12,
-  },
-  rowBody: {
-    flex: 1,
-    gap: 8,
-  },
-  favCard: {
-    width: '48%',
-    gap: 8,
-    marginBottom: 14,
-  },
-  favCardBody: {
-    gap: 6,
-    paddingHorizontal: 2,
-  },
-  recoCard: {
-    width: 240,
-    marginRight: 12,
-    gap: 8,
-  },
-  recoBody: {
-    gap: 6,
-    paddingHorizontal: 4,
-    paddingTop: 4,
-  },
-});
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
+    block: {
+      backgroundColor: colors.surface,
+      overflow: 'hidden',
+    },
+  });
+}
+
+function createLayoutStyles() {
+  return StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      paddingVertical: 12,
+    },
+    rowBody: {
+      flex: 1,
+      gap: 8,
+    },
+    favCard: {
+      width: '48%',
+      gap: 8,
+      marginBottom: 14,
+    },
+    favCardBody: {
+      gap: 6,
+      paddingHorizontal: 2,
+    },
+    recoCard: {
+      width: 240,
+      marginRight: 12,
+      gap: 8,
+    },
+    recoBody: {
+      gap: 6,
+      paddingHorizontal: 4,
+      paddingTop: 4,
+    },
+  });
+}

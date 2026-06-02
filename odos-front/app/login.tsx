@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -15,7 +15,8 @@ import { AlertCircle, Check, CheckCircle2, Mail, Square } from 'lucide-react-nat
 
 import { signUp, signIn } from '@/services/AuthService';
 import { useAuth } from '@/context/AuthContext';
-import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
+import { FontFamily, Radius, Spacing } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { BRAND_TAGLINE } from '@/constants/brand';
 import { AppLogo } from '@/components/AppLogo';
 import { BrandBaseline } from '@/components/BrandBaseline';
@@ -29,6 +30,8 @@ function isValidEmail(email: string): boolean {
 }
 
 export default function LoginScreen() {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const { setUser } = useAuth();
   const insets = useSafeAreaInsets();
@@ -161,7 +164,7 @@ export default function LoginScreen() {
 
             {error ? (
               <View style={styles.banner}>
-                <AlertCircle size={16} color={Colors.light.danger} />
+                <AlertCircle size={16} color={colors.danger} />
                 <Text style={styles.bannerError}>{error}</Text>
               </View>
             ) : null}
@@ -186,7 +189,7 @@ export default function LoginScreen() {
                 autoCorrect={false}
                 autoComplete="email"
                 textContentType="emailAddress"
-                leftIcon={<Mail size={18} color={Colors.light.muted} />}
+                leftIcon={<Mail size={18} color={colors.muted} />}
                 error={error && !emailValid ? 'Vérifiez votre email.' : null}
               />
 
@@ -230,7 +233,7 @@ export default function LoginScreen() {
                     <Check size={14} color="#fff" strokeWidth={3} />
                   </View>
                 ) : (
-                  <Square size={22} color={Colors.light.muted} />
+                  <Square size={22} color={colors.muted} />
                 )}
                 <Text style={styles.consentText}>
                   J&apos;accepte les{' '}
@@ -318,7 +321,8 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
   },
@@ -337,11 +341,11 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: Radius.modal,
-    backgroundColor: Colors.light.accent,
+    backgroundColor: colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
-    shadowColor: Colors.light.accent,
+    shadowColor: colors.accent,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 18,
@@ -350,7 +354,7 @@ const styles = StyleSheet.create({
   wordmark: {
     fontSize: 28,
     fontFamily: FontFamily.display,
-    color: Colors.light.text,
+    color: colors.text,
     letterSpacing: 8,
     marginBottom: 6,
   },
@@ -358,25 +362,25 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontFamily: FontFamily.displayItalic,
     fontStyle: 'italic',
-    color: Colors.light.accent,
+    color: colors.accent,
     marginBottom: 4,
   },
   tagline: {
     fontSize: 12,
     fontFamily: FontFamily.uiMedium,
     letterSpacing: 1.4,
-    color: Colors.light.muted,
+    color: colors.muted,
     textTransform: 'uppercase',
   },
   card: {
     width: '100%',
     maxWidth: 480,
-    backgroundColor: Colors.light.elevated,
+    backgroundColor: colors.elevated,
     borderRadius: Radius.modal,
     padding: 24,
     gap: 18,
     borderWidth: 1,
-    borderColor: Colors.light.border,
+    borderColor: colors.border,
     shadowColor: '#11181C',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.06,
@@ -388,28 +392,28 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.uiMedium,
     letterSpacing: 2,
     textTransform: 'uppercase',
-    color: Colors.light.accent,
+    color: colors.accent,
     marginBottom: -10,
   },
   title: {
     fontSize: 26,
     fontFamily: FontFamily.display,
-    color: Colors.light.text,
+    color: colors.text,
   },
   subtitle: {
     fontSize: 15,
     fontFamily: FontFamily.ui,
     lineHeight: 22,
-    color: Colors.light.muted,
+    color: colors.muted,
     marginTop: -12,
   },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#fef2f2',
+    backgroundColor: colors.errorSurface,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: `${colors.danger}55`,
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -417,17 +421,17 @@ const styles = StyleSheet.create({
   bannerError: {
     flex: 1,
     fontFamily: FontFamily.uiMedium,
-    color: Colors.light.danger,
+    color: colors.danger,
     fontSize: 13,
   },
   bannerSuccess: {
-    backgroundColor: '#ecfdf5',
-    borderColor: '#86efac',
+    backgroundColor: colors.successSurface,
+    borderColor: `${colors.successText}44`,
   },
   bannerSuccessText: {
     flex: 1,
     fontFamily: FontFamily.uiMedium,
-    color: '#047857',
+    color: colors.successText,
     fontSize: 13,
   },
   fields: {
@@ -446,17 +450,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   consentBoxChecked: {
-    backgroundColor: Colors.light.accent,
+    backgroundColor: colors.accent,
   },
   consentText: {
     flex: 1,
     fontSize: 13,
     fontFamily: FontFamily.ui,
     lineHeight: 20,
-    color: Colors.light.text,
+    color: colors.text,
   },
   consentLink: {
-    color: Colors.light.primary,
+    color: colors.primary,
     fontFamily: FontFamily.uiMedium,
   },
   forgotBtn: {
@@ -466,7 +470,7 @@ const styles = StyleSheet.create({
   forgotText: {
     fontSize: 13,
     fontFamily: FontFamily.uiMedium,
-    color: Colors.light.primary,
+    color: colors.primary,
   },
   separatorRow: {
     flexDirection: 'row',
@@ -477,12 +481,12 @@ const styles = StyleSheet.create({
   separatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.light.border,
+    backgroundColor: colors.border,
   },
   separatorText: {
     fontSize: 12,
     fontFamily: FontFamily.uiMedium,
-    color: Colors.light.muted,
+    color: colors.muted,
     textTransform: 'lowercase',
   },
   socialStack: {
@@ -494,22 +498,23 @@ const styles = StyleSheet.create({
   switchText: {
     fontSize: 14,
     fontFamily: FontFamily.ui,
-    color: Colors.light.muted,
+    color: colors.muted,
   },
   switchAction: {
-    color: Colors.light.primary,
+    color: colors.primary,
     fontFamily: FontFamily.uiBold,
   },
   legal: {
     marginTop: 14,
     fontSize: 12,
     fontFamily: FontFamily.ui,
-    color: Colors.light.muted,
+    color: colors.muted,
     textAlign: 'center',
     maxWidth: 320,
   },
   legalLink: {
-    color: Colors.light.primary,
+    color: colors.primary,
     fontFamily: FontFamily.uiMedium,
   },
 });
+}

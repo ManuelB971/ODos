@@ -14,7 +14,8 @@ import { useInterests } from '@/context/InterestContext';
 import { useRecommendations } from '@/hooks/useRecommendations';
 import { useActivities } from '@/hooks/useActivities';
 import { ApiActivity } from '@/types';
-import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
+import { FontFamily, Radius, Spacing } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { BrandBaseline } from '@/components/BrandBaseline';
 import { BRAND_TAGLINE } from '@/constants/brand';
 import { toAppError } from '@/utils/errorHandling';
@@ -41,6 +42,8 @@ const formatPrice = (price: number | null | undefined): string => {
 
 /** Carte verticale horizontale (liste "Toutes les activités") — image arrondie + infos. */
 function ActivityRow({ item }: { item: ApiActivity }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const img = resolveImageUrl(item.imageUrl);
   const priceLabel = formatPrice(item.price);
   return (
@@ -61,7 +64,7 @@ function ActivityRow({ item }: { item: ApiActivity }) {
           <Text numberOfLines={1} style={styles.rowName}>{item.name}</Text>
           {item.city ? (
             <View style={styles.rowMetaLine}>
-              <MapPinIcon size={11} color={Colors.light.muted} />
+              <MapPinIcon size={11} color={colors.muted} />
               <Text style={styles.rowMeta}>{item.city}</Text>
             </View>
           ) : null}
@@ -74,6 +77,8 @@ function ActivityRow({ item }: { item: ApiActivity }) {
 
 /** Grande carte "Recommandation" (carrousel horizontal) — grosse image + badge note + texte. */
 function RecommendationCard({ item }: { item: ApiActivity }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const img = resolveImageUrl(item.imageUrl);
   const rating = item.ratingAverage;
   return (
@@ -95,7 +100,7 @@ function RecommendationCard({ item }: { item: ApiActivity }) {
         <View style={styles.recoBody}>
           {item.city ? (
             <View style={styles.rowMetaLine}>
-              <MapPinIcon size={11} color={Colors.light.muted} />
+              <MapPinIcon size={11} color={colors.muted} />
               <Text style={styles.recoCity}>{item.city.toUpperCase()}</Text>
             </View>
           ) : null}
@@ -114,6 +119,8 @@ function RecommendationCard({ item }: { item: ApiActivity }) {
 const HOME_ACTIVITIES_LIMIT = 5;
 
 export default function HomeScreen() {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { interests } = useInterests();
   const { recommendations, loading, error } = useRecommendations(interests);
   const activitiesQuery = useActivities();
@@ -180,7 +187,7 @@ export default function HomeScreen() {
               <Text style={styles.seeMoreText}>
                 Voir les {activities.length - HOME_ACTIVITIES_LIMIT} autres
               </Text>
-              <ArrowRight size={14} color={Colors.light.primary} />
+              <ArrowRight size={14} color={colors.primary} />
             </Pressable>
           ) : null
         }
@@ -317,10 +324,11 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: colors.background,
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
@@ -330,7 +338,7 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 28,
     fontFamily: FontFamily.display,
-    color: Colors.light.text,
+    color: colors.text,
     marginBottom: 4,
     textAlign: 'center',
   },
@@ -338,7 +346,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: FontFamily.uiMedium,
     letterSpacing: 1.5,
-    color: Colors.light.muted,
+    color: colors.muted,
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -360,7 +368,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   seeAllText: {
-    color: Colors.light.primary,
+    color: colors.primary,
     fontSize: 12,
     fontFamily: FontFamily.uiBold,
     letterSpacing: 1,
@@ -374,11 +382,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: Radius.card,
     borderWidth: 1,
-    borderColor: Colors.light.border,
-    backgroundColor: Colors.light.elevated,
+    borderColor: colors.border,
+    backgroundColor: colors.elevated,
   },
   seeMoreText: {
-    color: Colors.light.primary,
+    color: colors.primary,
     fontFamily: FontFamily.uiBold,
     fontSize: 13,
     letterSpacing: 0.3,
@@ -391,12 +399,12 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   errorText: {
-    color: Colors.light.danger,
+    color: colors.danger,
     marginVertical: 10,
     textAlign: 'center',
   },
   emptyText: {
-    color: Colors.light.muted,
+    color: colors.muted,
     fontFamily: FontFamily.ui,
     marginVertical: 10,
     textAlign: 'center',
@@ -413,7 +421,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 10,
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
     position: 'relative',
   },
   map: {
@@ -424,7 +432,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 14,
     left: 14,
-    backgroundColor: `${Colors.light.elevated}F5`,
+    backgroundColor: `${colors.elevated}F5`,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 14,
@@ -437,7 +445,7 @@ const styles = StyleSheet.create({
   mapBadgeCountText: {
     fontSize: 12,
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.text,
+    color: colors.text,
     letterSpacing: 0.4,
   },
   mapCta: {
@@ -447,7 +455,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: Colors.light.mapPrimaryCta,
+    backgroundColor: colors.mapPrimaryCta,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 14,
@@ -466,7 +474,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontFamily: FontFamily.display,
-    color: Colors.light.text,
+    color: colors.text,
     marginBottom: 12,
   },
   sectionTitleSpaced: {
@@ -481,7 +489,7 @@ const styles = StyleSheet.create({
     width: 260,
     marginRight: 14,
     borderRadius: Radius.card,
-    backgroundColor: Colors.light.elevated,
+    backgroundColor: colors.elevated,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -499,7 +507,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   recoImagePlaceholder: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
   },
   recoBadge: {
     position: 'absolute',
@@ -524,20 +532,20 @@ const styles = StyleSheet.create({
   recoCity: {
     fontSize: 11,
     fontFamily: FontFamily.uiMedium,
-    color: Colors.light.muted,
+    color: colors.muted,
     letterSpacing: 0.5,
   },
   recoName: {
     fontSize: 16,
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.text,
+    color: colors.text,
     marginTop: 4,
     marginBottom: 4,
   },
   recoDescription: {
     fontSize: 12,
     fontFamily: FontFamily.ui,
-    color: Colors.light.muted,
+    color: colors.muted,
     fontStyle: 'italic',
     lineHeight: 16,
   },
@@ -549,7 +557,7 @@ const styles = StyleSheet.create({
     padding: 10,
     marginBottom: 12,
     borderRadius: 14,
-    backgroundColor: Colors.light.elevated,
+    backgroundColor: colors.elevated,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
@@ -563,7 +571,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   rowImagePlaceholder: {
-    backgroundColor: Colors.light.surface,
+    backgroundColor: colors.surface,
   },
   rowInfo: {
     flex: 1,
@@ -579,19 +587,19 @@ const styles = StyleSheet.create({
   rowCategory: {
     fontSize: 10,
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.muted,
+    color: colors.muted,
     letterSpacing: 0.7,
     flexShrink: 1,
   },
   rowPrice: {
     fontSize: 11,
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.accent,
+    color: colors.accent,
   },
   rowName: {
     fontSize: 15,
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.text,
+    color: colors.text,
     marginBottom: 2,
   },
   rowMetaLine: {
@@ -603,12 +611,13 @@ const styles = StyleSheet.create({
   rowMeta: {
     fontSize: 11,
     fontFamily: FontFamily.ui,
-    color: Colors.light.muted,
+    color: colors.muted,
   },
   rowDescription: {
     fontSize: 12,
     fontFamily: FontFamily.ui,
-    color: Colors.light.muted,
+    color: colors.muted,
     lineHeight: 16,
   },
 });
+}

@@ -14,7 +14,8 @@ import { useInterests } from '@/context/InterestContext';
 import { useAuth } from '@/context/AuthContext';
 import { fetchCategories, updateUserInterests } from '@/scripts/api';
 import { Category } from '@/types';
-import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
+import { FontFamily, Radius, Spacing } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { BrandBaseline } from '@/components/BrandBaseline';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -35,6 +36,8 @@ const MIN_SELECTION = 1;
 const MAX_SELECTION = 7;
 
 const InterestsScreen = () => {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const { interests: storedNames, setInterests } = useInterests();
   const { user } = useAuth();
@@ -117,7 +120,7 @@ const InterestsScreen = () => {
       <View style={styles.topBar}>
         {user ? (
           <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
-            <ArrowLeft size={22} color={Colors.light.text} />
+            <ArrowLeft size={22} color={colors.text} />
           </Pressable>
         ) : (
           <View style={styles.backBtn} />
@@ -133,7 +136,7 @@ const InterestsScreen = () => {
         <View style={styles.header}>
           <BrandBaseline variant="short" style={styles.heroBaseline} />
           <View style={styles.eyebrowRow}>
-            <Sparkles size={12} color={Colors.light.accent} />
+            <Sparkles size={12} color={colors.accent} />
             <Text style={styles.eyebrow}>PERSONNALISATION</Text>
           </View>
           <Text style={styles.title}>Qu&apos;est-ce qui vous inspire ?</Text>
@@ -225,7 +228,8 @@ const InterestsScreen = () => {
 
 export default InterestsScreen;
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
   },
@@ -243,12 +247,12 @@ const styles = StyleSheet.create({
     borderRadius: Radius.card,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.light.elevated,
+    backgroundColor: colors.elevated,
   },
   topBarTitle: {
     fontSize: 14,
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.text,
+    color: colors.text,
     letterSpacing: 0.2,
   },
   scrollContent: {
@@ -273,21 +277,21 @@ const styles = StyleSheet.create({
   eyebrow: {
     fontSize: 11,
     letterSpacing: 2,
-    color: Colors.light.accent,
+    color: colors.accent,
     fontFamily: FontFamily.uiBold,
     textTransform: 'uppercase',
   },
   title: {
     fontSize: 28,
     fontFamily: FontFamily.display,
-    color: Colors.light.text,
+    color: colors.text,
     marginBottom: 10,
   },
   subtitle: {
     fontSize: 15,
     fontFamily: FontFamily.ui,
     lineHeight: 22,
-    color: Colors.light.muted,
+    color: colors.muted,
   },
   counterRow: {
     flexDirection: 'row',
@@ -298,31 +302,31 @@ const styles = StyleSheet.create({
   counterText: {
     fontSize: 14,
     fontFamily: FontFamily.ui,
-    color: Colors.light.text,
+    color: colors.text,
   },
   counterValue: {
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.accent,
+    color: colors.accent,
   },
   counterMuted: {
-    color: Colors.light.muted,
+    color: colors.muted,
     fontFamily: FontFamily.uiMedium,
   },
   resetText: {
     fontSize: 13,
     fontFamily: FontFamily.uiBold,
-    color: Colors.light.primary,
+    color: colors.primary,
   },
   errorBanner: {
     padding: 12,
-    backgroundColor: '#fef2f2',
-    borderColor: '#fecaca',
+    backgroundColor: colors.errorSurface,
+    borderColor: `${colors.danger}55`,
     borderWidth: 1,
     borderRadius: 12,
     marginBottom: 14,
   },
   errorBannerText: {
-    color: Colors.light.danger,
+    color: colors.danger,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -343,13 +347,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 22,
-    backgroundColor: Colors.light.elevated,
+    backgroundColor: colors.elevated,
     borderWidth: 1.5,
-    borderColor: Colors.light.border,
+    borderColor: colors.border,
   },
   chipActive: {
-    backgroundColor: Colors.light.accent,
-    borderColor: Colors.light.accent,
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   chipDisabled: {
     opacity: 0.4,
@@ -357,14 +361,14 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 14,
     fontFamily: FontFamily.uiMedium,
-    color: Colors.light.text,
+    color: colors.text,
   },
   chipTextActive: {
     color: '#ffffff',
     fontFamily: FontFamily.uiBold,
   },
   chipTextDisabled: {
-    color: Colors.light.muted,
+    color: colors.muted,
   },
   stickyBar: {
     position: 'absolute',
@@ -374,8 +378,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 28 : 18,
-    backgroundColor: `${Colors.light.background}F5`,
+    backgroundColor: `${colors.background}F5`,
     borderTopWidth: 1,
-    borderTopColor: Colors.light.border,
+    borderTopColor: colors.border,
   },
 });
+}

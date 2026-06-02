@@ -19,7 +19,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
-import { Colors } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useMapExploration } from '@/hooks/useMapExploration';
 import { ApiActivity } from '@/types';
@@ -56,6 +56,8 @@ const CAMERA_EASE_MS = 380;
  * Pas de bottom sheet / liste — l’activité s’affiche au tap sur le marqueur.
  */
 export function MapExperience({ activities, loading = false, error = null }: MapExperienceProps) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isAuthenticated, user, setUser } = useAuth();
@@ -270,7 +272,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
             accessibilityRole="button"
             accessibilityLabel="Retour"
           >
-            <ArrowLeft size={18} color={Colors.light.text} />
+            <ArrowLeft size={18} color={colors.text} />
           </Pressable>
           <View style={styles.searchWrap}>
             <SearchBar value={search} onChangeText={setSearch} />
@@ -288,7 +290,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
 
       {loading ? (
         <View style={styles.banner}>
-          <ActivityIndicator color={Colors.light.mapPrimaryCta} size="small" />
+          <ActivityIndicator color={colors.mapPrimaryCta} size="small" />
           <Text style={styles.bannerText}>Chargement des activités…</Text>
         </View>
       ) : null}
@@ -312,7 +314,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         accessibilityRole="button"
         accessibilityLabel="Recentrer la carte"
       >
-        <Compass size={18} color={Colors.light.text} />
+        <Compass size={18} color={colors.text} />
       </Pressable>
 
       {selectedActivity ? (
@@ -345,7 +347,8 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#fff',
@@ -399,7 +402,7 @@ const styles = StyleSheet.create({
     right: 24,
     padding: 16,
     borderRadius: 14,
-    backgroundColor: `${Colors.light.elevated}F0`,
+    backgroundColor: `${colors.elevated}F0`,
     alignItems: 'center',
     gap: 6,
     zIndex: 5,
@@ -416,11 +419,11 @@ const styles = StyleSheet.create({
   bannerTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: Colors.light.text,
+    color: colors.text,
   },
   bannerText: {
     fontSize: 13,
-    color: Colors.light.muted,
+    color: colors.muted,
     textAlign: 'center',
   },
   bannerError: {
@@ -428,7 +431,7 @@ const styles = StyleSheet.create({
   },
   bannerErrorText: {
     fontSize: 13,
-    color: Colors.light.danger,
+    color: colors.danger,
     textAlign: 'center',
   },
   recenterBtn: {
@@ -459,3 +462,4 @@ const styles = StyleSheet.create({
     zIndex: 9,
   },
 });
+}

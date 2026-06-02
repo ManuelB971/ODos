@@ -1,7 +1,7 @@
 import React from 'react';
 import { GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
-import { Colors } from '@/constants/theme';
+import { useOdosColors } from '@/context/ThemeContext';
 
 type ExplorationVisitedLayerProps = {
   geoJson?: GeoJSON.FeatureCollection | null;
@@ -9,6 +9,8 @@ type ExplorationVisitedLayerProps = {
 
 /** Cellules déjà visitées — calque semi-transparent sous les pins. */
 export function ExplorationVisitedLayer({ geoJson }: ExplorationVisitedLayerProps) {
+  const colors = useOdosColors();
+
   if (!geoJson?.features?.length) return null;
 
   return (
@@ -18,7 +20,7 @@ export function ExplorationVisitedLayer({ geoJson }: ExplorationVisitedLayerProp
         type="fill"
         source="odos-exploration-visited"
         paint={{
-          'fill-color': Colors.light.mapPrimaryCta,
+          'fill-color': colors.mapPrimaryCta,
           'fill-opacity': 0.22,
         }}
       />
@@ -27,7 +29,7 @@ export function ExplorationVisitedLayer({ geoJson }: ExplorationVisitedLayerProp
         type="line"
         source="odos-exploration-visited"
         paint={{
-          'line-color': Colors.light.mapPrimaryCta,
+          'line-color': colors.mapPrimaryCta,
           'line-width': 1.5,
           'line-opacity': 0.45,
         }}

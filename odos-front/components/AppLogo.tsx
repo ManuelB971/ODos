@@ -6,7 +6,7 @@ type AppLogoProps = {
   height?: number;
 };
 
-export function AppLogo({ width = 96, height = 96 }: AppLogoProps) {
+export function AppLogo({ width = 80, height = 80 }: AppLogoProps) {
   return (
     <Image
       source={require('@/assets/images/image.svg')}

@@ -1,7 +1,9 @@
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { useMemo } from 'react';
 import { ArrowLeft } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 
 type SectionKey = 'cgu' | 'privacy' | 'mentions';
 
@@ -98,6 +100,8 @@ Photos : Unsplash (licence Unsplash)`,
 const DEFAULT_SECTION: SectionKey = 'cgu';
 
 export default function LegalScreen() {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const { section } = useLocalSearchParams<{ section?: string }>();
   const key = (SECTIONS[section as SectionKey] ? section : DEFAULT_SECTION) as SectionKey;
   const { title, body } = SECTIONS[key];
@@ -112,7 +116,7 @@ export default function LegalScreen() {
           accessibilityLabel="Retour"
           hitSlop={8}
         >
-          <ArrowLeft color={Colors.light.text} size={24} />
+          <ArrowLeft color={colors.text} size={24} />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
         <View style={styles.headerSpacer} />
@@ -125,10 +129,11 @@ export default function LegalScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: Colors.light.background,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
@@ -148,7 +153,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: 'bold',
-    color: Colors.light.text,
+    color: colors.text,
     textAlign: 'center',
   },
   headerSpacer: {
@@ -165,6 +170,7 @@ const styles = StyleSheet.create({
   body: {
     fontSize: 15,
     lineHeight: 24,
-    color: Colors.light.text,
+    color: colors.text,
   },
 });
+}

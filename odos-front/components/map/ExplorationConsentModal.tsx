@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Colors } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 
 type ExplorationConsentModalProps = {
   visible: boolean;
@@ -16,6 +16,9 @@ export function ExplorationConsentModal({
   onAccept,
   onDecline,
 }: ExplorationConsentModalProps) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.backdrop}>
@@ -42,47 +45,49 @@ export function ExplorationConsentModal({
   );
 }
 
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(15,23,42,0.45)',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 22,
-    gap: 14,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.light.text,
-  },
-  body: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: Colors.light.muted,
-  },
-  btnPrimary: {
-    backgroundColor: Colors.light.mapPrimaryCta,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  btnDisabled: { opacity: 0.6 },
-  btnPrimaryText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 15,
-  },
-  btnGhost: {
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  btnGhostText: {
-    color: Colors.light.muted,
-    fontSize: 14,
-  },
-});
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: 'rgba(15,23,42,0.45)',
+      justifyContent: 'center',
+      padding: 24,
+    },
+    card: {
+      backgroundColor: '#fff',
+      borderRadius: 20,
+      padding: 22,
+      gap: 14,
+    },
+    title: {
+      fontSize: 18,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    body: {
+      fontSize: 14,
+      lineHeight: 20,
+      color: colors.muted,
+    },
+    btnPrimary: {
+      backgroundColor: colors.mapPrimaryCta,
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    btnDisabled: { opacity: 0.6 },
+    btnPrimaryText: {
+      color: '#fff',
+      fontWeight: '700',
+      fontSize: 15,
+    },
+    btnGhost: {
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    btnGhostText: {
+      color: colors.muted,
+      fontSize: 14,
+    },
+  });
+}

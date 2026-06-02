@@ -1,82 +1,29 @@
 /**
- * Tokens DA ODOS — alignés sur docs/DESIGN_DIRECTION.md (landing → app).
+ * Tokens DA ODOS — point d’entrée public.
+ * Palettes : `constants/themes/` (extensible par ville / pays).
  */
 
 import { Platform } from 'react-native';
 
-/** Palette canonique (§2). */
-export const OdosTokens = {
-  orangePrimary: '#F4A261',
-  orangeHover: '#E07D3A',
-  orangeSoft: '#F9C49A',
-  blueAction: '#3B82F6',
-  tealAccent: '#5FC2D8',
-  textPrimary: '#11181C',
-  textMuted: '#6B6560',
-  bgPage: '#FDF8F2',
-  bgSurface: '#F5EDE0',
-  bgElevated: '#FFFFFF',
-  borderWarm: '#E8DFD3',
-  darkBgPage: '#171412',
-  darkBgSurface: '#211D1A',
-  darkText: '#F4EFE9',
-  darkTextMuted: '#C8BCB1',
-  darkBorder: '#3B342E',
-} as const;
+import { legacyColors } from '@/constants/themes/palettes/default';
+
+export { OdosTokens } from '@/constants/themes/tokens';
+export type {
+  ColorScheme,
+  OdosColorPalette,
+  ThemeDefinition,
+  ThemePreference,
+  ThemeVariantId,
+} from '@/constants/themes/types';
+
+/** @deprecated Préférer `useOdosColors()` — conservé pour migration progressive. */
+export const Colors = legacyColors;
 
 export const Radius = {
   pill: 100,
   card: 20,
   modal: 24,
 } as const;
-
-const tintColorLight = OdosTokens.blueAction;
-const tintColorDark = '#fff';
-
-export const Colors = {
-  light: {
-    text: OdosTokens.textPrimary,
-    background: OdosTokens.bgPage,
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
-    primary: OdosTokens.blueAction,
-    accent: OdosTokens.orangePrimary,
-    accentHover: OdosTokens.orangeHover,
-    accentSoft: OdosTokens.orangeSoft,
-    turquoise: OdosTokens.tealAccent,
-    surface: OdosTokens.bgSurface,
-    elevated: OdosTokens.bgElevated,
-    border: OdosTokens.borderWarm,
-    muted: OdosTokens.textMuted,
-    danger: '#ef4444',
-    mapPrimaryCta: OdosTokens.orangePrimary,
-    mapSecondary: OdosTokens.blueAction,
-    mapAccent: OdosTokens.tealAccent,
-  },
-  dark: {
-    text: OdosTokens.darkText,
-    background: OdosTokens.darkBgPage,
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
-    primary: '#60a5fa',
-    accent: OdosTokens.orangePrimary,
-    accentHover: OdosTokens.orangeHover,
-    accentSoft: OdosTokens.orangeSoft,
-    turquoise: OdosTokens.tealAccent,
-    surface: OdosTokens.darkBgSurface,
-    elevated: '#2A2520',
-    border: OdosTokens.darkBorder,
-    muted: OdosTokens.darkTextMuted,
-    danger: '#f87171',
-    mapPrimaryCta: OdosTokens.orangePrimary,
-    mapSecondary: '#60a5fa',
-    mapAccent: OdosTokens.tealAccent,
-  },
-};
 
 export const Spacing = {
   xs: 4,
@@ -87,7 +34,6 @@ export const Spacing = {
   xxl: 32,
 } as const;
 
-/** Noms Expo Google Fonts (chargés dans `_layout.tsx`). */
 export const FontFamily = {
   display: 'CormorantGaramond_600SemiBold',
   displayItalic: 'CormorantGaramond_600SemiBold_Italic',
@@ -97,7 +43,7 @@ export const FontFamily = {
   accent: 'Courgette_400Regular',
 } as const;
 
-/** @deprecated Préférer `FontFamily` — conservé pour compatibilité. */
+/** @deprecated Préférer `FontFamily` */
 export const Fonts = Platform.select({
   ios: {
     sans: FontFamily.ui,

@@ -21,20 +21,8 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { resolveImageUrl } from '@/utils/imageUrl';
 
 /** Palette alignée sur docs/DESIGN_DIRECTION.md */
-import { Colors, FontFamily } from '@/constants/theme';
-
-const S = {
-  screenBg: Colors.light.background,
-  chipInactiveBg: Colors.light.surface,
-  terracotta: Colors.light.accent,
-  terracottaDark: Colors.light.accentHover,
-  locationBlue: Colors.light.primary,
-  text: Colors.light.text,
-  textMuted: Colors.light.muted,
-  white: Colors.light.elevated,
-  badgeBg: Colors.light.accentSoft,
-  badgeText: Colors.light.text,
-};
+import { FontFamily } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 
 const serif = FontFamily.display;
 const sans = FontFamily.ui;
@@ -51,6 +39,8 @@ function formatPrice(price: number | null): string | null {
 }
 
 export default function SearchScreen() {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const activitiesQuery = useActivities();
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,7 +91,7 @@ export default function SearchScreen() {
   if (activitiesQuery.isLoading) {
     return (
       <View style={[styles.screen, styles.centered]}>
-        <ActivityIndicator size="large" color={S.terracotta} />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -131,11 +121,11 @@ export default function SearchScreen() {
 
         {/* Barre recherche pilule */}
         <View style={styles.searchPill}>
-          <SearchIcon color={S.locationBlue} size={20} />
+          <SearchIcon color={colors.primary} size={20} />
           <TextInput
             style={styles.searchInput}
             placeholder="Rechercher des activités..."
-            placeholderTextColor={S.textMuted}
+            placeholderTextColor={colors.muted}
             value={searchQuery}
             onChangeText={setSearchQuery}
             returnKeyType="search"
@@ -199,7 +189,7 @@ export default function SearchScreen() {
                   </View>
                   <Text style={styles.heroTitle}>{featured.name}</Text>
                   <View style={styles.heroLocationRow}>
-                    <MapPin size={14} color={S.white} />
+                    <MapPin size={14} color={colors.elevated} />
                     <Text style={styles.heroLocation}>
                       {featured.city ?? 'À découvrir'}
                     </Text>
@@ -234,6 +224,8 @@ export default function SearchScreen() {
 }
 
 function HeroImage({ activity }: { activity: ApiActivity }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const uri = resolveImageUrl(activity.imageUrl);
   if (!uri) {
     return <View style={[styles.heroImage, styles.heroImagePlaceholder]} />;
@@ -249,6 +241,8 @@ function HeroImage({ activity }: { activity: ApiActivity }) {
 }
 
 function GridCard({ activity, onPress }: { activity: ApiActivity; onPress: () => void }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const uri = resolveImageUrl(activity.imageUrl);
   return (
     <Pressable onPress={onPress} style={styles.gridCard} accessibilityRole="button">
@@ -268,6 +262,8 @@ function GridCard({ activity, onPress }: { activity: ApiActivity; onPress: () =>
 }
 
 function BannerCard({ activity, onPress }: { activity: ApiActivity; onPress: () => void }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const uri = resolveImageUrl(activity.imageUrl);
   const price = formatPrice(activity.price);
   const sub =
@@ -293,12 +289,14 @@ function BannerCard({ activity, onPress }: { activity: ApiActivity; onPress: () 
         </Text>
         {price ? <Text style={styles.bannerPrice}>{price}</Text> : null}
       </View>
-      <ChevronRight color={S.locationBlue} size={22} style={styles.bannerChevron} />
+      <ChevronRight color={colors.primary} size={22} style={styles.bannerChevron} />
     </Pressable>
   );
 }
 
 function SearchResultRow({ item, onPress }: { item: ApiActivity; onPress: () => void }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const uri = resolveImageUrl(item.imageUrl);
   const price = formatPrice(item.price);
   return (
@@ -320,7 +318,7 @@ function SearchResultRow({ item, onPress }: { item: ApiActivity; onPress: () => 
         </Text>
         {price ? <Text style={styles.bannerPrice}>{price}</Text> : null}
       </View>
-      <ChevronRight color={S.locationBlue} size={20} />
+      <ChevronRight color={colors.primary} size={20} />
     </Pressable>
   );
 }
@@ -328,10 +326,11 @@ function SearchResultRow({ item, onPress }: { item: ApiActivity; onPress: () => 
 const winW = Dimensions.get('window').width;
 const horizontalPad = 20;
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: S.screenBg,
+    backgroundColor: colors.background,
   },
   centered: {
     justifyContent: 'center',
@@ -353,14 +352,14 @@ const styles = StyleSheet.create({
   headlineSerifDark: {
     fontFamily: serif,
     fontSize: 28,
-    color: S.text,
+    color: colors.text,
     fontWeight: '400',
     lineHeight: 34,
   },
   headlineSerifAccent: {
     fontFamily: serif,
     fontSize: 28,
-    color: S.terracotta,
+    color: colors.accent,
     fontWeight: '400',
     lineHeight: 34,
     marginTop: 2,
@@ -369,14 +368,14 @@ const styles = StyleSheet.create({
     fontFamily: serif,
     fontSize: 22,
     fontWeight: '600',
-    color: S.terracotta,
+    color: colors.accent,
     letterSpacing: 3,
     marginTop: 4,
   },
   searchPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: S.white,
+    backgroundColor: colors.elevated,
     borderRadius: 999,
     paddingVertical: 14,
     paddingHorizontal: 18,
@@ -397,7 +396,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontFamily: sans,
-    color: S.text,
+    color: colors.text,
     padding: 0,
   },
   chipsRow: {
@@ -412,19 +411,19 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   chipInactive: {
-    backgroundColor: S.chipInactiveBg,
+    backgroundColor: colors.surface,
   },
   chipActive: {
-    backgroundColor: S.terracotta,
+    backgroundColor: colors.accent,
   },
   chipLabel: {
     fontSize: 14,
     fontFamily: sans,
     fontWeight: '600',
-    color: S.textMuted,
+    color: colors.muted,
   },
   chipLabelActive: {
-    color: S.white,
+    color: colors.elevated,
   },
   heroCard: {
     width: winW - horizontalPad * 2,
@@ -447,7 +446,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   heroImagePlaceholder: {
-    backgroundColor: S.chipInactiveBg,
+    backgroundColor: colors.surface,
   },
   heroOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -462,7 +461,7 @@ const styles = StyleSheet.create({
   },
   badge: {
     alignSelf: 'flex-start',
-    backgroundColor: S.badgeBg,
+    backgroundColor: colors.accentSoft,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
@@ -472,14 +471,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.2,
-    color: S.badgeText,
+    color: colors.text,
     fontFamily: sans,
   },
   heroTitle: {
     fontFamily: serif,
     fontSize: 24,
     fontWeight: '600',
-    color: S.white,
+    color: colors.elevated,
     marginBottom: 6,
     textShadowColor: 'rgba(0,0,0,0.35)',
     textShadowOffset: { width: 0, height: 1 },
@@ -493,7 +492,7 @@ const styles = StyleSheet.create({
   heroLocation: {
     fontFamily: sans,
     fontSize: 14,
-    color: S.white,
+    color: colors.elevated,
     fontWeight: '500',
   },
   gridRow: {
@@ -528,7 +527,7 @@ const styles = StyleSheet.create({
     fontFamily: serif,
     fontSize: 16,
     fontWeight: '600',
-    color: S.text,
+    color: colors.text,
     marginBottom: 4,
     lineHeight: 20,
   },
@@ -537,7 +536,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.1,
-    color: S.locationBlue,
+    color: colors.primary,
   },
   banner: {
     flexDirection: 'row',
@@ -567,13 +566,13 @@ const styles = StyleSheet.create({
     fontFamily: serif,
     fontSize: 17,
     fontWeight: '600',
-    color: S.text,
+    color: colors.text,
   },
   bannerSub: {
     fontFamily: serif,
     fontSize: 12,
     fontStyle: 'italic',
-    color: S.textMuted,
+    color: colors.muted,
     marginTop: 4,
     lineHeight: 16,
   },
@@ -581,7 +580,7 @@ const styles = StyleSheet.create({
     fontFamily: sans,
     fontSize: 16,
     fontWeight: '800',
-    color: S.terracottaDark,
+    color: colors.accentHover,
     marginTop: 6,
   },
   bannerChevron: {
@@ -590,7 +589,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: serif,
     fontSize: 20,
-    color: S.text,
+    color: colors.text,
     marginBottom: 12,
     marginTop: 4,
   },
@@ -600,7 +599,7 @@ const styles = StyleSheet.create({
   resultRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: S.white,
+    backgroundColor: colors.elevated,
     borderRadius: 20,
     padding: 12,
     marginBottom: 10,
@@ -633,13 +632,13 @@ const styles = StyleSheet.create({
   resultMeta: {
     fontFamily: sans,
     fontSize: 12,
-    color: S.textMuted,
+    color: colors.muted,
     marginTop: 2,
   },
   emptyText: {
     textAlign: 'center',
     fontSize: 15,
-    color: S.textMuted,
+    color: colors.muted,
     fontFamily: sans,
     marginTop: 24,
   },
@@ -650,3 +649,4 @@ const styles = StyleSheet.create({
     fontFamily: sans,
   },
 });
+}

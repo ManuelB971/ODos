@@ -1,4 +1,4 @@
-import React, { memo, useEffect } from 'react';
+import React, { memo, useEffect, useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Heart, MapPin as MapPinIcon, Star } from 'lucide-react-native';
@@ -10,7 +10,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { Colors } from '@/constants/theme';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { ApiActivity } from '@/types';
 import { resolveImageUrl } from '@/utils/imageUrl';
 
@@ -23,17 +23,6 @@ export type FavoriteCardProps = {
   onToggleFavorite: () => void;
 };
 
-/**
- * Card favoris compact (format 2 colonnes).
- *
- * - Grande image au-dessus (ratio 4/5), badges superposés (note, ville).
- * - Toggle cœur animé : scale "bounce" sur tap (+ rouge plein quand actif).
- * - Feedback immédiat : le parent gère l'optimistic update, on s'aligne dessus.
- *
- * Pourquoi un composant dédié plutôt que réutiliser `ActivityCard` de la map ?
- * Les proportions / densité info sont différentes : la card favoris est plus
- * verticale, avec une image 4:5 (Instagram-like) et moins de meta.
- */
 function FavoriteCardComponent({
   item,
   isFavorite,
@@ -41,10 +30,11 @@ function FavoriteCardComponent({
   onPress,
   onToggleFavorite,
 }: FavoriteCardProps) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const scale = useSharedValue(1);
   const heartBounce = useSharedValue(1);
 
-  // Micro-interaction : feedback tactile sur press-in
   const animPress = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
@@ -52,7 +42,6 @@ function FavoriteCardComponent({
     transform: [{ scale: heartBounce.value }],
   }));
 
-  // Bounce quand l'état de favori change (onglet de favoris → on aime / on retire).
   useEffect(() => {
     heartBounce.value = withSequence(
       withSpring(1.35, { damping: 6, stiffness: 280, mass: 0.4 }),
@@ -84,7 +73,6 @@ function FavoriteCardComponent({
             <View style={[StyleSheet.absoluteFill, styles.placeholder]} />
           )}
 
-          {/* Bouton favori en haut à droite, isolé (stopPropagation par défaut sur Pressable) */}
           <Pressable
             onPress={onToggleFavorite}
             disabled={isPending}
@@ -96,13 +84,12 @@ function FavoriteCardComponent({
             <Animated.View style={animHeart}>
               <Heart
                 size={18}
-                color={isFavorite ? Colors.light.danger : '#ffffff'}
-                fill={isFavorite ? Colors.light.danger : 'transparent'}
+                color={isFavorite ? colors.danger : '#ffffff'}
+                fill={isFavorite ? colors.danger : 'transparent'}
               />
             </Animated.View>
           </Pressable>
 
-          {/* Badge rating en bas à gauche */}
           {typeof item.ratingAverage === 'number' && item.ratingAverage > 0 ? (
             <View style={styles.ratingBadge}>
               <Star size={10} color="#fff" fill="#fff" />
@@ -125,7 +112,7 @@ function FavoriteCardComponent({
           </Text>
           {item.city ? (
             <View style={styles.cityRow}>
-              <MapPinIcon size={11} color={Colors.light.muted} />
+              <MapPinIcon size={11} color={colors.muted} />
               <Text numberOfLines={1} style={styles.city}>
                 {item.city}
               </Text>
@@ -140,96 +127,98 @@ function FavoriteCardComponent({
 export const FavoriteCard = memo(FavoriteCardComponent);
 FavoriteCard.displayName = 'FavoriteCard';
 
-const styles = StyleSheet.create({
-  card: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    overflow: 'hidden',
-    marginBottom: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  imageWrap: {
-    width: '100%',
-    aspectRatio: 4 / 5,
-    backgroundColor: Colors.light.surface,
-    position: 'relative',
-  },
-  placeholder: {
-    backgroundColor: Colors.light.surface,
-  },
-  heartBtn: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(17,24,28,0.4)',
-  },
-  ratingBadge: {
-    position: 'absolute',
-    bottom: 10,
-    left: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(17,24,28,0.78)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  ratingText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  categoryBadge: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 8,
-    maxWidth: '60%',
-  },
-  categoryText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: Colors.light.text,
-    letterSpacing: 0.6,
-  },
-  body: {
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    gap: 3,
-  },
-  title: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.light.text,
-  },
-  cityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  city: {
-    fontSize: 11,
-    color: Colors.light.muted,
-    flex: 1,
-  },
-});
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
+    card: {
+      flex: 1,
+      backgroundColor: '#fff',
+      borderRadius: 20,
+      overflow: 'hidden',
+      marginBottom: 14,
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 10,
+        },
+        android: {
+          elevation: 2,
+        },
+      }),
+    },
+    imageWrap: {
+      width: '100%',
+      aspectRatio: 4 / 5,
+      backgroundColor: colors.surface,
+      position: 'relative',
+    },
+    placeholder: {
+      backgroundColor: colors.surface,
+    },
+    heartBtn: {
+      position: 'absolute',
+      top: 10,
+      right: 10,
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'rgba(17,24,28,0.4)',
+    },
+    ratingBadge: {
+      position: 'absolute',
+      bottom: 10,
+      left: 10,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      backgroundColor: 'rgba(17,24,28,0.78)',
+      paddingHorizontal: 7,
+      paddingVertical: 3,
+      borderRadius: 10,
+    },
+    ratingText: {
+      color: '#fff',
+      fontSize: 10,
+      fontWeight: '700',
+    },
+    categoryBadge: {
+      position: 'absolute',
+      top: 10,
+      left: 10,
+      backgroundColor: 'rgba(255,255,255,0.92)',
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: 8,
+      maxWidth: '60%',
+    },
+    categoryText: {
+      fontSize: 9,
+      fontWeight: '700',
+      color: colors.text,
+      letterSpacing: 0.6,
+    },
+    body: {
+      paddingHorizontal: 10,
+      paddingVertical: 10,
+      gap: 3,
+    },
+    title: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    cityRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+    },
+    city: {
+      fontSize: 11,
+      color: colors.muted,
+      flex: 1,
+    },
+  });
+}

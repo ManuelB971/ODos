@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 
-import { Colors } from '@/constants/theme';
+import { useOdosColors } from '@/context/ThemeContext';
 import type { ApiActivity } from '@/types';
 
 type ActivityPinsLayerProps = {
@@ -14,6 +14,8 @@ type ActivityPinsLayerProps = {
  * Le pin sélectionné (label + animation) est rendu séparément via `<Marker>`.
  */
 export function ActivityPinsLayer({ activities, selectedId }: ActivityPinsLayerProps) {
+  const colors = useOdosColors();
+
   const geojson = useMemo(
     () => ({
       type: 'FeatureCollection' as const,
@@ -42,7 +44,7 @@ export function ActivityPinsLayer({ activities, selectedId }: ActivityPinsLayerP
         source="odos-activity-pins"
         paint={{
           'circle-radius': 9,
-          'circle-color': Colors.light.mapSecondary,
+          'circle-color': colors.mapSecondary,
           'circle-stroke-width': 2.5,
           'circle-stroke-color': '#ffffff',
         }}
