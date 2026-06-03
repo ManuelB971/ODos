@@ -1,7 +1,8 @@
 import React, { memo, useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { MapPin as MapPinIcon, Star } from 'lucide-react-native';
+import { MapPin as MapPinIcon } from 'lucide-react-native';
+import { DaIcon } from '@/components/ui/DaIcon';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { ApiActivity } from '@/types';
@@ -59,7 +60,7 @@ function ActivityCardComponent({ activity, distanceKm, active = false, fullWidth
 
         {typeof activity.ratingAverage === 'number' && activity.ratingAverage > 0 ? (
           <View style={styles.ratingBadge}>
-            <Star size={11} color="#fff" fill="#fff" />
+            <DaIcon name="etoile" size={12} accessibilityLabel="Note" />
             <Text style={styles.ratingText}>{activity.ratingAverage.toFixed(1)}</Text>
           </View>
         ) : null}
@@ -116,7 +117,7 @@ function createStyles(colors: OdosColorPalette) {
       width: ACTIVITY_CARD_WIDTH,
       marginRight: ACTIVITY_CARD_GAP,
       borderRadius: 16,
-      backgroundColor: '#fff',
+      backgroundColor: colors.elevated,
       overflow: 'hidden',
       ...Platform.select({
         ios: {
@@ -153,14 +154,14 @@ function createStyles(colors: OdosColorPalette) {
       left: 10,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 4,
+      gap: 5,
       backgroundColor: 'rgba(17,24,28,0.78)',
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 12,
     },
     ratingText: {
-      color: '#fff',
+      color: colors.onAccent,
       fontSize: 11,
       fontWeight: '700',
     },
@@ -168,7 +169,9 @@ function createStyles(colors: OdosColorPalette) {
       position: 'absolute',
       bottom: 10,
       left: 10,
-      backgroundColor: 'rgba(255,255,255,0.92)',
+      backgroundColor: colors.elevated,
+      borderWidth: 1,
+      borderColor: colors.border,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 10,

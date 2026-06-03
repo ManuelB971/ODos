@@ -5,6 +5,7 @@ Document/
 .idea/
 .vscode/
 .cursor/
+.agents/
 *.swp
 *.swo
 *~

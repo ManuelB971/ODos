@@ -80,7 +80,7 @@ function MapPinComponent({ active = false, label, variant = 'arch' }: MapPinProp
                   borderLeftWidth: tailHalfBase + 2,
                   borderRightWidth: tailHalfBase + 2,
                   borderTopWidth: tailHeight + 2,
-                  borderTopColor: '#ffffff',
+                  borderTopColor: colors.elevated,
                   bottom: -(tailHeight + 2) + 3,
                 },
               ]}
@@ -166,10 +166,10 @@ function createStyles(colors: OdosColorPalette) {
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 2.5,
-      borderColor: '#fff',
+      borderColor: colors.elevated,
     },
     innerDot: {
-      backgroundColor: '#fff',
+      backgroundColor: colors.elevated,
     },
     tail: {
       position: 'absolute',
@@ -183,7 +183,9 @@ function createStyles(colors: OdosColorPalette) {
       top: '70%',
       paddingHorizontal: 8,
       paddingVertical: 4,
-      backgroundColor: '#fff',
+      backgroundColor: colors.elevated,
+      borderWidth: 1,
+      borderColor: colors.border,
       borderRadius: 10,
       maxWidth: 140,
       shadowColor: '#000',

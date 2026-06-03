@@ -343,7 +343,7 @@ export default function SettingsScreen() {
               accessibilityRole="button"
               accessibilityLabel="Changer ma photo de profil"
             >
-              <Camera size={16} color="#fff" />
+              <Camera size={16} color={colors.onAccent} />
             </Pressable>
           </View>
           <Text style={styles.avatarName} numberOfLines={1}>
@@ -381,7 +381,7 @@ export default function SettingsScreen() {
         ) : null}
 
         <Text style={styles.sectionTitle}>Apparence</Text>
-        <View style={[styles.card, { backgroundColor: colors.elevated, borderColor: colors.border }]}>
+        <View style={styles.card}>
           <Text style={[styles.switchLabel, { color: colors.text }]}>Thème de l&apos;application</Text>
           <Text style={[styles.switchHint, { color: colors.muted, marginBottom: 12 }]}>
             Clair, sombre ou celui du système.
@@ -589,7 +589,7 @@ function createStyles(colors: OdosColorPalette) {
   },
   avatarCard: {
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: colors.elevated,
     borderRadius: 24,
     paddingVertical: 22,
     paddingHorizontal: 16,
@@ -616,7 +616,7 @@ function createStyles(colors: OdosColorPalette) {
     justifyContent: 'center',
   },
   avatarInitials: {
-    color: '#fff',
+    color: colors.onAccent,
     fontSize: 28,
     fontWeight: '800',
     letterSpacing: 1,
@@ -632,7 +632,7 @@ function createStyles(colors: OdosColorPalette) {
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: '#fff',
+    borderColor: colors.elevated,
   },
   avatarName: {
     fontSize: 18,
@@ -679,7 +679,7 @@ function createStyles(colors: OdosColorPalette) {
     color: colors.danger,
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.elevated,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
@@ -705,7 +705,7 @@ function createStyles(colors: OdosColorPalette) {
     fontWeight: '600',
   },
   bioInput: {
-    backgroundColor: '#fff',
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 14,

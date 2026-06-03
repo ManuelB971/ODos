@@ -1,8 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import { Search, SlidersHorizontal, X } from 'lucide-react-native';
+import { SlidersHorizontal, X } from 'lucide-react-native';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { DaIcon } from '@/components/ui/DaIcon';
 
 export type SearchBarProps = {
   value: string;
@@ -29,7 +30,7 @@ export function SearchBar({
   const [isFocused, setIsFocused] = useState(false);
 
   const containerStyle = useAnimatedStyle(() => ({
-    borderColor: focus.value > 0.5 ? colors.mapPrimaryCta : 'rgba(255,255,255,0.6)',
+    borderColor: focus.value > 0.5 ? colors.mapPrimaryCta : colors.border,
     shadowOpacity: 0.1 + focus.value * 0.15,
     transform: [{ scale: 1 + focus.value * 0.015 }],
   }));
@@ -37,7 +38,12 @@ export function SearchBar({
   return (
     <Animated.View style={[styles.wrap, containerStyle]}>
       <View style={styles.iconBox}>
-        <Search size={18} color={isFocused ? colors.mapPrimaryCta : colors.muted} />
+        <DaIcon
+          name="loupe"
+          size={20}
+          opacity={isFocused ? 1 : 0.85}
+          accessibilityLabel="Rechercher"
+        />
       </View>
       <TextInput
         value={value}
@@ -87,12 +93,12 @@ function createStyles(colors: OdosColorPalette) {
     wrap: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: 'rgba(255,255,255,0.92)',
+      backgroundColor: colors.overlay,
       borderRadius: 20,
       paddingHorizontal: 8,
       paddingVertical: 6,
       borderWidth: 1,
-      borderColor: 'rgba(255,255,255,0.6)',
+      borderColor: colors.border,
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -123,7 +129,7 @@ function createStyles(colors: OdosColorPalette) {
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 14,
-      backgroundColor: '#f1f5f9',
+      backgroundColor: colors.surface,
       marginRight: 4,
     },
     filterBtn: {
@@ -132,7 +138,7 @@ function createStyles(colors: OdosColorPalette) {
       alignItems: 'center',
       justifyContent: 'center',
       borderRadius: 18,
-      backgroundColor: '#fff',
+      backgroundColor: colors.elevated,
       borderWidth: 1,
       borderColor: colors.border,
     },

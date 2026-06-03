@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Pencil, Trash2, Send } from 'lucide-react-native';
+import { DaIcon } from '@/components/ui/DaIcon';
 import * as Haptics from 'expo-haptics';
 import { Spacing } from '@/constants/theme';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
@@ -110,7 +111,10 @@ export function ActivityCommentsSection({
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.sectionTitle}>Commentaires</Text>
+      <View style={styles.sectionTitleRow}>
+        <DaIcon name="bulle-chat" size={22} accessibilityLabel="" />
+        <Text style={styles.sectionTitle}>Commentaires</Text>
+      </View>
 
       {commentToast && (
         <InlineToast
@@ -273,11 +277,17 @@ export function ActivityCommentsSection({
 function createStyles(colors: OdosColorPalette) {
   return StyleSheet.create({
   wrap: { marginTop: Spacing.md },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: Spacing.sm,
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: Spacing.sm,
+    letterSpacing: 0.2,
   },
   skeletonList: { gap: Spacing.md },
   skeletonRow: { flexDirection: 'row', gap: Spacing.sm, alignItems: 'flex-start' },

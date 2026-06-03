@@ -11,7 +11,8 @@ import {
   Linking,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { MapPin, ArrowLeft, Heart, Star, Navigation } from 'lucide-react-native';
+import { MapPin, ArrowLeft, Heart, Navigation } from 'lucide-react-native';
+import { DaIcon } from '@/components/ui/DaIcon';
 import { useMemo, useState, useEffect } from 'react';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -92,11 +93,12 @@ function StarsDisplay({ value, max = 5, size = 18 }: { value: number; max?: numb
   return (
     <View style={styles.starsRow}>
       {Array.from({ length: max }, (_, i) => (
-        <Star
+        <DaIcon
           key={`star-${i}`}
+          name="etoile"
           size={size}
-          color={i < full ? '#f59e0b' : colors.muted}
-          fill={i < full ? '#f59e0b' : 'none'}
+          opacity={i < full ? 1 : 0.28}
+          accessibilityLabel={i < full ? 'Étoile pleine' : 'Étoile vide'}
         />
       ))}
     </View>
@@ -515,10 +517,11 @@ export default function ActivityDetails() {
                     disabled={putRatingMutation.isPending}
                     hitSlop={6}
                   >
-                    <Star
+                    <DaIcon
+                      name="etoile"
                       size={28}
-                      color={userScore != null && s <= userScore ? '#f59e0b' : colors.muted}
-                      fill={userScore != null && s <= userScore ? '#f59e0b' : 'none'}
+                      opacity={userScore != null && s <= userScore ? 1 : 0.32}
+                      accessibilityLabel={`Noter ${s} sur 5`}
                     />
                   </Pressable>
                 ))}

@@ -39,7 +39,9 @@ function createStyles(colors: OdosColorPalette) {
       paddingHorizontal: 12,
       paddingVertical: 8,
       borderRadius: 14,
-      backgroundColor: 'rgba(255,255,255,0.94)',
+      backgroundColor: colors.overlay,
+      borderWidth: 1,
+      borderColor: colors.border,
       ...Platform.select({
         ios: {
           shadowColor: '#000',

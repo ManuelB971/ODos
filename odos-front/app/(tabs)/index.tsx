@@ -7,7 +7,8 @@ import {
   Image,
   ScrollView,
 } from 'react-native';
-import { MapPin as MapPinIcon, Star, ArrowRight } from 'lucide-react-native';
+import { ArrowRight, MapPin as MapPinIcon } from 'lucide-react-native';
+import { DaIcon } from '@/components/ui/DaIcon';
 import { Link, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { useInterests } from '@/context/InterestContext';
@@ -92,7 +93,7 @@ function RecommendationCard({ item }: { item: ApiActivity }) {
           )}
           {rating != null && rating > 0 ? (
             <View style={styles.recoBadge}>
-              <Star size={12} color="#fff" fill="#fff" />
+              <DaIcon name="etoile" size={13} accessibilityLabel="Note" />
               <Text style={styles.recoBadgeText}>{rating.toFixed(1)}</Text>
             </View>
           ) : null}
@@ -253,8 +254,8 @@ export default function HomeScreen() {
                   </Text>
                 </View>
                 <View pointerEvents="none" style={styles.mapCta}>
+                  <DaIcon name="carte" size={18} accessibilityLabel="" />
                   <Text style={styles.mapCtaText}>Explorer la carte</Text>
-                  <ArrowRight size={14} color="#fff" />
                 </View>
               </Pressable>
             </View>
@@ -454,10 +455,10 @@ function createStyles(colors: OdosColorPalette) {
     bottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     backgroundColor: colors.mapPrimaryCta,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
     borderRadius: 14,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
@@ -466,7 +467,7 @@ function createStyles(colors: OdosColorPalette) {
     elevation: 3,
   },
   mapCtaText: {
-    color: '#fff',
+    color: colors.onAccent,
     fontFamily: FontFamily.uiBold,
     fontSize: 13,
     letterSpacing: 0.3,

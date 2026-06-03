@@ -14,7 +14,8 @@ import {
   View,
 } from 'react-native';
 import { Map, Camera, Marker, type CameraRef } from '@maplibre/maplibre-react-native';
-import { ArrowLeft, Compass } from 'lucide-react-native';
+import { ArrowLeft } from 'lucide-react-native';
+import { DaIcon } from '@/components/ui/DaIcon';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -314,7 +315,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         accessibilityRole="button"
         accessibilityLabel="Recentrer la carte"
       >
-        <Compass size={18} color={colors.text} />
+        <DaIcon name="boussole" size={22} accessibilityLabel="Recentrer la carte" />
       </Pressable>
 
       {selectedActivity ? (
@@ -351,7 +352,7 @@ function createStyles(colors: OdosColorPalette) {
   return StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.background,
   },
   mapStage: {
     ...StyleSheet.absoluteFillObject,
@@ -379,9 +380,11 @@ function createStyles(colors: OdosColorPalette) {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -427,7 +430,9 @@ function createStyles(colors: OdosColorPalette) {
     textAlign: 'center',
   },
   bannerError: {
-    backgroundColor: '#fff5f5',
+    backgroundColor: colors.errorSurface,
+    borderWidth: 1,
+    borderColor: `${colors.danger}44`,
   },
   bannerErrorText: {
     fontSize: 13,
@@ -440,7 +445,9 @@ function createStyles(colors: OdosColorPalette) {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#fff',
+    backgroundColor: colors.overlay,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 8,

@@ -11,7 +11,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AlertCircle, Check, Mail, Square } from 'lucide-react-native';
+import { AlertCircle, Mail, Square } from 'lucide-react-native';
+import { DaIcon } from '@/components/ui/DaIcon';
 
 import { signUp, signIn } from '@/services/AuthService';
 import { useAuth } from '@/context/AuthContext';
@@ -214,7 +215,7 @@ export default function LoginScreen() {
               >
                 {acceptTerms ? (
                   <View style={[styles.consentBox, styles.consentBoxChecked]}>
-                    <Check size={14} color="#fff" strokeWidth={3} />
+                    <DaIcon name="check-mark" size={14} accessibilityLabel="Accepté" />
                   </View>
                 ) : (
                   <Square size={22} color={colors.muted} />

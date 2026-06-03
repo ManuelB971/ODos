@@ -61,7 +61,7 @@ function createStyles(colors: OdosColorPalette) {
       color: colors.text,
     },
     chipTextActive: {
-      color: '#ffffff',
+      color: colors.onAccent,
       fontFamily: FontFamily.uiBold,
     },
   });

@@ -11,7 +11,8 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { ChevronRight, MapPin, Search as SearchIcon } from 'lucide-react-native';
+import { ChevronRight, MapPin } from 'lucide-react-native';
+import { DaIcon } from '@/components/ui/DaIcon';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -121,7 +122,7 @@ export default function SearchScreen() {
 
         {/* Barre recherche pilule */}
         <View style={styles.searchPill}>
-          <SearchIcon color={colors.primary} size={20} />
+          <DaIcon name="loupe" size={22} accessibilityLabel="Rechercher" />
           <TextInput
             style={styles.searchInput}
             placeholder="Rechercher des activités..."
@@ -377,10 +378,13 @@ function createStyles(colors: OdosColorPalette) {
     alignItems: 'center',
     backgroundColor: colors.elevated,
     borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
     paddingVertical: 14,
     paddingHorizontal: 18,
     marginBottom: 18,
     gap: 12,
+    minHeight: 52,
     ...Platform.select({
       ios: {
         shadowColor: '#0f2340',
