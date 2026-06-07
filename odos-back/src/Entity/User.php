@@ -175,6 +175,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private Collection $favorites;
 
     /**
+     * Activités que l'utilisateur déclare avoir visitées (« J'ai visité »).
+     * Signal explicite alimentant le collaborative filtering des recommandations.
+     *
+     * @var Collection<int, Activity>
+     */
+    #[ORM\ManyToMany(targetEntity: Activity::class, inversedBy: 'visitedBy')]
+    #[ORM\JoinTable(name: 'user_visited_activity')]
+    #[Groups(['user:read'])]
+    private Collection $visitedActivities;
+
+    /**
      * @var Collection<int, AdminWebauthnCredential>
      */
     #[ORM\OneToMany(mappedBy: 'user', targetEntity: AdminWebauthnCredential::class, orphanRemoval: true)]
@@ -222,6 +233,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->interests = new ArrayCollection();
         $this->favorites = new ArrayCollection();
+        $this->visitedActivities = new ArrayCollection();
         $this->webauthnCredentials = new ArrayCollection();
         $this->authoredComments = new ArrayCollection();
         $this->activityRatings = new ArrayCollection();
@@ -505,6 +517,35 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function hasFavorite(Activity $activity): bool
     {
         return $this->favorites->contains($activity);
+    }
+
+    /**
+     * @return Collection<int, Activity>
+     */
+    public function getVisitedActivities(): Collection
+    {
+        return $this->visitedActivities;
+    }
+
+    public function addVisitedActivity(Activity $activity): static
+    {
+        if (!$this->visitedActivities->contains($activity)) {
+            $this->visitedActivities->add($activity);
+        }
+
+        return $this;
+    }
+
+    public function removeVisitedActivity(Activity $activity): static
+    {
+        $this->visitedActivities->removeElement($activity);
+
+        return $this;
+    }
+
+    public function hasVisited(Activity $activity): bool
+    {
+        return $this->visitedActivities->contains($activity);
     }
 
     /**

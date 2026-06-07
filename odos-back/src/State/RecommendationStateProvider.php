@@ -4,27 +4,26 @@ namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
-use App\Entity\User;
-use App\Repository\ActivityRepository;
-use App\Service\LlmRankingService;
-use Symfony\Bundle\SecurityBundle\Security;
 use App\Entity\Activity;
+use App\Entity\User;
+use App\Recommendation\RecommendationEngineInterface;
+use Symfony\Bundle\SecurityBundle\Security;
 
 /**
- * Provides recommended activities based on the authenticated user's interests.
+ * Adaptateur API Platform pour l'endpoint GET /api/recommendations.
  *
- * Pipeline:
- * 1. DB candidates (category filter + isPublished)
- * 2. LLM re-ranking (if enabled) for smarter ordering
- * 3. Fallback to DB order if LLM is disabled or fails
+ * Ne contient AUCUNE logique d'algorithme : il résout l'utilisateur courant et
+ * délègue tout le calcul au moteur câblé pour {@see RecommendationEngineInterface}.
+ * Changer / A-B tester l'algo = changer l'implémentation dans config/services.yaml,
+ * sans toucher à cette classe.
+ *
+ * @implements ProviderInterface<Activity>
  */
-/** @implements ProviderInterface<Activity> */
-class RecommendationStateProvider implements ProviderInterface
+final class RecommendationStateProvider implements ProviderInterface
 {
     public function __construct(
-        private ActivityRepository $activityRepository,
-        private Security $security,
-        private LlmRankingService $llmRankingService,
+        private readonly Security $security,
+        private readonly RecommendationEngineInterface $engine,
     ) {}
 
     /** @return array<Activity> */
@@ -36,40 +35,6 @@ class RecommendationStateProvider implements ProviderInterface
             return [];
         }
 
-        $interests = $user->getInterests();
-
-        if ($interests->isEmpty()) {
-            $candidates = $this->activityRepository->createQueryBuilder('a')
-                ->where('a.isPublished = :pub')
-                ->setParameter('pub', true)
-                ->orderBy('a.id', 'DESC')
-                ->getQuery()
-                ->getResult();
-
-            return $this->llmRankingService->rank([], $candidates);
-        }
-
-        $categoryIds = $interests->map(fn($category) => $category->getId())->toArray();
-        $interestCategoryIds = $categoryIds;
-        sort($interestCategoryIds);
-
-        $userId = $user->getId();
-        $cacheKey = $userId !== null
-            ? hash('sha256', $userId . ':' . implode(',', $interestCategoryIds))
-            : null;
-
-        $interestNames = $interests->map(fn($category) => $category->getName())->toArray();
-
-        $candidates = $this->activityRepository->createQueryBuilder('a')
-            ->join('a.category', 'c')
-            ->where('c.id IN (:categoryIds)')
-            ->andWhere('a.isPublished = :pub')
-            ->setParameter('categoryIds', $categoryIds)
-            ->setParameter('pub', true)
-            ->orderBy('a.id', 'DESC')
-            ->getQuery()
-            ->getResult();
-
-        return $this->llmRankingService->rank($interestNames, $candidates, $cacheKey);
+        return $this->engine->recommend($user);
     }
 }

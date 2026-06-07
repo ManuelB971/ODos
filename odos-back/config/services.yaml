@@ -21,7 +21,14 @@ parameters:
     app.llm.enabled: '%env(bool:LLM_ENABLED)%'
     app.llm.cache_ttl_seconds: '%env(int:LLM_CACHE_TTL_SECONDS)%'
     app.admin.mfa_enabled: '%env(bool:ADMIN_MFA_ENABLED)%'
+    # Recommandations — collaborative filtering (poids des signaux, taille du pool CF).
+    app.reco.visit_weight: '%env(float:default:reco_visit_weight_default:RECO_VISIT_WEIGHT)%'
+    app.reco.favorite_weight: '%env(float:default:reco_favorite_weight_default:RECO_FAVORITE_WEIGHT)%'
+    app.reco.candidate_limit: '%env(int:default:reco_candidate_limit_default:RECO_CANDIDATE_LIMIT)%'
     # Fallbacks for env(default:…:VAR) — must be parameter names, not literal numbers.
+    reco_visit_weight_default: 2.0
+    reco_favorite_weight_default: 1.0
+    reco_candidate_limit_default: 50
     jwt_token_ttl_default: 900
     jwt_refresh_ttl_default: 2592000
     app.oauth.apple_client_id_default: ''
@@ -128,3 +135,14 @@ services:
             $topK: '%app.llm.top_k%'
             $candidateMax: '%app.llm.candidate_max%'
             $llmEnabled: '%app.llm.enabled%'
+
+    # Moteur de recommandation : politique (poids CF) injectée par config.
+    App\Recommendation\CollaborativeRecommendationEngine:
+        arguments:
+            $visitWeight: '%app.reco.visit_weight%'
+            $favoriteWeight: '%app.reco.favorite_weight%'
+            $candidateLimit: '%app.reco.candidate_limit%'
+
+    # Implémentation active de l'algo. Pour en changer (A-B test, futur moteur ML),
+    # il suffit de réaliaser cette interface vers une autre classe.
+    App\Recommendation\RecommendationEngineInterface: '@App\Recommendation\CollaborativeRecommendationEngine'

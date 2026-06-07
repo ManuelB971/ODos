@@ -87,6 +87,12 @@ class Activity
     #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'favorites')]
     private Collection $favoritedBy;
 
+    /**
+     * @var Collection<int, User>
+     */
+    #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'visitedActivities')]
+    private Collection $visitedBy;
+
     #[ORM\Column(type: Types::DECIMAL, precision: 4, scale: 2, nullable: true)]
     #[Groups(['activity:read'])]
     private ?string $ratingAverage = null;
@@ -110,6 +116,7 @@ class Activity
     public function __construct()
     {
         $this->favoritedBy = new ArrayCollection();
+        $this->visitedBy = new ArrayCollection();
         $this->comments = new ArrayCollection();
         $this->ratings = new ArrayCollection();
     }
@@ -257,6 +264,14 @@ class Activity
     public function getFavoritedBy(): Collection
     {
         return $this->favoritedBy;
+    }
+
+    /**
+     * @return Collection<int, User>
+     */
+    public function getVisitedBy(): Collection
+    {
+        return $this->visitedBy;
     }
 
     public function getRatingAverage(): ?float
