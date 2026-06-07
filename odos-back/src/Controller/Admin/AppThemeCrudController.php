@@ -12,6 +12,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 
+/** @extends AbstractCrudController<AppTheme> */
 class AppThemeCrudController extends AbstractCrudController
 {
     public static function getEntityFqcn(): string

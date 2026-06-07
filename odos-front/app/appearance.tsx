@@ -41,7 +41,7 @@ export default function AppearanceScreen() {
       </View>
 
       {/* Mode */}
-      <Text style={styles.sectionLabel}>Mode d'affichage</Text>
+      <Text style={styles.sectionLabel}>{"Mode d'affichage"}</Text>
       <View style={styles.card}>
         {PREFERENCE_OPTIONS.map((opt, i) => {
           const isSelected = preference === opt.value;

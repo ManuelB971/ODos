@@ -25,21 +25,23 @@ export default function TabLayout() {
     name: TabIconName,
     seed: number,
     label: string,
-  ) => ({ focused }: { focused: boolean }) => (
-    <View
-      style={styles.tabIconSlot}
-      accessibilityLabel={label}
-      accessibilityRole="image"
-    >
-      {focused ? (
-        <BlobFrame size={44} seed={seed} backgroundColor={colors.accentSoft}>
-          <MaterialIcons name={name} size={24} color={colors.accent} />
-        </BlobFrame>
-      ) : (
-        <MaterialIcons name={name} size={24} color={colors.muted} />
-      )}
-    </View>
-  );
+  ) => function TabIcon({ focused }: { focused: boolean }) {
+    return (
+      <View
+        style={styles.tabIconSlot}
+        accessibilityLabel={label}
+        accessibilityRole="image"
+      >
+        {focused ? (
+          <BlobFrame size={44} seed={seed} backgroundColor={colors.accentSoft}>
+            <MaterialIcons name={name} size={24} color={colors.accent} />
+          </BlobFrame>
+        ) : (
+          <MaterialIcons name={name} size={24} color={colors.muted} />
+        )}
+      </View>
+    );
+  };
 
   return (
     <Tabs
