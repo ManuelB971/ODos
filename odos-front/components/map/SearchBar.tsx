@@ -40,8 +40,8 @@ export function SearchBar({
       <View style={styles.iconBox}>
         <DaIcon
           name="loupe"
-          size={20}
-          opacity={isFocused ? 1 : 0.85}
+          variant="input"
+          opacity={isFocused ? 1 : 0.82}
           accessibilityLabel="Rechercher"
         />
       </View>
@@ -112,8 +112,8 @@ function createStyles(colors: OdosColorPalette) {
       }),
     },
     iconBox: {
-      width: 36,
-      height: 36,
+      width: 40,
+      height: 40,
       alignItems: 'center',
       justifyContent: 'center',
     },

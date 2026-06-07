@@ -215,7 +215,7 @@ export default function LoginScreen() {
               >
                 {acceptTerms ? (
                   <View style={[styles.consentBox, styles.consentBoxChecked]}>
-                    <DaIcon name="check-mark" size={14} accessibilityLabel="Accepté" />
+                    <DaIcon name="check-mark" variant="chip" accessibilityLabel="Accepté" />
                   </View>
                 ) : (
                   <Square size={22} color={colors.muted} />

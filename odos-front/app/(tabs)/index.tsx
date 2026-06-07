@@ -93,7 +93,7 @@ function RecommendationCard({ item }: { item: ApiActivity }) {
           )}
           {rating != null && rating > 0 ? (
             <View style={styles.recoBadge}>
-              <DaIcon name="etoile" size={13} accessibilityLabel="Note" />
+              <DaIcon name="etoile" variant="badge" accessibilityLabel="Note" />
               <Text style={styles.recoBadgeText}>{rating.toFixed(1)}</Text>
             </View>
           ) : null}
@@ -254,7 +254,7 @@ export default function HomeScreen() {
                   </Text>
                 </View>
                 <View pointerEvents="none" style={styles.mapCta}>
-                  <DaIcon name="carte" size={18} accessibilityLabel="" />
+                  <DaIcon name="carte" variant="cta" accessibilityLabel="Carte" />
                   <Text style={styles.mapCtaText}>Explorer la carte</Text>
                 </View>
               </Pressable>
@@ -455,9 +455,9 @@ function createStyles(colors: OdosColorPalette) {
     bottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
     backgroundColor: colors.mapPrimaryCta,
     borderRadius: 14,
     shadowColor: '#000',
@@ -469,7 +469,7 @@ function createStyles(colors: OdosColorPalette) {
   mapCtaText: {
     color: colors.onAccent,
     fontFamily: FontFamily.uiBold,
-    fontSize: 13,
+    fontSize: 14,
     letterSpacing: 0.3,
   },
   sectionTitle: {

@@ -60,7 +60,7 @@ function ActivityCardComponent({ activity, distanceKm, active = false, fullWidth
 
         {typeof activity.ratingAverage === 'number' && activity.ratingAverage > 0 ? (
           <View style={styles.ratingBadge}>
-            <DaIcon name="etoile" size={12} accessibilityLabel="Note" />
+            <DaIcon name="etoile" variant="badge" accessibilityLabel="Note" />
             <Text style={styles.ratingText}>{activity.ratingAverage.toFixed(1)}</Text>
           </View>
         ) : null}

@@ -93,7 +93,7 @@ function FavoriteCardComponent({
 
           {typeof item.ratingAverage === 'number' && item.ratingAverage > 0 ? (
             <View style={styles.ratingBadge}>
-              <DaIcon name="etoile" size={11} accessibilityLabel="Note" />
+              <DaIcon name="etoile" variant="badge" accessibilityLabel="Note" />
               <Text style={styles.ratingText}>{item.ratingAverage.toFixed(1)}</Text>
             </View>
           ) : null}

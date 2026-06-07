@@ -315,7 +315,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         accessibilityRole="button"
         accessibilityLabel="Recentrer la carte"
       >
-        <DaIcon name="boussole" size={22} accessibilityLabel="Recentrer la carte" />
+        <DaIcon name="boussole" variant="mapControl" accessibilityLabel="Recentrer la carte" />
       </Pressable>
 
       {selectedActivity ? (
@@ -442,9 +442,9 @@ function createStyles(colors: OdosColorPalette) {
   recenterBtn: {
     position: 'absolute',
     right: 18,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: colors.overlay,
     borderWidth: 1,
     borderColor: colors.border,

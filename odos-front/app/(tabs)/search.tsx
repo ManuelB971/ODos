@@ -122,7 +122,7 @@ export default function SearchScreen() {
 
         {/* Barre recherche pilule */}
         <View style={styles.searchPill}>
-          <DaIcon name="loupe" size={22} accessibilityLabel="Rechercher" />
+          <DaIcon name="loupe" variant="input" accessibilityLabel="Rechercher" />
           <TextInput
             style={styles.searchInput}
             placeholder="Rechercher des activités..."

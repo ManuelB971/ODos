@@ -137,12 +137,23 @@ const InterestsScreen = () => {
         {!user ? (
           <View style={styles.onboardingSteps} accessibilityRole="text" accessibilityLabel="Étape 1 sur 2">
             <View style={styles.onboardingStep}>
-              <DaIcon name="step-1" size={36} accessibilityLabel="Étape 1" />
+              <DaIcon
+                name="step-1"
+                variant="hero"
+                blob={{ seed: 3, backgroundColor: colors.accentSoft, padding: 6 }}
+                accessibilityLabel="Étape 1"
+              />
               <Text style={styles.onboardingStepLabel}>Vos goûts</Text>
             </View>
             <View style={styles.onboardingStepDivider} />
             <View style={styles.onboardingStep}>
-              <DaIcon name="step-2" size={36} opacity={0.45} accessibilityLabel="Étape 2" />
+              <DaIcon
+                name="step-2"
+                variant="hero"
+                opacity={0.5}
+                blob={{ seed: 4, backgroundColor: colors.surface, padding: 6 }}
+                accessibilityLabel="Étape 2"
+              />
               <Text style={[styles.onboardingStepLabel, styles.onboardingStepLabelMuted]}>
                 Découverte
               </Text>
@@ -210,7 +221,9 @@ const InterestsScreen = () => {
                   accessibilityState={{ selected: active, disabled }}
                   accessibilityLabel={`${cat.name}${active ? ', sélectionné' : ''}`}
                 >
-                  {active ? <DaIcon name="check-mark" size={14} accessibilityLabel="Sélectionné" /> : null}
+                  {active ? (
+                    <DaIcon name="check-mark" variant="chip" accessibilityLabel="Sélectionné" />
+                  ) : null}
                   <Text
                     style={[
                       styles.chipText,
@@ -292,8 +305,8 @@ function createStyles(colors: OdosColorPalette) {
   },
   onboardingStep: {
     alignItems: 'center',
-    gap: 6,
-    minWidth: 88,
+    gap: 8,
+    minWidth: 96,
   },
   onboardingStepDivider: {
     width: 28,

@@ -112,7 +112,7 @@ export function ActivityCommentsSection({
   return (
     <View style={styles.wrap}>
       <View style={styles.sectionTitleRow}>
-        <DaIcon name="bulle-chat" size={22} accessibilityLabel="" />
+        <DaIcon name="bulle-chat" variant="input" accessibilityLabel="Commentaires" />
         <Text style={styles.sectionTitle}>Commentaires</Text>
       </View>
 
@@ -317,7 +317,7 @@ function createStyles(colors: OdosColorPalette) {
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitials: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  avatarInitials: { color: colors.onAccent, fontWeight: '700', fontSize: 12 },
   bubble: {
     maxWidth: '78%',
     borderRadius: 16,
@@ -334,9 +334,9 @@ function createStyles(colors: OdosColorPalette) {
   authorName: { fontSize: 12, fontWeight: '600', color: colors.muted, marginBottom: 4 },
   hiddenTag: { fontSize: 11, color: colors.danger, marginBottom: 4 },
   body: { fontSize: 15, lineHeight: 21, color: colors.text },
-  bodyMine: { color: '#fff' },
+  bodyMine: { color: colors.onAccent },
   time: { fontSize: 11, color: colors.muted, marginTop: 6 },
-  timeMine: { color: 'rgba(255,255,255,0.75)' },
+  timeMine: { color: `${colors.onAccent}BF` },
   actions: { flexDirection: 'row', gap: 12, marginTop: 8, alignItems: 'center' },
   actionBtn: { padding: 4 },
   link: { color: colors.primary, fontWeight: '600' },
