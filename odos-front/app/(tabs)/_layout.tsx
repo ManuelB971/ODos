@@ -1,11 +1,15 @@
 import { Tabs, useRouter } from 'expo-router';
 
-import { View } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
-import { DaIcon } from '@/components/ui/DaIcon';
-import { useEffect } from 'react';
+import { BlobFrame } from '@/components/ui/BlobFrame';
+import React, { useEffect } from 'react';
+
+type TabIconName = React.ComponentProps<typeof MaterialIcons>['name'];
+
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
@@ -17,6 +21,26 @@ export default function TabLayout() {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  const renderTabIcon = (
+    name: TabIconName,
+    seed: number,
+    label: string,
+  ) => ({ focused }: { focused: boolean }) => (
+    <View
+      style={styles.tabIconSlot}
+      accessibilityLabel={label}
+      accessibilityRole="image"
+    >
+      {focused ? (
+        <BlobFrame size={44} seed={seed} backgroundColor={colors.accentSoft}>
+          <MaterialIcons name={name} size={24} color={colors.accent} />
+        </BlobFrame>
+      ) : (
+        <MaterialIcons name={name} size={24} color={colors.muted} />
+      )}
+    </View>
+  );
+
   return (
     <Tabs
       screenOptions={{
@@ -24,9 +48,9 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
-          height: 56,
-          paddingBottom: 10,
-          paddingTop: 4,
+          height: 62,
+          paddingBottom: 8,
+          paddingTop: 6,
         },
         tabBarItemStyle: {
           paddingVertical: 2,
@@ -44,22 +68,14 @@ export default function TabLayout() {
         name="index"
         options={{
           title: '',
-          tabBarIcon: ({ focused }) => (
-            <View style={{ opacity: focused ? 1 : 0.72, transform: [{ scale: focused ? 1.04 : 1 }] }}>
-              <DaIcon name="boussole" size={26} accessibilityLabel="Accueil" />
-            </View>
-          ),
+          tabBarIcon: renderTabIcon('explore', 0, 'Accueil'),
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
           title: '',
-          tabBarIcon: ({ focused }) => (
-            <View style={{ opacity: focused ? 1 : 0.72, transform: [{ scale: focused ? 1.04 : 1 }] }}>
-              <DaIcon name="loupe" size={26} accessibilityLabel="Recherche" />
-            </View>
-          ),
+          tabBarIcon: renderTabIcon('search', 1, 'Recherche'),
         }}
       />
       <Tabs.Screen
@@ -72,11 +88,7 @@ export default function TabLayout() {
         name="account"
         options={{
           title: '',
-          tabBarIcon: ({ focused }) => (
-            <View style={{ opacity: focused ? 1 : 0.72, transform: [{ scale: focused ? 1.04 : 1 }] }}>
-              <DaIcon name="user" size={26} accessibilityLabel="Compte" />
-            </View>
-          ),
+          tabBarIcon: renderTabIcon('person', 2, 'Compte'),
         }}
       />
       <Tabs.Screen
@@ -89,3 +101,12 @@ export default function TabLayout() {
 
   );
 }
+
+const styles = StyleSheet.create({
+  tabIconSlot: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 48,
+    minHeight: 44,
+  },
+});
