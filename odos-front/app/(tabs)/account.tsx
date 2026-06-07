@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   View,
+  ImageBackground,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
@@ -23,7 +24,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useBadges } from '@/hooks/useBadges';
 import { useInterests } from '@/context/InterestContext';
-import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
+import { useActivities } from '@/hooks/useActivities';
+import { useQuery } from '@tanstack/react-query';
+import { fetchVisitedIds } from '@/scripts/api';
 import { FontFamily, Radius, Spacing } from '@/constants/theme';
 import { BlobFrame } from '@/components/ui/BlobFrame';
 import { CTAButton } from '@/components/ui/CTAButton';
@@ -37,15 +41,30 @@ import { resolveImageUrl } from '@/utils/imageUrl';
  *  2. Liste d'entrées (card unifiée) pour Paramètres, Favoris, Intérêts, Mentions.
  *  3. Bouton logout en bas, avec spinner inline (CTAButton variant="danger").
  */
+const SPRAY_BG = require('@/assets/images/spray-background.png');
+
 export default function AccountScreen() {
   const router = useRouter();
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isDark } = useTheme();
   const { user, logout } = useAuth();
   const { favorites } = useFavorites();
   const { interests } = useInterests();
   const { overview: badgesOverview } = useBadges();
   const profileBadges = badgesOverview?.profileDisplayed ?? [];
+
+  const visitedQuery = useQuery<number[]>({
+    queryKey: ['visitedIds'],
+    queryFn: fetchVisitedIds,
+    enabled: !!user,
+    staleTime: 1000 * 60 * 2,
+  });
+  const activitiesQuery = useActivities();
+
+  const visitedCount = visitedQuery.data?.length ?? 0;
+  const totalCount = activitiesQuery.data?.filter((a) => a.isPublished !== false).length ?? 0;
+  const explorationPct = totalCount > 0 ? Math.round((visitedCount / totalCount) * 100) : 0;
   const [loggingOut, setLoggingOut] = useState(false);
 
   /**
@@ -75,8 +94,14 @@ export default function AccountScreen() {
   };
 
   return (
-    <ScrollView
+    <ImageBackground
+      source={SPRAY_BG}
       style={styles.screen}
+      imageStyle={{ opacity: isDark ? 0.04 : 0.09 }}
+      resizeMode="cover"
+    >
+    <ScrollView
+      style={styles.screenInner}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
@@ -119,8 +144,24 @@ export default function AccountScreen() {
           onPress={() => router.push('/interests')}
         />
         <View style={styles.statDivider} />
-        <StatCell value={0} label="Visites" subtle />
+        <StatCell value={visitedCount} label="Visites" />
       </View>
+
+      {/* ── Barre d'exploration ── */}
+      {user && (
+        <View style={styles.explorationCard}>
+          <View style={styles.explorationHeader}>
+            <Text style={styles.explorationTitle}>Exploration</Text>
+            <Text style={styles.explorationPct}>{explorationPct}%</Text>
+          </View>
+          <View style={styles.explorationTrack}>
+            <View style={[styles.explorationFill, { width: `${Math.max(explorationPct, explorationPct > 0 ? 4 : 0)}%` }]} />
+          </View>
+          <Text style={styles.explorationSub}>
+            {visitedCount} lieu{visitedCount > 1 ? 'x' : ''} visité{visitedCount > 1 ? 's' : ''} sur {totalCount}
+          </Text>
+        </View>
+      )}
 
       {profileBadges.length > 0 && (
         <Pressable
@@ -217,6 +258,7 @@ export default function AccountScreen() {
 
       <Text style={styles.versionText}>ODOS · version 1.0</Text>
     </ScrollView>
+    </ImageBackground>
   );
 }
 
@@ -281,10 +323,56 @@ function createStyles(colors: OdosColorPalette) {
     flex: 1,
     backgroundColor: colors.background,
   },
+  screenInner: {
+    flex: 1,
+  },
   scrollContent: {
     paddingTop: 40,
     paddingBottom: 80,
     paddingHorizontal: Spacing.lg,
+  },
+  explorationCard: {
+    backgroundColor: colors.surface,
+    borderRadius: Radius.card,
+    padding: 16,
+    marginBottom: 22,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  explorationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 10,
+  },
+  explorationTitle: {
+    fontSize: 12,
+    fontFamily: FontFamily.uiBold,
+    color: colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  explorationPct: {
+    fontSize: 22,
+    fontFamily: FontFamily.display,
+    color: colors.accent,
+  },
+  explorationTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.border,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  explorationFill: {
+    height: '100%',
+    borderRadius: 3,
+    backgroundColor: colors.accent,
+  },
+  explorationSub: {
+    fontSize: 12,
+    fontFamily: FontFamily.ui,
+    color: colors.muted,
   },
   hero: {
     alignItems: 'center',

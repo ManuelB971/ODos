@@ -13,7 +13,7 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { MapPin, ArrowLeft, Heart, Navigation, CircleCheck } from 'lucide-react-native';
 import { DaIcon } from '@/components/ui/DaIcon';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import api, {
@@ -482,14 +482,15 @@ export default function ActivityDetails() {
     : null;
 
   const heroImage = resolveImageUrl(activity.imageUrl);
+  const scrollRef = useRef<ScrollView>(null);
 
   return (
     <KeyboardAvoidingView
       style={[styles.screen, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={88}
     >
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.heroWrap}>
           {heroImage ? (
             <Image source={{ uri: heroImage }} style={styles.heroImage} resizeMode="cover" />
@@ -556,7 +557,7 @@ export default function ActivityDetails() {
               size={20}
             />
             <Text style={[styles.visitedButtonText, isVisited && styles.visitedButtonTextActive]}>
-              {isVisited ? 'Lieu visité' : 'J’ai visité ce lieu'}
+              {isVisited ? "Lieu visité" : "Non visité"}
             </Text>
           </Pressable>
 
@@ -667,6 +668,7 @@ export default function ActivityDetails() {
             commentToast={commentToast}
             onDismissToast={() => setCommentToast(null)}
             onLoginPress={() => router.push('/login')}
+            onComposeFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150)}
           />
         </View>
       </ScrollView>

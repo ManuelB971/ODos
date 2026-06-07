@@ -120,8 +120,13 @@ export async function refreshAccessToken(): Promise<string | null> {
         }
         api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
         return newToken;
-    } catch {
-        return null;
+    } catch (err) {
+        // Erreur serveur 4xx → refresh token rejeté → null déclenche le logout
+        // Erreur réseau (pas de réponse) → tokens toujours valides côté serveur → on relance
+        if (axios.isAxiosError(err) && err.response && err.response.status < 500) {
+            return null;
+        }
+        throw err;
     }
 }
 
@@ -211,6 +216,7 @@ api.interceptors.response.use(
                     processQueue(null, newToken);
                     return api(originalRequest);
                 }
+                // null = le serveur a rejeté le refresh token (4xx) → session définitivement invalide
                 processQueue(error, null);
                 await safeStorage.deleteItem('user_token');
                 await safeStorage.deleteItem('refresh_token');
@@ -222,6 +228,10 @@ api.interceptors.response.use(
                     }
                 }
                 return Promise.reject(error);
+            } catch (refreshError) {
+                // Erreur réseau pendant le refresh → tokens conservés, on ne déconnecte pas
+                processQueue(refreshError, null);
+                return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;
             }

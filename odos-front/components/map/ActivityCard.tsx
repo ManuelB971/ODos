@@ -5,6 +5,7 @@ import { MapPin as MapPinIcon } from 'lucide-react-native';
 import { DaIcon } from '@/components/ui/DaIcon';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { OdosTokens } from '@/constants/themes/tokens';
 import { ApiActivity } from '@/types';
 import { resolveImageUrl } from '@/utils/imageUrl';
 
@@ -58,6 +59,8 @@ function ActivityCardComponent({ activity, distanceKm, active = false, fullWidth
           )}
         </Animated.View>
 
+
+        {/* Rating — haut droite, toujours blanc sur sombre */}
         {typeof activity.ratingAverage === 'number' && activity.ratingAverage > 0 ? (
           <View style={styles.ratingBadge}>
             <DaIcon name="etoile" variant="badge" accessibilityLabel="Note" />
@@ -65,25 +68,25 @@ function ActivityCardComponent({ activity, distanceKm, active = false, fullWidth
           </View>
         ) : null}
 
-        {categoryLabel ? (
-          <View style={styles.categoryBadge}>
-            <Text numberOfLines={1} style={styles.categoryText}>
-              {categoryLabel.toUpperCase()}
+        {/* Texte en bas de l'image — toujours blanc sur gradient sombre */}
+        <View style={styles.body}>
+          <Text numberOfLines={1} style={styles.title}>
+            {activity.name}
+          </Text>
+          <View style={styles.metaLine}>
+            <MapPinIcon size={12} color="rgba(255,255,255,0.75)" />
+            <Text numberOfLines={1} style={styles.metaText}>
+              {activity.city ?? 'Lieu non précisé'}
+              {typeof distanceKm === 'number' ? ` · ${distanceKm.toFixed(1)} km` : ''}
             </Text>
           </View>
-        ) : null}
-      </View>
-
-      <View style={styles.body}>
-        <Text numberOfLines={1} style={styles.title}>
-          {activity.name}
-        </Text>
-        <View style={styles.metaLine}>
-          <MapPinIcon size={12} color={colors.muted} />
-          <Text numberOfLines={1} style={styles.metaText}>
-            {activity.city ?? 'Lieu non précisé'}
-            {typeof distanceKm === 'number' ? ` · ${distanceKm.toFixed(1)} km` : ''}
-          </Text>
+          {categoryLabel ? (
+            <View style={styles.categoryBadge}>
+              <Text numberOfLines={1} style={styles.categoryText}>
+                {categoryLabel}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
     </Pressable>
@@ -151,27 +154,52 @@ function createStyles(colors: OdosColorPalette) {
     ratingBadge: {
       position: 'absolute',
       top: 10,
-      left: 10,
+      right: 10,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 5,
-      backgroundColor: 'rgba(17,24,28,0.78)',
+      backgroundColor: 'rgba(17,24,28,0.72)',
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 12,
     },
     ratingText: {
-      color: colors.onAccent,
+      color: '#FFFFFF',
       fontSize: 11,
       fontWeight: '700',
     },
-    categoryBadge: {
+    body: {
       position: 'absolute',
-      bottom: 10,
-      left: 10,
-      backgroundColor: colors.elevated,
-      borderWidth: 1,
-      borderColor: colors.border,
+      bottom: 0,
+      left: 0,
+      right: 0,
+      padding: 12,
+      paddingTop: 28,
+      backgroundColor: 'rgba(17,24,28,0.62)',
+    },
+    title: {
+      fontSize: 15,
+      fontWeight: '700',
+      color: '#FFFFFF',
+      marginBottom: 3,
+      textShadowColor: 'rgba(0,0,0,0.4)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 3,
+    },
+    metaLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginBottom: 6,
+    },
+    metaText: {
+      fontSize: 12,
+      color: 'rgba(255,255,255,0.82)',
+      flex: 1,
+    },
+    categoryBadge: {
+      alignSelf: 'flex-start',
+      backgroundColor: OdosTokens.orangePrimary,
       paddingHorizontal: 8,
       paddingVertical: 3,
       borderRadius: 10,
@@ -180,27 +208,8 @@ function createStyles(colors: OdosColorPalette) {
     categoryText: {
       fontSize: 10,
       fontWeight: '700',
-      color: colors.text,
-      letterSpacing: 0.6,
-    },
-    body: {
-      padding: 12,
-    },
-    title: {
-      fontSize: 15,
-      fontWeight: '700',
-      color: colors.text,
-      marginBottom: 4,
-    },
-    metaLine: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    metaText: {
-      fontSize: 12,
-      color: colors.muted,
-      flex: 1,
+      color: '#FFFFFF',
+      letterSpacing: 0.4,
     },
     skeletonCard: {
       opacity: 0.6,

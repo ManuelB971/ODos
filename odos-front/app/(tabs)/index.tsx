@@ -5,6 +5,7 @@ import {
   Pressable,
   FlatList,
   Image,
+  ImageBackground,
   ScrollView,
 } from 'react-native';
 import { ArrowRight, MapPin as MapPinIcon } from 'lucide-react-native';
@@ -16,7 +17,7 @@ import { useRecommendations } from '@/hooks/useRecommendations';
 import { useActivities } from '@/hooks/useActivities';
 import { ApiActivity } from '@/types';
 import { FontFamily, Radius, Spacing } from '@/constants/theme';
-import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
 import { BrandBaseline } from '@/components/BrandBaseline';
 import { BRAND_TAGLINE } from '@/constants/brand';
 import { toAppError } from '@/utils/errorHandling';
@@ -33,6 +34,14 @@ const getCategoryName = (cat: ApiActivity['category']): string => {
   if (typeof cat === 'string') return cat;
   if (cat && typeof cat === 'object' && 'name' in cat) return cat.name;
   return '';
+};
+
+/** Accent par catégorie — uniquement les tokens DA officiels : orange, teal, bleu action. */
+const CATEGORY_ACCENTS = ['#F4A261', '#5FC2D8', '#3B82F6', '#E07D3A'];
+const getCategoryAccent = (name: string): string => {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) | 0;
+  return CATEGORY_ACCENTS[Math.abs(h) % CATEGORY_ACCENTS.length];
 };
 
 const formatPrice = (price: number | null | undefined): string => {
@@ -82,31 +91,39 @@ function RecommendationCard({ item }: { item: ApiActivity }) {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const img = resolveImageUrl(item.imageUrl);
   const rating = item.ratingAverage;
+  const categoryName = getCategoryName(item.category);
+  const accent = getCategoryAccent(categoryName);
+
   return (
     <Link href={`/activity/${item.id}`} asChild>
-      <Pressable style={styles.recoCard} android_ripple={{ color: '#00000010' }}>
+      <Pressable style={styles.recoCard} android_ripple={{ color: '#00000008' }}>
+        {/* Accent bar top */}
+        <View style={[styles.recoAccentBar, { backgroundColor: accent }]} />
+
+        {/* Image */}
         <View style={styles.recoImageWrap}>
           {img ? (
             <Image source={{ uri: img }} style={styles.recoImage} resizeMode="cover" />
           ) : (
-            <View style={[styles.recoImage, styles.recoImagePlaceholder]} />
+            <View style={[styles.recoImage, styles.recoImagePlaceholder, { backgroundColor: `${accent}22` }]} />
           )}
+          {/* Rating — top right, gold pill */}
           {rating != null && rating > 0 ? (
             <View style={styles.recoBadge}>
-              <DaIcon name="etoile" variant="badge" accessibilityLabel="Note" />
-              <Text style={styles.recoBadgeText}>{rating.toFixed(1)}</Text>
+              <Text style={styles.recoBadgeText}>★ {rating.toFixed(1)}</Text>
             </View>
           ) : null}
         </View>
+
+        {/* Body */}
         <View style={styles.recoBody}>
           {item.city ? (
             <View style={styles.rowMetaLine}>
-              <MapPinIcon size={11} color={colors.muted} />
-              <Text style={styles.recoCity}>{item.city.toUpperCase()}</Text>
+              <MapPinIcon size={11} color={accent} />
+              <Text style={[styles.recoCity, { color: accent }]}>{item.city}</Text>
             </View>
           ) : null}
-          <Text numberOfLines={1} style={styles.recoName}>{item.name}</Text>
-          <Text numberOfLines={2} style={styles.recoDescription}>{item.description}</Text>
+          <Text numberOfLines={2} style={styles.recoName}>{item.name}</Text>
         </View>
       </Pressable>
     </Link>
@@ -119,9 +136,12 @@ function RecommendationCard({ item }: { item: ApiActivity }) {
  */
 const HOME_ACTIVITIES_LIMIT = 5;
 
+const SPRAY_BG = require('@/assets/images/spray-background.png');
+
 export default function HomeScreen() {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isDark } = useTheme();
   const { interests } = useInterests();
   const { recommendations, loading, error } = useRecommendations(interests);
   const activitiesQuery = useActivities();
@@ -172,7 +192,12 @@ export default function HomeScreen() {
   }, [geoActivities]);
 
   return (
-    <View style={styles.container}>
+    <ImageBackground
+      source={SPRAY_BG}
+      style={styles.container}
+      imageStyle={[styles.bgSpray, { opacity: isDark ? 0.04 : 0.09 }]}
+      resizeMode="cover"
+    >
       <FlatList
         data={homeActivities}
         keyExtractor={(item) => String(item.id)}
@@ -321,7 +346,7 @@ export default function HomeScreen() {
         }
         contentContainerStyle={styles.scrollContent}
       />
-    </View>
+    </ImageBackground>
   );
 }
 
@@ -330,6 +355,9 @@ function createStyles(colors: OdosColorPalette) {
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  bgSpray: {
+    // opacity set inline to vary by theme (isDark)
   },
   scrollContent: {
     paddingHorizontal: Spacing.lg,
@@ -487,21 +515,25 @@ function createStyles(colors: OdosColorPalette) {
     paddingRight: 8,
   },
   recoCard: {
-    width: 260,
+    width: 250,
     marginRight: 14,
-    borderRadius: Radius.card,
+    borderRadius: 20,
     backgroundColor: colors.elevated,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowColor: '#F4A261',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 14,
+    elevation: 5,
+  },
+  recoAccentBar: {
+    height: 4,
+    width: '100%',
   },
   recoImageWrap: {
     position: 'relative',
     width: '100%',
-    height: 160,
+    height: 155,
   },
   recoImage: {
     width: '100%',
@@ -513,35 +545,34 @@ function createStyles(colors: OdosColorPalette) {
   recoBadge: {
     position: 'absolute',
     top: 10,
-    left: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    right: 10,
+    backgroundColor: '#FFF8E1',
+    borderWidth: 1,
+    borderColor: '#FFD54F',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 14,
   },
   recoBadgeText: {
-    color: '#fff',
-    fontWeight: '700',
+    color: '#E07D3A',
+    fontFamily: FontFamily.uiBold,
     fontSize: 12,
   },
   recoBody: {
     padding: 12,
+    paddingTop: 10,
   },
   recoCity: {
     fontSize: 11,
     fontFamily: FontFamily.uiMedium,
-    color: colors.muted,
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   recoName: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: FontFamily.uiBold,
     color: colors.text,
-    marginTop: 4,
-    marginBottom: 4,
+    marginTop: 3,
+    lineHeight: 20,
   },
   recoDescription: {
     fontSize: 12,
