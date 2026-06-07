@@ -66,6 +66,14 @@ final class UserDataExportService
                 ],
                 $user->getFavorites()->toArray()
             ),
+            'visitedActivities' => array_map(
+                static fn (Activity $a) => [
+                    'id' => $a->getId(),
+                    'name' => $a->getName(),
+                    'city' => $a->getCity(),
+                ],
+                $user->getVisitedActivities()->toArray()
+            ),
             'comments' => array_map(
                 static fn (Comment $c) => [
                     'id' => $c->getId(),

@@ -35,8 +35,8 @@ export type OdosColorPalette = {
 
 export type ColorScheme = 'light' | 'dark';
 
-/** Identifiant de variante visuelle (pays, ville, saison…). */
-export type ThemeVariantId = 'default';
+/** Identifiant de variante visuelle (pays, ville, saison…). Extensible dynamiquement. */
+export type ThemeVariantId = string;
 
 export type ThemePreference = 'system' | ColorScheme;
 

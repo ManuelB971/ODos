@@ -1,5 +1,6 @@
 import React, { useEffect, useImperativeHandle, useMemo } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -40,6 +41,8 @@ export type BottomSheetRef = {
  */
 export const BottomSheet = React.forwardRef<BottomSheetRef, BottomSheetProps>(
   function BottomSheet({ children, state, onChangeState, snapHeights, onSheetTopY }, ref) {
+    const colors = useOdosColors();
+    const styles = useMemo(() => createStyles(colors), [colors]);
     const { height: windowHeight } = useWindowDimensions();
 
     const snaps = useMemo(() => {
@@ -138,33 +141,37 @@ const SPRING_CONFIG = {
   overshootClamping: false,
 } as const;
 
-const styles = StyleSheet.create({
-  sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 16,
-    elevation: 16,
-  },
-  handleWrap: {
-    alignItems: 'center',
-    paddingTop: 10,
-    paddingBottom: 6,
-  },
-  handle: {
-    width: 44,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: '#e2e8f0',
-  },
-  content: {
-    flex: 1,
-  },
-});
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
+    sheet: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: 0,
+      backgroundColor: colors.elevated,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      borderTopWidth: 1,
+      borderColor: colors.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -6 },
+      shadowOpacity: 0.12,
+      shadowRadius: 16,
+      elevation: 16,
+    },
+    handleWrap: {
+      alignItems: 'center',
+      paddingTop: 10,
+      paddingBottom: 6,
+    },
+    handle: {
+      width: 44,
+      height: 5,
+      borderRadius: 3,
+      backgroundColor: colors.border,
+    },
+    content: {
+      flex: 1,
+    },
+  });
+}

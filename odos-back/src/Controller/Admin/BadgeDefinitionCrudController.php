@@ -6,6 +6,7 @@ namespace App\Controller\Admin;
 
 use App\Entity\BadgeDefinition;
 use App\Enum\BadgeRuleType;
+use App\Form\Type\JsonArrayType;
 use App\Service\BadgePhotoUploader;
 use Doctrine\ORM\EntityManagerInterface;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
@@ -15,17 +16,17 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -52,8 +53,14 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
         return $crud
             ->setEntityLabelInSingular('Badge')
             ->setEntityLabelInPlural('Badges')
+            ->setPageTitle(Crud::PAGE_NEW, 'Créer un badge')
+            ->setPageTitle(Crud::PAGE_EDIT, 'Modifier le badge')
             ->setDefaultSort(['sortOrder' => 'ASC', 'name' => 'ASC'])
-            ->setSearchFields(['code', 'name']);
+            ->setSearchFields(['code', 'name'])
+            ->setFormOptions(
+                ['attr' => ['enctype' => 'multipart/form-data']],
+                ['attr' => ['enctype' => 'multipart/form-data']],
+            );
     }
 
     public function configureActions(Actions $actions): Actions
@@ -100,10 +107,10 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
             ->setBasePath('/')
             ->onlyOnIndex()
             ->onlyOnDetail();
-        yield UrlField::new('imageUrl', 'Image (URL)')
+        yield TextField::new('imageUrl', 'Image (URL ou chemin)')
             ->onlyOnForms()
             ->setRequired(false)
-            ->setHelp('URL externe ou laisser vide et téléverser ci-dessous.');
+            ->setHelp('URL externe (https://…) ou chemin local (/uploads/badges/…). Laisser vide si vous téléversez ci-dessous.');
         yield TextField::new(self::PHOTO_FORM_FIELD, 'Image (téléversement)')
             ->setFormType(FileType::class)
             ->setFormTypeOptions([
@@ -122,10 +129,21 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
         yield ChoiceField::new('ruleType', 'Règle d\'attribution')
             ->setChoices($ruleChoices)
             ->renderExpanded(false);
-        yield CodeEditorField::new('ruleConfig', 'Config JSON (règle)')
+        yield TextareaField::new('ruleConfig', 'Config JSON (règle)')
             ->onlyOnForms()
-            ->setHelp('Ex. {"threshold": 5} ou {"threshold": 3, "categoryId": 2}')
-            ->setFormTypeOption('required', false);
+            ->setFormType(JsonArrayType::class)
+            ->setFormTypeOption('required', false)
+            ->setHelp($this->ruleConfigHelpText())
+            ->setNumOfRows(6);
+        yield TextareaField::new('ruleConfig', 'Config JSON (règle)')
+            ->onlyOnDetail()
+            ->formatValue(static function (?array $value): string {
+                if (null === $value || [] === $value) {
+                    return '—';
+                }
+
+                return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            });
 
         yield DateTimeField::new('createdAt')->hideOnForm();
         yield DateTimeField::new('updatedAt')->hideOnForm();
@@ -134,7 +152,7 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
     public function persistEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if ($entityInstance instanceof BadgeDefinition) {
-            $this->handleUploadedPhoto($entityInstance);
+            $this->prepareBadgeForSave($entityInstance);
         }
         parent::persistEntity($entityManager, $entityInstance);
     }
@@ -142,9 +160,39 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
     public function updateEntity(EntityManagerInterface $entityManager, $entityInstance): void
     {
         if ($entityInstance instanceof BadgeDefinition) {
-            $this->handleUploadedPhoto($entityInstance);
+            $this->prepareBadgeForSave($entityInstance);
         }
         parent::updateEntity($entityManager, $entityInstance);
+    }
+
+    private function prepareBadgeForSave(BadgeDefinition $badge): void
+    {
+        $this->handleUploadedPhoto($badge);
+        $this->normalizeRuleConfig($badge);
+    }
+
+    private function normalizeRuleConfig(BadgeDefinition $badge): void
+    {
+        $ruleType = $badge->getRuleType();
+        if (BadgeRuleType::Manual === $ruleType || BadgeRuleType::Custom === $ruleType) {
+            return;
+        }
+
+        $config = $badge->getRuleConfig();
+        if (null === $config || [] === $config) {
+            $badge->setRuleConfig(['threshold' => 1]);
+        }
+    }
+
+    private function ruleConfigHelpText(): string
+    {
+        return <<<'HELP'
+            Laisser vide pour appliquer {"threshold": 1} par défaut (sauf attribution manuelle).
+            Exemples :
+            • Vues / favoris / commentaires / notes : {"threshold": 5}
+            • Exploration carte : {"threshold": 25} (pourcentage de zone)
+            • Catégorie : {"threshold": 3, "categoryId": 2}
+            HELP;
     }
 
     private function handleUploadedPhoto(BadgeDefinition $badge): void
@@ -165,6 +213,10 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
             return;
         }
 
-        $badge->setImageUrl($this->photoUploader->upload($uploaded));
+        try {
+            $badge->setImageUrl($this->photoUploader->upload($uploaded));
+        } catch (FileException $e) {
+            throw new \RuntimeException($e->getMessage(), 0, $e);
+        }
     }
 }

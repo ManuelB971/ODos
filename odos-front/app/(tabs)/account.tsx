@@ -15,6 +15,7 @@ import {
   FileText,
   Heart,
   LogOut,
+  Palette,
   Settings,
 } from 'lucide-react-native';
 
@@ -177,6 +178,13 @@ export default function AccountScreen() {
           label="Mes centres d'intérêt"
           helper="Personnalisez vos recommandations"
           onPress={() => router.push('/interests')}
+        />
+        <View style={styles.menuDivider} />
+        <MenuItem
+          icon={<Palette size={18} color={colors.text} />}
+          label="Apparence"
+          helper="Thème et mode sombre"
+          onPress={() => router.push('/appearance')}
         />
         <View style={styles.menuDivider} />
         <MenuItem

@@ -5,6 +5,7 @@ Document/
 .idea/
 .vscode/
 .cursor/
+.agents/
 *.swp
 *.swo
 *~
@@ -36,3 +37,7 @@ odos-back/var/coverage/
 
 # Accidental duplicate deliverables folder
 deliverables/liverables/
+
+# Fichiers locaux / verrous Office
+CLAUDE.md
+~$*.docx

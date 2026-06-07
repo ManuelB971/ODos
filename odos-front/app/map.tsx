@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
 
+import { ThemedStatusBar } from '@/components/ThemedStatusBar';
 import { MapExperience } from '@/components/map/MapExperience';
+import { useOdosColors } from '@/context/ThemeContext';
 import { useActivities } from '@/hooks/useActivities';
 import { toAppError } from '@/utils/errorHandling';
 
@@ -15,6 +16,8 @@ import { toAppError } from '@/utils/errorHandling';
  * vient par dessus. Depuis la home on y accède via un CTA dédié.
  */
 export default function MapScreen() {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const query = useActivities();
   const error = query.error
     ? toAppError(query.error, 'Impossible de charger la carte.').userMessage
@@ -23,7 +26,7 @@ export default function MapScreen() {
   return (
     <View style={styles.root}>
       <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
       <MapExperience
         activities={query.data ?? []}
         loading={query.isLoading}
@@ -33,9 +36,11 @@ export default function MapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-});
+function createStyles(colors: { background: string }) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+  });
+}

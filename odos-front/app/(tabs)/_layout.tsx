@@ -1,10 +1,15 @@
 import { Tabs, useRouter } from 'expo-router';
 
-import { Compass, Search, User } from 'lucide-react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import { StyleSheet, View } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
-import { useEffect } from 'react';
+import { BlobFrame } from '@/components/ui/BlobFrame';
+import React, { useEffect } from 'react';
+
+type TabIconName = React.ComponentProps<typeof MaterialIcons>['name'];
+
 export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
@@ -16,6 +21,28 @@ export default function TabLayout() {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  const renderTabIcon = (
+    name: TabIconName,
+    seed: number,
+    label: string,
+  ) => function TabIcon({ focused }: { focused: boolean }) {
+    return (
+      <View
+        style={styles.tabIconSlot}
+        accessibilityLabel={label}
+        accessibilityRole="image"
+      >
+        {focused ? (
+          <BlobFrame size={44} seed={seed} backgroundColor={colors.accentSoft}>
+            <MaterialIcons name={name} size={24} color={colors.accent} />
+          </BlobFrame>
+        ) : (
+          <MaterialIcons name={name} size={24} color={colors.muted} />
+        )}
+      </View>
+    );
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -23,8 +50,12 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
-          height: 50,
+          height: 62,
           paddingBottom: 8,
+          paddingTop: 6,
+        },
+        tabBarItemStyle: {
+          paddingVertical: 2,
         },
         tabBarLabelStyle: {
           fontFamily: FontFamily.uiMedium,
@@ -39,14 +70,14 @@ export default function TabLayout() {
         name="index"
         options={{
           title: '',
-          tabBarIcon: ({ color, size }) => <Compass color={color} size={size} />,
+          tabBarIcon: renderTabIcon('explore', 0, 'Accueil'),
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
           title: '',
-          tabBarIcon: ({ color, size }) => <Search color={color} size={size} />,
+          tabBarIcon: renderTabIcon('search', 1, 'Recherche'),
         }}
       />
       <Tabs.Screen
@@ -59,7 +90,7 @@ export default function TabLayout() {
         name="account"
         options={{
           title: '',
-          tabBarIcon: ({ color, size }) => <User color={color} size={size} />,
+          tabBarIcon: renderTabIcon('person', 2, 'Compte'),
         }}
       />
       <Tabs.Screen
@@ -72,3 +103,12 @@ export default function TabLayout() {
 
   );
 }
+
+const styles = StyleSheet.create({
+  tabIconSlot: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 48,
+    minHeight: 44,
+  },
+});

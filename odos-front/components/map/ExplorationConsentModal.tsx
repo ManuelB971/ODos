@@ -54,7 +54,9 @@ function createStyles(colors: OdosColorPalette) {
       padding: 24,
     },
     card: {
-      backgroundColor: '#fff',
+      backgroundColor: colors.elevated,
+      borderWidth: 1,
+      borderColor: colors.border,
       borderRadius: 20,
       padding: 22,
       gap: 14,
@@ -77,7 +79,7 @@ function createStyles(colors: OdosColorPalette) {
     },
     btnDisabled: { opacity: 0.6 },
     btnPrimaryText: {
-      color: '#fff',
+      color: colors.onAccent,
       fontWeight: '700',
       fontSize: 15,
     },

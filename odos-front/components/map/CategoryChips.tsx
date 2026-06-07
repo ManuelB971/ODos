@@ -57,7 +57,7 @@ function createStyles(colors: OdosColorPalette) {
       paddingHorizontal: 14,
       paddingVertical: 8,
       borderRadius: 18,
-      backgroundColor: 'rgba(255,255,255,0.92)',
+      backgroundColor: colors.overlay,
       borderWidth: 1,
       borderColor: colors.border,
     },
@@ -71,7 +71,7 @@ function createStyles(colors: OdosColorPalette) {
       color: colors.text,
     },
     chipTextActive: {
-      color: '#fff',
+      color: colors.onAccent,
     },
   });
 }

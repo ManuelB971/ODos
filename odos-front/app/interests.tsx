@@ -8,7 +8,8 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Check, ArrowLeft, Sparkles } from 'lucide-react-native';
+import { ArrowLeft, Sparkles } from 'lucide-react-native';
+import { DaIcon } from '@/components/ui/DaIcon';
 
 import { useInterests } from '@/context/InterestContext';
 import { useAuth } from '@/context/AuthContext';
@@ -133,6 +134,33 @@ const InterestsScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {!user ? (
+          <View style={styles.onboardingSteps} accessibilityRole="text" accessibilityLabel="Étape 1 sur 2">
+            <View style={styles.onboardingStep}>
+              <DaIcon
+                name="step-1"
+                variant="hero"
+                blob={{ seed: 3, backgroundColor: colors.accentSoft, padding: 6 }}
+                accessibilityLabel="Étape 1"
+              />
+              <Text style={styles.onboardingStepLabel}>Vos goûts</Text>
+            </View>
+            <View style={styles.onboardingStepDivider} />
+            <View style={styles.onboardingStep}>
+              <DaIcon
+                name="step-2"
+                variant="hero"
+                opacity={0.5}
+                blob={{ seed: 4, backgroundColor: colors.surface, padding: 6 }}
+                accessibilityLabel="Étape 2"
+              />
+              <Text style={[styles.onboardingStepLabel, styles.onboardingStepLabelMuted]}>
+                Découverte
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         <View style={styles.header}>
           <BrandBaseline variant="short" style={styles.heroBaseline} />
           <View style={styles.eyebrowRow}>
@@ -193,7 +221,9 @@ const InterestsScreen = () => {
                   accessibilityState={{ selected: active, disabled }}
                   accessibilityLabel={`${cat.name}${active ? ', sélectionné' : ''}`}
                 >
-                  {active ? <Check size={14} color="#fff" /> : null}
+                  {active ? (
+                    <DaIcon name="check-mark" variant="chip" accessibilityLabel="Sélectionné" />
+                  ) : null}
                   <Text
                     style={[
                       styles.chipText,
@@ -258,6 +288,41 @@ function createStyles(colors: OdosColorPalette) {
   scrollContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: 140,
+  },
+  onboardingSteps: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginTop: 4,
+    marginBottom: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: Radius.card,
+    backgroundColor: colors.elevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  onboardingStep: {
+    alignItems: 'center',
+    gap: 8,
+    minWidth: 96,
+  },
+  onboardingStepDivider: {
+    width: 28,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: colors.border,
+  },
+  onboardingStepLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.uiBold,
+    color: colors.text,
+    letterSpacing: 0.3,
+  },
+  onboardingStepLabelMuted: {
+    color: colors.muted,
+    fontFamily: FontFamily.uiMedium,
   },
   header: {
     marginTop: 8,
