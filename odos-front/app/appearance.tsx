@@ -7,8 +7,14 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, Check, Moon, Sun, Smartphone } from 'lucide-react-native';
-import { useTheme, useOdosColors, type OdosColorPalette, type ThemePreference } from '@/context/ThemeContext';
+import { ArrowLeft, Check, Moon, Sun, Smartphone, Sparkles } from 'lucide-react-native';
+import {
+  useTheme,
+  useOdosColors,
+  type OdosColorPalette,
+  type ThemePreference,
+  type BackgroundPattern,
+} from '@/context/ThemeContext';
 import { useAvailableThemes } from '@/hooks/useThemes';
 import { FontFamily, Radius, Spacing } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,10 +25,17 @@ const PREFERENCE_OPTIONS: { value: ThemePreference; label: string; Icon: typeof 
   { value: 'dark', label: 'Sombre', Icon: Moon },
 ];
 
+const BG_PATTERN_OPTIONS: { value: BackgroundPattern; label: string }[] = [
+  { value: 'off', label: 'Aucun' },
+  { value: 'subtle', label: 'Léger' },
+  { value: 'medium', label: 'Moyen' },
+  { value: 'strong', label: 'Marqué' },
+];
+
 export default function AppearanceScreen() {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { preference, setPreference, variantId, setVariantId } = useTheme();
+  const { preference, setPreference, variantId, setVariantId, backgroundPattern, setBackgroundPattern } = useTheme();
   const { data: themes = [] } = useAvailableThemes();
   const insets = useSafeAreaInsets();
 
@@ -107,6 +120,32 @@ export default function AppearanceScreen() {
                 </View>
               )}
             </Pressable>
+          );
+        })}
+      </View>
+
+      {/* Fond d'écran (texture spray) */}
+      <Text style={styles.sectionLabel}>{"Fond d'écran"}</Text>
+      <View style={styles.card}>
+        {BG_PATTERN_OPTIONS.map((opt, i) => {
+          const isSelected = backgroundPattern === opt.value;
+          return (
+            <View key={opt.value}>
+              {i > 0 && <View style={styles.divider} />}
+              <Pressable
+                style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+                onPress={() => setBackgroundPattern(opt.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: isSelected }}
+                accessibilityLabel={opt.label}
+              >
+                <Sparkles size={20} color={isSelected ? colors.primary : colors.muted} />
+                <Text style={[styles.rowLabel, isSelected && styles.rowLabelActive]}>
+                  {opt.label}
+                </Text>
+                {isSelected && <Check size={18} color={colors.primary} />}
+              </Pressable>
+            </View>
           );
         })}
       </View>

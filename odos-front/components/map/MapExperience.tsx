@@ -19,10 +19,13 @@ import { DaIcon } from '@/components/ui/DaIcon';
 import { useRouter } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useQuery } from '@tanstack/react-query';
+
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useMapExploration } from '@/hooks/useMapExploration';
+import { fetchVisitedIds } from '@/scripts/api';
 import { ApiActivity } from '@/types';
 import { LatLngRegion, regionToBounds, regionToInitialCamera } from '@/utils/mapViewport';
 import {
@@ -73,6 +76,24 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   const [showConsentModal, setShowConsentModal] = useState(false);
 
   const exploration = useMapExploration(isAuthenticated && (user?.mapExplorationEnabled ?? false));
+
+  // Progression d'exploration = activités marquées "visitées" / total publié.
+  // Même métrique que la barre du profil ; le cache ['visitedIds'] est invalidé
+  // au toggle "Lieu visité", donc le chip se met à jour automatiquement.
+  const visitedQuery = useQuery<number[]>({
+    queryKey: ['visitedIds'],
+    queryFn: fetchVisitedIds,
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const publishedCount = useMemo(
+    () => activities.filter((a) => a.isPublished !== false).length,
+    [activities]
+  );
+  const visitedCount = visitedQuery.data?.length ?? 0;
+  const explorationPercent =
+    publishedCount > 0 ? Math.round((visitedCount / publishedCount) * 100) : 0;
 
   const geoActivities = useMemo(
     () =>
@@ -280,11 +301,12 @@ export function MapExperience({ activities, loading = false, error = null }: Map
           </View>
         </View>
         <CategoryChips chips={chips} activeId={activeCategoryId} onPressChip={(c) => setActiveCategoryId(c.id)} />
-        {isAuthenticated && exploration.active && exploration.overview ? (
+        {isAuthenticated && publishedCount > 0 ? (
           <ExplorationProgressChip
-            percent={exploration.percent}
-            visitedCount={exploration.overview.visitedCount}
-            totalCells={exploration.overview.totalCells}
+            percent={explorationPercent}
+            visitedCount={visitedCount}
+            total={publishedCount}
+            unitLabel="lieux"
           />
         ) : null}
       </SafeAreaView>

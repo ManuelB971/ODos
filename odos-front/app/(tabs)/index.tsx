@@ -141,7 +141,7 @@ const SPRAY_BG = require('@/assets/images/spray-background.png');
 export default function HomeScreen() {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { isDark } = useTheme();
+  const { sprayOpacity } = useTheme();
   const { interests } = useInterests();
   const { recommendations, loading, error } = useRecommendations(interests);
   const activitiesQuery = useActivities();
@@ -195,7 +195,7 @@ export default function HomeScreen() {
     <ImageBackground
       source={SPRAY_BG}
       style={styles.container}
-      imageStyle={[styles.bgSpray, { opacity: isDark ? 0.04 : 0.09 }]}
+      imageStyle={[styles.bgSpray, { opacity: sprayOpacity }]}
       resizeMode="cover"
     >
       <FlatList
@@ -388,7 +388,7 @@ function createStyles(colors: OdosColorPalette) {
     marginBottom: 8,
   },
   recommendationsContainer: {
-    marginBottom: 24,
+    marginBottom: 8,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -513,6 +513,8 @@ function createStyles(colors: OdosColorPalette) {
   // ── Recommandation card (carrousel horizontal) ──
   recoScroller: {
     paddingRight: 8,
+    paddingTop: 4,
+    paddingBottom: 18,
   },
   recoCard: {
     width: 250,

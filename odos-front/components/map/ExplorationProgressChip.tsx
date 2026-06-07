@@ -6,25 +6,28 @@ import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 type ExplorationProgressChipProps = {
   percent: number;
   visitedCount: number;
-  totalCells: number;
+  total: number;
+  /** Libellé de l'unité comptée (ex. "lieux", "zones"). */
+  unitLabel?: string;
 };
 
 export function ExplorationProgressChip({
   percent,
   visitedCount,
-  totalCells,
+  total,
+  unitLabel = 'lieux',
 }: ExplorationProgressChipProps) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  if (totalCells <= 0) return null;
+  if (total <= 0) return null;
 
   return (
     <View style={styles.chip} pointerEvents="none">
       <Text style={styles.label}>Exploration</Text>
       <Text style={styles.value}>{percent.toFixed(percent % 1 === 0 ? 0 : 1)} %</Text>
       <Text style={styles.sub}>
-        {visitedCount}/{totalCells} zones
+        {visitedCount}/{total} {unitLabel}
       </Text>
     </View>
   );

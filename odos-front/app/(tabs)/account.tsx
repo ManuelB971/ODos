@@ -47,7 +47,7 @@ export default function AccountScreen() {
   const router = useRouter();
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { isDark } = useTheme();
+  const { sprayOpacity } = useTheme();
   const { user, logout } = useAuth();
   const { favorites } = useFavorites();
   const { interests } = useInterests();
@@ -97,7 +97,7 @@ export default function AccountScreen() {
     <ImageBackground
       source={SPRAY_BG}
       style={styles.screen}
-      imageStyle={{ opacity: isDark ? 0.04 : 0.09 }}
+      imageStyle={{ opacity: sprayOpacity }}
       resizeMode="cover"
     >
     <ScrollView
