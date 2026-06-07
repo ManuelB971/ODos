@@ -320,6 +320,30 @@ export async function fetchFavoriteIds(): Promise<number[]> {
 }
 
 /**
+ * Toggle the "visited" status of an activity for the current user.
+ * Signal explicite (« J'ai visité ») qui alimente les recommandations.
+ * Returns { isVisited: boolean } — the new state after the toggle.
+ */
+export async function toggleVisitedActivity(activityId: number, isCurrentlyVisited: boolean): Promise<{ isVisited: boolean }> {
+    if (isCurrentlyVisited) {
+        const response = await api.delete(`/api/activities/${activityId}/visited`);
+        return response.data;
+    }
+
+    const response = await api.post(`/api/activities/${activityId}/visited`);
+    return response.data;
+}
+
+/**
+ * Fetch the list of activity IDs the current user marked as visited.
+ * Uses /api/me and extracts the `visitedActivities` field.
+ */
+export async function fetchVisitedIds(): Promise<number[]> {
+    const response = await api.get('/api/me');
+    return extractFavoriteActivityIds(response.data.visitedActivities);
+}
+
+/**
  * Update editable profile fields (alias, bio) for the current user.
  *
  * NB : `avatarUrl` n'est volontairement pas settable directement : il doit passer

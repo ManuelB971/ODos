@@ -11,7 +11,7 @@ import {
   Linking,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { MapPin, ArrowLeft, Heart, Navigation } from 'lucide-react-native';
+import { MapPin, ArrowLeft, Heart, Navigation, CircleCheck } from 'lucide-react-native';
 import { DaIcon } from '@/components/ui/DaIcon';
 import { useMemo, useState, useEffect } from 'react';
 import { CTAButton } from '@/components/ui/CTAButton';
@@ -19,6 +19,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import api, {
   fetchFavoriteIds,
   toggleFavoriteActivity,
+  fetchVisitedIds,
+  toggleVisitedActivity,
   fetchActivityRating,
   putActivityRating,
   deleteActivityRating,
@@ -86,7 +88,7 @@ function buildToast(
   };
 }
 
-function StarsDisplay({ value, max = 5, size = 18 }: { value: number; max?: number; size?: number }) {
+function StarsDisplay({ value, max = 5 }: { value: number; max?: number }) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const full = Math.round(value);
@@ -96,7 +98,7 @@ function StarsDisplay({ value, max = 5, size = 18 }: { value: number; max?: numb
         <DaIcon
           key={`star-${i}`}
           name="etoile"
-          size={size}
+          variant="rating"
           opacity={i < full ? 1 : 0.28}
           accessibilityLabel={i < full ? 'Étoile pleine' : 'Étoile vide'}
         />
@@ -129,6 +131,15 @@ export default function ActivityDetails() {
   const favoriteIdsQuery = useQuery<number[]>({
     queryKey: ['favoriteIds'],
     queryFn: fetchFavoriteIds,
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 2,
+    gcTime: 1000 * 60 * 10,
+    retry: 1,
+  });
+
+  const visitedIdsQuery = useQuery<number[]>({
+    queryKey: ['visitedIds'],
+    queryFn: fetchVisitedIds,
     enabled: isAuthenticated,
     staleTime: 1000 * 60 * 2,
     gcTime: 1000 * 60 * 10,
@@ -181,7 +192,44 @@ export default function ActivityDetails() {
       }
     },
     onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['favoriteIds'] });
+      // Les favoris alimentent désormais les recommandations → on rafraîchit aussi.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['favoriteIds'] }),
+        queryClient.invalidateQueries({ queryKey: ['recommendations'] }),
+      ]);
+    },
+  });
+
+  const toggleVisitedMutation = useMutation({
+    mutationFn: ({ targetActivityId, currentlyVisited }: { targetActivityId: number; currentlyVisited: boolean }) =>
+      toggleVisitedActivity(targetActivityId, currentlyVisited),
+    onMutate: async ({ targetActivityId, currentlyVisited }) => {
+      await queryClient.cancelQueries({ queryKey: ['visitedIds'] });
+      const previous = queryClient.getQueryData<number[]>(['visitedIds']);
+      queryClient.setQueryData<number[]>(['visitedIds'], (old) => {
+        const list = old ?? [];
+        if (currentlyVisited) {
+          return list.filter((i) => i !== targetActivityId);
+        }
+        if (list.includes(targetActivityId)) return list;
+        return [...list, targetActivityId];
+      });
+      return { previous };
+    },
+    onError: (err: unknown, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['visitedIds'], context.previous);
+      }
+      logError('ActivityDetails.toggleVisited', err, { id: activityId });
+      const appError = toAppError(err, 'Impossible de modifier le statut de visite.');
+      Alert.alert('Visite', appError.userMessage);
+    },
+    onSettled: async () => {
+      // Le signal de visite change les recommandations → on invalide leur cache.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['visitedIds'] }),
+        queryClient.invalidateQueries({ queryKey: ['recommendations'] }),
+      ]);
     },
   });
 
@@ -307,6 +355,9 @@ export default function ActivityDetails() {
   const isFavorite =
     isAuthenticated && (favoriteIdsQuery.data ?? []).includes(activityId);
 
+  const isVisited =
+    isAuthenticated && (visitedIdsQuery.data ?? []).includes(activityId);
+
   useEffect(() => {
     const fetchId = idFromRoute ?? String(id);
     if (!fetchId) {
@@ -401,6 +452,18 @@ export default function ActivityDetails() {
     toggleFavoriteMutation.mutate({ targetActivityId: activityId, currentlyFavorite: isFavorite });
   };
 
+  const onVisitedPress = () => {
+    if (!isAuthenticated) {
+      Alert.alert('Connexion requise', 'Connectez-vous pour marquer vos visites.', [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Se connecter', onPress: () => router.push('/login') },
+      ]);
+      return;
+    }
+    if (!canToggleFavorite) return;
+    toggleVisitedMutation.mutate({ targetActivityId: activityId, currentlyVisited: isVisited });
+  };
+
   const onPickStar = (score: number) => {
     if (!isAuthenticated) {
       Alert.alert('Connexion requise', 'Connectez-vous pour noter cette activité.', [
@@ -475,6 +538,28 @@ export default function ActivityDetails() {
             </View>
           )}
 
+          <Pressable
+            style={({ pressed }) => [
+              styles.visitedButton,
+              isVisited && styles.visitedButtonActive,
+              pressed && styles.visitedButtonPressed,
+            ]}
+            onPress={onVisitedPress}
+            disabled={toggleVisitedMutation.isPending || !canToggleFavorite}
+            accessibilityRole="button"
+            accessibilityState={{ selected: isVisited }}
+            accessibilityLabel={isVisited ? 'Retirer « J’ai visité »' : 'Marquer comme visité'}
+          >
+            <CircleCheck
+              color={isVisited ? colors.onAccent : colors.accent}
+              fill={isVisited ? colors.accent : 'none'}
+              size={20}
+            />
+            <Text style={[styles.visitedButtonText, isVisited && styles.visitedButtonTextActive]}>
+              {isVisited ? 'Lieu visité' : 'J’ai visité ce lieu'}
+            </Text>
+          </Pressable>
+
           <Text style={styles.sectionTitle}>Note moyenne</Text>
           {ratingToast && (
             <InlineToast
@@ -519,7 +604,7 @@ export default function ActivityDetails() {
                   >
                     <DaIcon
                       name="etoile"
-                      size={28}
+                      variant="ratingPicker"
                       opacity={userScore != null && s <= userScore ? 1 : 0.32}
                       accessibilityLabel={`Noter ${s} sur 5`}
                     />
@@ -697,7 +782,7 @@ function createStyles(colors: OdosColorPalette) {
     justifyContent: 'space-between',
   },
   heroButton: {
-    backgroundColor: 'rgba(255,255,255,0.92)',
+    backgroundColor: colors.elevated,
     borderRadius: 22,
     width: 44,
     height: 44,
@@ -762,6 +847,34 @@ function createStyles(colors: OdosColorPalette) {
     flex: 1,
     fontSize: 15,
     fontFamily: FontFamily.ui,
+  },
+  visitedButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 100,
+    borderWidth: 1.5,
+    borderColor: colors.accent,
+    backgroundColor: colors.accentSoft,
+    marginBottom: 20,
+  },
+  visitedButtonActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  visitedButtonPressed: {
+    opacity: 0.7,
+  },
+  visitedButtonText: {
+    color: colors.accent,
+    fontSize: 15,
+    fontFamily: FontFamily.uiMedium,
+  },
+  visitedButtonTextActive: {
+    color: colors.onAccent,
   },
   sectionTitle: {
     fontSize: 18,
@@ -838,26 +951,26 @@ function createStyles(colors: OdosColorPalette) {
   },
   commentCard: {
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
     borderRadius: 10,
     padding: 12,
     marginBottom: 10,
   },
   commentCardHidden: {
-    backgroundColor: '#fff7ed',
-    borderColor: '#fed7aa',
+    backgroundColor: colors.errorSurface,
+    borderColor: `${colors.danger}44`,
     opacity: 0.85,
   },
   hiddenBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: '#fed7aa',
+    backgroundColor: colors.errorSurface,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
     marginBottom: 6,
   },
   hiddenBadgeText: {
-    color: '#7c2d12',
+    color: colors.danger,
     fontWeight: '700',
     fontSize: 11,
     textTransform: 'uppercase',
@@ -892,12 +1005,13 @@ function createStyles(colors: OdosColorPalette) {
   },
   commentInput: {
     borderWidth: 1,
-    borderColor: '#e5e7eb',
+    borderColor: colors.border,
     borderRadius: 8,
     padding: 10,
     minHeight: 80,
     textAlignVertical: 'top',
-    backgroundColor: '#fff',
+    backgroundColor: colors.elevated,
+    color: colors.text,
   },
   newCommentBox: {
     marginTop: 16,
@@ -910,7 +1024,7 @@ function createStyles(colors: OdosColorPalette) {
     paddingHorizontal: Spacing.lg,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 28 : 18,
-    backgroundColor: 'rgba(255,255,255,0.96)',
+    backgroundColor: colors.elevated,
     borderTopWidth: 1,
     borderTopColor: colors.border,
     shadowColor: '#000',
