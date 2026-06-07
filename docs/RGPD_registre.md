@@ -1,6 +1,6 @@
 # Registre des activités de traitement — ODOS
 
-Registre art. 30 RGPD. Dernière mise à jour : **mai 2026**.
+Registre art. 30 RGPD. Dernière mise à jour : **juin 2026**.
 
 Documents liés : [audit RGPD](RGPD_AUDIT_2026.md) · [rétention logs](LOG_RETENTION.md) · [incident](INCIDENT_RESPONSE.md) · [index docs](README.md)
 
@@ -12,12 +12,12 @@ Documents liés : [audit RGPD](RGPD_AUDIT_2026.md) · [rétention logs](LOG_RETE
 |----|---------|----------|-------------|---------|-------|---------------|
 | T1 | Compte utilisateur mobile | Compte, auth, profil | Consentement + contrat | Email, hash MDP, alias, bio, avatar, `consentedAt` | Tant que compte actif ; suppression sous 30 j après demande | Contabo |
 | T2 | Session JWT | Maintenir la session API | Contrat | JWT access + refresh | Access : 15 min ; refresh : 30 j + purge quotidienne | — |
-| T3 | Intérêts & favoris | Personnalisation, reco | Contrat | Catégories, IDs favoris | Jusqu'à suppression compte | — |
+| T3 | Intérêts, favoris & visites | Personnalisation, reco | Contrat | Catégories, IDs favoris, IDs activités visitées | Jusqu'à suppression compte | — |
 | T4 | Commentaires & notes | Contenu communautaire | Contrat | Texte, note 1–5, métadonnées | Commentaires anonymisés à suppression ; notes supprimées | — |
 | T5 | Géoloc activités | Carte / recherche | Intérêt légitime | Coordonnées activités (pas de données user directes) | Durée de vie des fiches | — |
 | T6 | Administration | Gestion contenu, modération | Intérêt légitime / obligation | Email admin pseudonymisé, hash, IP | Logs admin : **90 j** | — |
 | T7 | MFA admin | Sécuriser le back-office | Intérêt légitime | Secret TOTP, téléphone admin (SMS) | Tant que compte admin actif | Twilio (si configuré) |
-| T8 | Recommandations LLM | Classement activités | Consentement / intérêt légitime | Intérêts, métadonnées activités (pas d'email) | Cache : `LLM_CACHE_TTL_SECONDS` | LLM self-hosted ou cloud (**à documenter**) |
+| T8 | Recommandations (filtrage collaboratif + LLM) | Classement activités personnalisé | Consentement / intérêt légitime | Intérêts, IDs favoris, IDs visites, métadonnées activités (jamais d'email) | Cache Redis : `LLM_CACHE_TTL_SECONDS` — données source jusqu'à suppression compte | LLM self-hosted (Ollama) — pas de transfert à des tiers |
 | T9 | Gamification (badges) | Récompenses exploration, vitrine profil | Contrat / intérêt légitime | Badges obtenus, préférences affichage, compteurs vues fiches | Tant que compte actif | — |
 | T10 | Exploration carte (GPS) | Progression % zones visitées, badges carte | Consentement explicite | Cellules geohash visitées, horodatage consentement (pas de trace GPS fine) | Tant que compte actif | Révocable (ne plus ouvrir carte avec GPS / demande effacement) |
 
@@ -33,7 +33,7 @@ Documents liés : [audit RGPD](RGPD_AUDIT_2026.md) · [rétention logs](LOG_RETE
 | JWT | Access 15 min + refresh 30 j ; logout invalide les refresh |
 | Stockage mobile | SecureStore pour tokens |
 | Effacement art. 17 | `UserDeletionService` — anonymisation commentaires, purge tokens et audit |
-| Portabilité art. 20 | `GET /api/me/export` (JSON `odos-gdpr-export-v1`) |
+| Portabilité art. 20 | `GET /api/me/export` (JSON `odos-gdpr-export-v2`) — inclut favoris, visites, commentaires, badges |
 | Logs applicatifs | `SensitiveDataProcessor` Monolog |
 | Audit admin | Emails pseudonymisés + `adminEmailHash` en contexte JSON |
 

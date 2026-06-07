@@ -30,7 +30,7 @@ Le registre art. 30 (`RGPD_registre.md`) reste la référence juridique pour fin
 Inclut notamment :
 
 - Identité et profil (`email`, alias, bio, dates consentement)
-- Centres d’intérêt et favoris
+- Centres d’intérêt, favoris et **activités visitées** (`visitedActivities`)
 - Notes, commentaires (contenu + métadonnées)
 - Badges obtenus et préférences d’affichage
 - Exploration carte : cellules visitées, consentement, paramètres
@@ -82,4 +82,4 @@ Après suppression : logout client + purge cache React Query + SecureStore.
 
 ---
 
-*Dernière mise à jour : mai 2026.*
+*Dernière mise à jour : juin 2026.*
