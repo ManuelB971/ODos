@@ -5,7 +5,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Switch,
   Text,
@@ -38,6 +37,7 @@ import {
   updateProfile,
   uploadAvatar,
 } from '@/scripts/api';
+import { shareExportAsPdf, type ExportData } from '@/utils/generateExportPdf';
 import { MAP_EXPLORATION_QUERY_KEY } from '@/hooks/useMapExploration';
 import { FontFamily, Spacing } from '@/constants/theme';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
@@ -292,13 +292,10 @@ export default function SettingsScreen() {
   const handleExportData = async () => {
     try {
       const data = await exportMyData();
-      await Share.share({
-        title: 'Export de mes données ODOS',
-        message: JSON.stringify(data, null, 2),
-      });
+      await shareExportAsPdf(data as unknown as ExportData);
     } catch (err) {
-      logError('Settings.exportData', err);
-      Alert.alert('Export', toAppError(err, 'Impossible d’exporter vos données.').userMessage);
+      logError("Settings.exportData", err);
+      Alert.alert("Export", toAppError(err, "Impossible d’exporter vos données.").userMessage);
     }
   };
 
@@ -476,7 +473,7 @@ export default function SettingsScreen() {
         <View style={styles.card}>
           <MenuRow
             icon={<Download size={18} color={colors.muted} />}
-            label="Télécharger mes données (portabilité)"
+            label="Exporter mes données en PDF (portabilité)"
             onPress={handleExportData}
           />
         </View>
