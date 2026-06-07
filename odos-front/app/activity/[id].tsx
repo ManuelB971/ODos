@@ -122,6 +122,7 @@ export default function ActivityDetails() {
   const [commentToast, setCommentToast] = useState<ToastState | null>(null);
   const queryClient = useQueryClient();
   const { mergeUnlocked } = useBadgeUnlock();
+  const scrollRef = useRef<ScrollView>(null);
   const idFromRoute = routeParamToString(id as string | string[] | undefined);
   const activityIdFromRoute = Number.parseInt(String(idFromRoute ?? ''), 10);
   const activityId =
@@ -482,7 +483,6 @@ export default function ActivityDetails() {
     : null;
 
   const heroImage = resolveImageUrl(activity.imageUrl);
-  const scrollRef = useRef<ScrollView>(null);
 
   return (
     <KeyboardAvoidingView
