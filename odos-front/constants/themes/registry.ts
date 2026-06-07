@@ -1,21 +1,24 @@
 import { defaultTheme } from '@/constants/themes/palettes/default';
+import { oceanTheme } from '@/constants/themes/palettes/ocean';
+import { forestTheme } from '@/constants/themes/palettes/forest';
 import type {
   ColorScheme,
   OdosColorPalette,
   ThemeDefinition,
-  ThemeVariantId,
 } from '@/constants/themes/types';
 
-const themes: Record<ThemeVariantId, ThemeDefinition> = {
+export const BUNDLED_THEMES: Record<string, ThemeDefinition> = {
   default: defaultTheme,
+  ocean: oceanTheme,
+  forest: forestTheme,
 };
 
-export function getThemeDefinition(variantId: ThemeVariantId): ThemeDefinition {
-  return themes[variantId] ?? defaultTheme;
+export function getThemeDefinition(variantId: string): ThemeDefinition {
+  return BUNDLED_THEMES[variantId] ?? defaultTheme;
 }
 
 export function resolvePalette(
-  variantId: ThemeVariantId,
+  variantId: string,
   scheme: ColorScheme,
 ): OdosColorPalette {
   const theme = getThemeDefinition(variantId);
@@ -23,5 +26,5 @@ export function resolvePalette(
 }
 
 export function listThemeVariants(): ThemeDefinition[] {
-  return Object.values(themes);
+  return Object.values(BUNDLED_THEMES);
 }
