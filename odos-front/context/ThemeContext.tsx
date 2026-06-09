@@ -20,11 +20,21 @@ import type {
 const STORAGE_KEY = 'odos_theme_preference';
 const VARIANT_STORAGE_KEY = 'odos_theme_variant';
 const BG_PATTERN_STORAGE_KEY = 'odos_bg_pattern';
+const CARD_STYLE_STORAGE_KEY = 'odos_card_style';
 
 /** Intensité du fond texturé (spray) — réglable par l'utilisateur. */
 export type BackgroundPattern = 'off' | 'subtle' | 'medium' | 'strong';
 
 const BG_PATTERN_VALUES: BackgroundPattern[] = ['off', 'subtle', 'medium', 'strong'];
+
+/**
+ * Style des cartes d'activité — réglable par l'utilisateur, se superpose au thème de base.
+ * `classic` : cartes ODOS standard. `mosaicPop` : direction « Mosaïque pop »
+ * (photo sertie de tesselles, contour encre + ombre dure, bandeau méandre grec).
+ */
+export type CardStyle = 'classic' | 'mosaicPop';
+
+const CARD_STYLE_VALUES: CardStyle[] = ['classic', 'mosaicPop'];
 
 /** Opacité du spray par niveau, atténuée en dark mode pour préserver la lisibilité. */
 const BG_PATTERN_OPACITY: Record<BackgroundPattern, { light: number; dark: number }> = {
@@ -45,6 +55,9 @@ type ThemeContextValue = {
   /** Intensité du fond texturé choisie par l'utilisateur. */
   backgroundPattern: BackgroundPattern;
   setBackgroundPattern: (pattern: BackgroundPattern) => void;
+  /** Style des cartes d'activité (classique / Mosaïque pop). */
+  cardStyle: CardStyle;
+  setCardStyle: (style: CardStyle) => void;
   /** Opacité effective du spray (selon le niveau + light/dark). */
   sprayOpacity: number;
   /** Schéma effectif après résolution system/light/dark. */
@@ -120,20 +133,48 @@ async function writeBackgroundPattern(pattern: BackgroundPattern): Promise<void>
   }
 }
 
+async function readCardStyle(): Promise<CardStyle> {
+  try {
+    if (!(await SecureStore.isAvailableAsync())) return 'classic';
+    const raw = await SecureStore.getItemAsync(CARD_STYLE_STORAGE_KEY);
+    if (raw && (CARD_STYLE_VALUES as string[]).includes(raw)) {
+      return raw as CardStyle;
+    }
+  } catch {
+    // fallback
+  }
+  return 'classic';
+}
+
+async function writeCardStyle(style: CardStyle): Promise<void> {
+  try {
+    if (await SecureStore.isAvailableAsync()) {
+      await SecureStore.setItemAsync(CARD_STYLE_STORAGE_KEY, style);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useSystemColorScheme();
   const [preference, setPreferenceState] = useState<ThemePreference>('system');
   const [variantId, setVariantIdState] = useState<ThemeVariantId>('default');
   const [backgroundPattern, setBackgroundPatternState] = useState<BackgroundPattern>('medium');
+  const [cardStyle, setCardStyleState] = useState<CardStyle>('classic');
 
   useEffect(() => {
-    void Promise.all([readPreference(), readVariantId(), readBackgroundPattern()]).then(
-      ([pref, variant, pattern]) => {
-        setPreferenceState(pref);
-        setVariantIdState(variant);
-        setBackgroundPatternState(pattern);
-      },
-    );
+    void Promise.all([
+      readPreference(),
+      readVariantId(),
+      readBackgroundPattern(),
+      readCardStyle(),
+    ]).then(([pref, variant, pattern, card]) => {
+      setPreferenceState(pref);
+      setVariantIdState(variant);
+      setBackgroundPatternState(pattern);
+      setCardStyleState(card);
+    });
   }, []);
 
   const setPreference = useCallback((pref: ThemePreference) => {
@@ -149,6 +190,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setBackgroundPattern = useCallback((pattern: BackgroundPattern) => {
     setBackgroundPatternState(pattern);
     void writeBackgroundPattern(pattern);
+  }, []);
+
+  const setCardStyle = useCallback((style: CardStyle) => {
+    setCardStyleState(style);
+    void writeCardStyle(style);
   }, []);
 
   const colorScheme: ColorScheme = useMemo(() => {
@@ -178,6 +224,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setPreference,
       backgroundPattern,
       setBackgroundPattern,
+      cardStyle,
+      setCardStyle,
       sprayOpacity,
       colorScheme,
       colors,
@@ -190,6 +238,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       setPreference,
       backgroundPattern,
       setBackgroundPattern,
+      cardStyle,
+      setCardStyle,
       sprayOpacity,
       colorScheme,
       colors,

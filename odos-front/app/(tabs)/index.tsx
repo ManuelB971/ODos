@@ -26,6 +26,7 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 import { lngDeltaToZoom } from '@/utils/mapViewport';
 import { MapPin as MapPinMarker } from '@/components/map/MapPin';
 import { SkeletonActivityRow, SkeletonRecommendationCard } from '@/components/ui/Skeleton';
+import { MosaicPopCard, MosaicPopRow } from '@/components/cards/MosaicPopCard';
 import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
 
@@ -141,7 +142,7 @@ const SPRAY_BG = require('@/assets/images/spray-background.png');
 export default function HomeScreen() {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { sprayOpacity } = useTheme();
+  const { sprayOpacity, cardStyle } = useTheme();
   const { interests } = useInterests();
   const { recommendations, loading, error } = useRecommendations(interests);
   const activitiesQuery = useActivities();
@@ -201,7 +202,9 @@ export default function HomeScreen() {
       <FlatList
         data={homeActivities}
         keyExtractor={(item) => String(item.id)}
-        renderItem={({ item }) => <ActivityRow item={item} />}
+        renderItem={({ item }) =>
+          cardStyle === 'mosaicPop' ? <MosaicPopRow item={item} /> : <ActivityRow item={item} />
+        }
         ListFooterComponent={
           hasMoreActivities ? (
             <Pressable
@@ -319,9 +322,13 @@ export default function HomeScreen() {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.recoScroller}
                 >
-                  {recommendations.map((item) => (
-                    <RecommendationCard key={`rec-${item.id}`} item={item} />
-                  ))}
+                  {recommendations.map((item) =>
+                    cardStyle === 'mosaicPop' ? (
+                      <MosaicPopCard key={`rec-${item.id}`} item={item} />
+                    ) : (
+                      <RecommendationCard key={`rec-${item.id}`} item={item} />
+                    )
+                  )}
                 </ScrollView>
               )}
             </View>

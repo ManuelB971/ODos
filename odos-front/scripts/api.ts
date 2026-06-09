@@ -121,9 +121,13 @@ export async function refreshAccessToken(): Promise<string | null> {
         api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
         return newToken;
     } catch (err) {
-        // Erreur serveur 4xx → refresh token rejeté → null déclenche le logout
-        // Erreur réseau (pas de réponse) → tokens toujours valides côté serveur → on relance
-        if (axios.isAxiosError(err) && err.response && err.response.status < 500) {
+        // On ne renvoie null (→ logout) que si le refresh token est explicitement
+        // rejeté par le serveur : 401 (introuvable/invalide) ou 403 (interdit).
+        // Tout le reste — 429 (rate-limit), 408, autres 4xx, 5xx, erreur réseau —
+        // est transitoire : on relance (throw) en conservant les jetons, pour ne
+        // jamais tuer une session encore valide côté serveur.
+        const status = axios.isAxiosError(err) ? err.response?.status : undefined;
+        if (status === 401 || status === 403) {
             return null;
         }
         throw err;

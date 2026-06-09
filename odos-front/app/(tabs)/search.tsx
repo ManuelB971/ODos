@@ -23,7 +23,8 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 
 /** Palette alignée sur docs/DESIGN_DIRECTION.md */
 import { FontFamily } from '@/constants/theme';
-import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
+import { MosaicPopRow } from '@/components/cards/MosaicPopCard';
 
 const serif = FontFamily.display;
 const sans = FontFamily.ui;
@@ -42,6 +43,7 @@ function formatPrice(price: number | null): string | null {
 export default function SearchScreen() {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { cardStyle } = useTheme();
   const insets = useSafeAreaInsets();
   const activitiesQuery = useActivities();
   const [searchQuery, setSearchQuery] = useState('');
@@ -163,15 +165,25 @@ export default function SearchScreen() {
             {filtered.length === 0 ? (
               <Text style={styles.emptyText}>Aucun résultat trouvé</Text>
             ) : (
-              filtered.map((item) => (
-                <SearchResultRow key={item.id} item={item} onPress={() => navigateToActivity(item.id)} />
-              ))
+              filtered.map((item) =>
+                cardStyle === 'mosaicPop' ? (
+                  <MosaicPopRow key={item.id} item={item} />
+                ) : (
+                  <SearchResultRow key={item.id} item={item} onPress={() => navigateToActivity(item.id)} />
+                )
+              )
             )}
           </View>
         ) : published.length === 0 ? (
           <Text style={styles.emptyText}>Aucune activité pour le moment.</Text>
         ) : browseList.length === 0 ? (
           <Text style={styles.emptyText}>Aucune activité dans cette catégorie.</Text>
+        ) : cardStyle === 'mosaicPop' ? (
+          <View style={styles.searchResultsBlock}>
+            {browseList.map((item) => (
+              <MosaicPopRow key={item.id} item={item} />
+            ))}
+          </View>
         ) : (
           <>
             {/* Grande carte « incontournable » */}
