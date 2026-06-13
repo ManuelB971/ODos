@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import api from '@/scripts/api';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
+import { PopSurface } from '@/components/pop/PopSurface';
+import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import type { ActivityGroupItem } from '@/types';
 
 async function fetchGroup(id: number) {
@@ -15,6 +17,8 @@ export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = Number(id);
   const colors = useOdosColors();
+  const isMosaicPop = useIsMosaicPop();
+  const pop = usePopTokens();
 
   const { data, isLoading } = useQuery({
     queryKey: ['group', groupId],
@@ -33,15 +37,31 @@ export default function GroupDetailScreen() {
           <Text style={{ color: colors.muted, fontFamily: FontFamily.ui }}>Chargement…</Text>
         ) : group ? (
           <>
-            <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.display }]}>
-              {group.name}
-            </Text>
-            {group.description ? (
-              <Text style={[styles.desc, { color: colors.text, fontFamily: FontFamily.ui }]}>{group.description}</Text>
-            ) : null}
-            <Text style={[styles.meta, { color: colors.muted, fontFamily: FontFamily.ui }]}>
-              {group.memberCount} membres{group.isPrivate ? ' · Privé' : ''}
-            </Text>
+            {isMosaicPop ? (
+              <PopSurface shadow={6} radius={12} style={{ marginBottom: 8 }} contentStyle={{ padding: 16, gap: 8 }}>
+                <Text style={[styles.title, { color: pop.ink, fontFamily: FontFamily.display }]}>
+                  {group.name}
+                </Text>
+                {group.description ? (
+                  <Text style={[styles.desc, { color: pop.ink, fontFamily: FontFamily.ui }]}>{group.description}</Text>
+                ) : null}
+                <Text style={[styles.meta, { color: pop.muted, fontFamily: FontFamily.ui }]}>
+                  {group.memberCount} membres{group.isPrivate ? ' · Privé' : ''}
+                </Text>
+              </PopSurface>
+            ) : (
+              <>
+                <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.display }]}>
+                  {group.name}
+                </Text>
+                {group.description ? (
+                  <Text style={[styles.desc, { color: colors.text, fontFamily: FontFamily.ui }]}>{group.description}</Text>
+                ) : null}
+                <Text style={[styles.meta, { color: colors.muted, fontFamily: FontFamily.ui }]}>
+                  {group.memberCount} membres{group.isPrivate ? ' · Privé' : ''}
+                </Text>
+              </>
+            )}
             <Text style={[styles.section, { color: colors.text, fontFamily: FontFamily.uiMedium }]}>Membres</Text>
             <FlatList
               data={members}
