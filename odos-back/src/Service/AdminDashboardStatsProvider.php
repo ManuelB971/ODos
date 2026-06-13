@@ -7,8 +7,11 @@ namespace App\Service;
 use App\Entity\Activity;
 use App\Entity\ActivityRating;
 use App\Entity\AdminAuditLog;
+use App\Entity\ActivityGroup;
 use App\Entity\Category;
 use App\Entity\Comment;
+use App\Entity\ForumReply;
+use App\Entity\ForumThread;
 use App\Entity\User;
 use App\Repository\AdminAuditLogRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -102,6 +105,22 @@ final class AdminDashboardStatsProvider
         $commentsCount = $this->safeCount(Comment::class, 'c');
         $hiddenCommentsCount = $this->safeCount(Comment::class, 'c', 'c.isHidden = true');
 
+        $forumThreadsCount = $this->safeCount(ForumThread::class, 't');
+        $forumRepliesCount = $this->safeCount(ForumReply::class, 'r');
+        $groupsCount = $this->safeCount(ActivityGroup::class, 'g');
+
+        $topForumThreads = [];
+        try {
+            $topForumThreads = $conn->fetchAllAssociative(
+                'SELECT t.id, t.title, t.reply_count
+                 FROM forum_thread t
+                 ORDER BY t.reply_count DESC, t.created_at DESC
+                 LIMIT 5'
+            );
+        } catch (\Throwable) {
+            $topForumThreads = [];
+        }
+
         $ratingAverageGlobal = null;
         try {
             $ratingAverageGlobal = $this->entityManager->createQueryBuilder()
@@ -127,9 +146,13 @@ final class AdminDashboardStatsProvider
                 'rating_average_global' => $ratingAverageGlobal,
                 'comments' => $commentsCount,
                 'comments_hidden' => $hiddenCommentsCount,
+                'forum_threads' => $forumThreadsCount,
+                'forum_replies' => $forumRepliesCount,
+                'groups' => $groupsCount,
             ],
             'recent_activities' => $recentActivities,
             'top_favorited' => $topFavorited,
+            'top_forum_threads' => $topForumThreads,
             'log_snippet' => $logSnippet,
             'recent_admin_events' => $recentAdminEvents,
         ];
