@@ -36,6 +36,6 @@ class PushTokenRepository extends ServiceEntityRepository
             ->getQuery()
             ->getScalarResult();
 
-        return array_map(static fn (array $row): string => (string) $row['token'], $rows);
+        return array_values(array_map(static fn (array $row): string => (string) $row['token'], $rows));
     }
 }

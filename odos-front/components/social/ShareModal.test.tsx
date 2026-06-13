@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react-native';
 import { ShareModal } from '@/components/social/ShareModal';
+import { shareActivity } from '@/scripts/api';
 
 jest.mock('@/hooks/useFriendships', () => ({
   useFriendships: () => ({
@@ -47,7 +48,6 @@ describe('ShareModal', () => {
   });
 
   it('submit calls shareActivity for selected targets', async () => {
-    const { shareActivity } = require('@/scripts/api');
     const onClose = jest.fn();
     render(
       <ShareModal visible activityId={42} activityName="Parc" onClose={onClose} />,

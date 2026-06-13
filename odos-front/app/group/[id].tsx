@@ -8,7 +8,7 @@ import type { ActivityGroupItem } from '@/types';
 
 async function fetchGroup(id: number) {
   const response = await api.get(`/api/groups/${id}`);
-  return response.data as { group: ActivityGroupItem; members: Array<{ user: { displayName: string }; role: string }> };
+  return response.data as { group: ActivityGroupItem; members: { user: { displayName: string }; role: string }[] };
 }
 
 export default function GroupDetailScreen() {

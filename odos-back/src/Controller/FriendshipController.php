@@ -114,6 +114,8 @@ final class FriendshipController extends AbstractController
             return $this->json(['message' => 'Seul le destinataire peut accepter ou bloquer.'], Response::HTTP_FORBIDDEN);
         }
 
+        $badges = [];
+
         if ('accepted' === $status) {
             $sender = $friendship->getSender();
             try {
@@ -133,14 +135,13 @@ final class FriendshipController extends AbstractController
             if ($blocked instanceof User) {
                 $friendship = $this->friendshipService->block($user, $blocked);
             }
-            $badges = [];
         } else {
             return $this->json(['message' => 'Statut invalide.'], Response::HTTP_BAD_REQUEST);
         }
 
         return $this->json([
             'friendship' => $this->serializer->friendshipToArray($friendship, $user),
-            'unlockedBadges' => $badges ?? [],
+            'unlockedBadges' => $badges,
         ]);
     }
 

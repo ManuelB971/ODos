@@ -1,7 +1,7 @@
 import { Tabs, useRouter } from 'expo-router';
 
 import { MaterialIcons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';

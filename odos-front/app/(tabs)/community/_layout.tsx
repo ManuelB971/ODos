@@ -59,7 +59,7 @@ function SocialConsentGate({ children }: { children: React.ReactNode }) {
                 <ActivityIndicator color={colors.onAccent} />
               ) : (
                 <Text style={[styles.ctaText, { color: colors.onAccent, fontFamily: FontFamily.uiMedium }]}>
-                  J'accepte
+                  {"J\u2019accepte"}
                 </Text>
               )}
             </Pressable>

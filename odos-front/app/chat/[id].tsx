@@ -11,15 +11,16 @@ export default function ChatScreen() {
   const colors = useOdosColors();
   const { data, refetch } = useChatMessages(conversationId);
   const { sendMessage, markRead } = useChatMutations();
+  const markConversationRead = markRead.mutate;
   const [draft, setDraft] = useState('');
 
   const messages = data?.member ?? [];
 
   useEffect(() => {
     if (conversationId > 0) {
-      markRead.mutate(conversationId);
+      markConversationRead(conversationId);
     }
-  }, [conversationId, messages.length]);
+  }, [conversationId, messages.length, markConversationRead]);
 
   const onSend = () => {
     const content = draft.trim();
