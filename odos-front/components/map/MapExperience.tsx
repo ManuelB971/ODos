@@ -22,7 +22,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query';
 
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
-import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useMapExploration } from '@/hooks/useMapExploration';
 import { fetchVisitedIds } from '@/scripts/api';
@@ -61,6 +61,7 @@ const CAMERA_EASE_MS = 380;
  */
 export function MapExperience({ activities, loading = false, error = null }: MapExperienceProps) {
   const colors = useOdosColors();
+  const { colorScheme } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -257,7 +258,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
       <View style={styles.mapStage}>
         <Map
           style={styles.map}
-          mapStyle={getOdosMaplibreStyleUrl()}
+          mapStyle={getOdosMaplibreStyleUrl(colorScheme)}
           compass={false}
           scaleBar={false}
           attribution

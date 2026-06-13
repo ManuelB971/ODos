@@ -27,6 +27,7 @@ import { lngDeltaToZoom } from '@/utils/mapViewport';
 import { MapPin as MapPinMarker } from '@/components/map/MapPin';
 import { SkeletonActivityRow, SkeletonRecommendationCard } from '@/components/ui/Skeleton';
 import { MosaicPopCard, MosaicPopRow } from '@/components/cards/MosaicPopCard';
+import { MosaicPopMap } from '@/components/cards/MosaicPopMap';
 import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
 
@@ -142,7 +143,7 @@ const SPRAY_BG = require('@/assets/images/spray-background.png');
 export default function HomeScreen() {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { sprayOpacity, cardStyle } = useTheme();
+  const { sprayOpacity, cardStyle, colorScheme } = useTheme();
   const { interests } = useInterests();
   const { recommendations, loading, error } = useRecommendations(interests);
   const activitiesQuery = useActivities();
@@ -237,6 +238,12 @@ export default function HomeScreen() {
                   <Text style={styles.seeAllText}>EXPLORER</Text>
                 </Pressable>
               </View>
+              {cardStyle === 'mosaicPop' ? (
+                <MosaicPopMap
+                  count={geoActivities.length}
+                  onPress={() => router.push('/map')}
+                />
+              ) : (
               <Pressable
                 onPress={() => router.push('/map')}
                 style={styles.mapContainer}
@@ -244,9 +251,9 @@ export default function HomeScreen() {
                 accessibilityLabel="Ouvrir la carte immersive"
               >
                 <Map
-                  key={`hm-${initialRegion.latitude.toFixed(4)}_${initialRegion.longitude.toFixed(4)}_${geoActivities.length}`}
+                  key={`hm-${colorScheme}-${initialRegion.latitude.toFixed(4)}_${initialRegion.longitude.toFixed(4)}_${geoActivities.length}`}
                   style={styles.map}
-                  mapStyle={getOdosMaplibreStyleUrl()}
+                  mapStyle={getOdosMaplibreStyleUrl(colorScheme)}
                   pointerEvents="none"
                   attribution
                   logo
@@ -286,6 +293,7 @@ export default function HomeScreen() {
                   <Text style={styles.mapCtaText}>Explorer la carte</Text>
                 </View>
               </Pressable>
+              )}
             </View>
 
             {/* ── Recommandations (carrousel horizontal) ── */}
