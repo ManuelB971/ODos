@@ -47,6 +47,17 @@ export interface ExportData {
     ratings: ExportRating[];
     badges: ExportBadge[];
     mapExploration?: { zoneKey: string; visitedCellIds: number[] };
+    social?: ExportSocialData;
+}
+
+export interface ExportSocialData {
+    friends: Array<{ alias: string; since: string | null }>;
+    forumThreads: Array<{ title: string; content: string; createdAt: string }>;
+    forumReplies: Array<{ content: string; createdAt: string }>;
+    sharedActivitiesSent: Array<{ activityName: string | null; message: string | null; createdAt: string }>;
+    sharedActivitiesReceived: Array<{ activityName: string | null; message: string | null; createdAt: string }>;
+    groups: Array<{ name: string | null; role: string; joinedAt: string }>;
+    forumLikes: Array<{ replyExcerpt: string; threadTitle: string | null; createdAt: string }>;
 }
 
 function formatDate(iso: string | null | undefined): string {
@@ -81,7 +92,7 @@ function esc(str: string | null | undefined): string {
 }
 
 function buildHtml(data: ExportData): string {
-    const { profile, favorites, visitedActivities = [], comments, ratings, badges, exportedAt } = data;
+    const { profile, favorites, visitedActivities = [], comments, ratings, badges, exportedAt, social } = data;
 
     const interests =
         profile.interests?.length
@@ -112,6 +123,8 @@ function buildHtml(data: ExportData): string {
         badges.length === 0
             ? '<p class="empty">Aucun badge.</p>'
             : `<ul class="badge-list">${badges.map((b) => `<li>🏅 <strong>${esc(b.name)}</strong> <span class="meta">(${formatDate(b.unlockedAt)})</span></li>`).join('')}</ul>`;
+
+    const socialHtml = social ? buildSocialHtml(social) : '';
 
     return `<!DOCTYPE html>
 <html lang="fr">
@@ -399,6 +412,8 @@ function buildHtml(data: ExportData): string {
     ${badgesHtml}
   </div>
 
+  ${socialHtml}
+
   <!-- Footer -->
   <div class="footer">
     Export ODOS · ${esc(profile.email ?? '')} · Généré le ${formatDate(exportedAt)}<br/>
@@ -408,6 +423,50 @@ function buildHtml(data: ExportData): string {
 </div>
 </body>
 </html>`;
+}
+
+function buildSocialHtml(social: ExportSocialData): string {
+    const friendsList =
+        social.friends.length === 0
+            ? '<p class="empty">Aucun ami.</p>'
+            : `<ul>${social.friends.map((f) => `<li>${esc(f.alias)} <span class="meta">depuis ${formatDate(f.since)}</span></li>`).join('')}</ul>`;
+
+    const threadsList =
+        social.forumThreads.length === 0
+            ? '<p class="empty">Aucun fil créé.</p>'
+            : social.forumThreads
+                  .map(
+                      (t) => `<div class="comment-item"><p class="comment-content"><strong>${esc(t.title)}</strong></p><p>${esc(t.content)}</p><p class="comment-meta">${formatDate(t.createdAt)}</p></div>`,
+                  )
+                  .join('');
+
+    const sharesList =
+        [...social.sharedActivitiesSent, ...social.sharedActivitiesReceived].length === 0
+            ? '<p class="empty">Aucun partage.</p>'
+            : `<ul>${[...social.sharedActivitiesSent, ...social.sharedActivitiesReceived]
+                  .map((s) => `<li>${esc(s.activityName)} — ${esc(s.message) || 'sans message'} <span class="meta">${formatDate(s.createdAt)}</span></li>`)
+                  .join('')}</ul>`;
+
+    const groupsList =
+        social.groups.length === 0
+            ? '<p class="empty">Aucun groupe.</p>'
+            : `<ul>${social.groups.map((g) => `<li>${esc(g.name)} <span class="meta">(${esc(g.role)}, ${formatDate(g.joinedAt)})</span></li>`).join('')}</ul>`;
+
+    return `
+  <div class="section">
+    <div class="section-header">
+      <span class="section-icon">👥</span>
+      <span class="section-title">Communauté</span>
+    </div>
+    <p class="profile-label" style="margin-top:12px">Amis</p>
+    ${friendsList}
+    <p class="profile-label" style="margin-top:16px">Fils forum créés</p>
+    ${threadsList}
+    <p class="profile-label" style="margin-top:16px">Partages d'activités</p>
+    ${sharesList}
+    <p class="profile-label" style="margin-top:16px">Groupes</p>
+    ${groupsList}
+  </div>`;
 }
 
 export async function shareExportAsPdf(data: ExportData): Promise<void> {
