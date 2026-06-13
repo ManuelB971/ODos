@@ -39,34 +39,60 @@ function usePatternId(prefix: string): string {
   return `${prefix}-${React.useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 }
 
+/**
+ * Mesure la taille réelle du conteneur via onLayout. On NE passe JAMAIS `100%`
+ * comme width/height à `<Svg>` : sous la New Architecture (Fabric), un SVG en
+ * dimensions `%` peut se mesurer à une taille démesurée et tenter d'allouer un
+ * bitmap de plusieurs centaines de Mo → `Canvas: trying to draw too large bitmap`
+ * → crash. En pixels mesurés, le bitmap reste borné à la taille affichée.
+ */
+function useMeasuredSize() {
+  const [size, setSize] = React.useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  const onLayout = React.useCallback((e: { nativeEvent: { layout: { width: number; height: number } } }) => {
+    const { width, height } = e.nativeEvent.layout;
+    setSize((prev) => (prev.w === width && prev.h === height ? prev : { w: width, h: height }));
+  }, []);
+  return { size, onLayout };
+}
+
 /** Hachures diagonales (45°) d'une couleur sur fond transparent — évoque la mosaïque. */
 function Hatch({ color }: { color: string }) {
   const id = usePatternId('htch');
+  const { size, onLayout } = useMeasuredSize();
   return (
-    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-      <Defs>
-        <Pattern id={id} width={8} height={8} patternUnits="userSpaceOnUse">
-          {/* Trait diagonal couvrant les coins de la tuile → hachure continue. */}
-          <Line x1={-2} y1={10} x2={10} y2={-2} stroke={color} strokeWidth={3} />
-        </Pattern>
-      </Defs>
-      <Rect width="100%" height="100%" fill={`url(#${id})`} />
-    </Svg>
+    <View style={StyleSheet.absoluteFill} onLayout={onLayout} pointerEvents="none">
+      {size.w > 0 && size.h > 0 ? (
+        <Svg width={size.w} height={size.h}>
+          <Defs>
+            <Pattern id={id} width={8} height={8} patternUnits="userSpaceOnUse">
+              {/* Trait diagonal couvrant les coins de la tuile → hachure continue. */}
+              <Line x1={-2} y1={10} x2={10} y2={-2} stroke={color} strokeWidth={3} />
+            </Pattern>
+          </Defs>
+          <Rect width={size.w} height={size.h} fill={`url(#${id})`} />
+        </Svg>
+      ) : null}
+    </View>
   );
 }
 
 /** Grille parchemin discrète (33% du fond), comme `.home-map::before`. */
 function FaintGrid({ ink }: { ink: string }) {
   const id = usePatternId('grid');
+  const { size, onLayout } = useMeasuredSize();
   return (
-    <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-      <Defs>
-        <Pattern id={id} width={34} height={34} patternUnits="userSpaceOnUse">
-          <Path d="M0 0 H34 M0 0 V34" stroke={ink} strokeWidth={1.5} strokeOpacity={0.07} fill="none" />
-        </Pattern>
-      </Defs>
-      <Rect width="100%" height="100%" fill={`url(#${id})`} />
-    </Svg>
+    <View style={StyleSheet.absoluteFill} onLayout={onLayout} pointerEvents="none">
+      {size.w > 0 && size.h > 0 ? (
+        <Svg width={size.w} height={size.h}>
+          <Defs>
+            <Pattern id={id} width={34} height={34} patternUnits="userSpaceOnUse">
+              <Path d="M0 0 H34 M0 0 V34" stroke={ink} strokeWidth={1.5} strokeOpacity={0.07} fill="none" />
+            </Pattern>
+          </Defs>
+          <Rect width={size.w} height={size.h} fill={`url(#${id})`} />
+        </Svg>
+      ) : null}
+    </View>
   );
 }
 
@@ -102,20 +128,23 @@ function Road({
   vertical?: boolean;
   style: StyleProp<ViewStyle>;
 }) {
+  const { size, onLayout } = useMeasuredSize();
   return (
-    <View style={[styles.road, { backgroundColor: ink }, style]}>
-      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
-        <Line
-          x1={vertical ? '50%' : '0%'}
-          y1={vertical ? '0%' : '50%'}
-          x2={vertical ? '50%' : '100%'}
-          y2={vertical ? '100%' : '50%'}
-          stroke={paper}
-          strokeWidth={1.6}
-          strokeDasharray="5 6"
-          strokeOpacity={0.55}
-        />
-      </Svg>
+    <View style={[styles.road, { backgroundColor: ink }, style]} onLayout={onLayout}>
+      {size.w > 0 && size.h > 0 ? (
+        <Svg style={StyleSheet.absoluteFill} width={size.w} height={size.h}>
+          <Line
+            x1={vertical ? size.w / 2 : 0}
+            y1={vertical ? 0 : size.h / 2}
+            x2={vertical ? size.w / 2 : size.w}
+            y2={vertical ? size.h : size.h / 2}
+            stroke={paper}
+            strokeWidth={1.6}
+            strokeDasharray="5 6"
+            strokeOpacity={0.55}
+          />
+        </Svg>
+      ) : null}
     </View>
   );
 }
