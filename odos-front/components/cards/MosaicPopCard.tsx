@@ -124,24 +124,27 @@ export function MosaicPopCard({
   const cat = getCategoryName(item.category);
   const accent = getCategoryAccent(cat);
   const rating = item.ratingAverage;
+  // Variante grille (favoris, 2 colonnes) : plus compacte que le carrousel.
+  const isGrid = variant === 'grid';
+  const shadow = isGrid ? 4 : CARD_SHADOW;
 
   return (
     <Link href={`/activity/${item.id}`} asChild>
-      <Pressable style={[styles.cardWrap, variant === 'grid' ? styles.cardWrapGrid : styles.cardWrapCarousel]}>
+      <Pressable style={[styles.cardWrap, isGrid ? styles.cardWrapGrid : styles.cardWrapCarousel]}>
         {/* Ombre dure décalée (rendu net cross-platform via un calque encre) */}
         <View
           pointerEvents="none"
           style={[
             StyleSheet.absoluteFill,
             styles.hardShadow,
-            { backgroundColor: t.ink, borderRadius: RADIUS, transform: [{ translateX: CARD_SHADOW }, { translateY: CARD_SHADOW }] },
+            { backgroundColor: t.ink, borderRadius: RADIUS, transform: [{ translateX: shadow }, { translateY: shadow }] },
           ]}
         />
         <View style={[styles.card, { backgroundColor: t.paper, borderColor: t.ink }]}>
           {/* Photo sertie de tesselles */}
-          <View style={[styles.frame, { backgroundColor: accent, borderBottomColor: t.ink }]}>
+          <View style={[styles.frame, isGrid && styles.frameGrid, { backgroundColor: accent, borderBottomColor: t.ink }]}>
             <TesseraGrid color={t.paper} />
-            <View style={[styles.photoWrap, { borderColor: t.ink }]}>
+            <View style={[styles.photoWrap, isGrid && styles.photoWrapGrid, { borderColor: t.ink }]}>
               {img ? (
                 <Image source={{ uri: img }} style={styles.photo} resizeMode="cover" />
               ) : (
@@ -149,7 +152,7 @@ export function MosaicPopCard({
               )}
             </View>
             {rating != null && rating > 0 ? (
-              <Tessera value={rating} t={t} accent={accent} style={styles.cardTessera} />
+              <Tessera value={rating} t={t} accent={accent} small={isGrid} style={styles.cardTessera} />
             ) : null}
             {onToggleFavorite ? (
               <Pressable
@@ -168,13 +171,15 @@ export function MosaicPopCard({
             ) : null}
           </View>
 
-          {/* Bandeau méandre */}
-          <View style={[styles.band, { backgroundColor: accent, borderBottomColor: t.ink }]}>
-            <Meander color={t.ink} height={BAND_H} />
-          </View>
+          {/* Bandeau méandre (masqué en grille pour gagner de la hauteur) */}
+          {!isGrid ? (
+            <View style={[styles.band, { backgroundColor: accent, borderBottomColor: t.ink }]}>
+              <Meander color={t.ink} height={BAND_H} />
+            </View>
+          ) : null}
 
           {/* Corps */}
-          <View style={styles.body}>
+          <View style={[styles.body, isGrid && styles.bodyGrid]}>
             {cat ? (
               <View style={[styles.catPill, { backgroundColor: accent, borderColor: t.ink }]}>
                 <Text style={[styles.catText, { color: t.ink }]} numberOfLines={1}>
@@ -182,7 +187,7 @@ export function MosaicPopCard({
                 </Text>
               </View>
             ) : null}
-            <Text style={[styles.title, { color: t.ink }]} numberOfLines={2}>
+            <Text style={[styles.title, isGrid && styles.titleGrid, { color: t.ink }]} numberOfLines={2}>
               {item.name}
             </Text>
             {item.city ? (
@@ -283,7 +288,8 @@ const styles = StyleSheet.create({
   },
   cardWrapGrid: {
     flex: 1,
-    marginRight: CARD_SHADOW,
+    marginRight: 4,
+    marginBottom: 8,
   },
   heartBtn: {
     position: 'absolute',
@@ -310,10 +316,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: OUTLINE,
     position: 'relative',
   },
+  frameGrid: {
+    padding: 6,
+  },
   photoWrap: {
     borderWidth: 2,
     aspectRatio: 4 / 3,
     overflow: 'hidden',
+  },
+  photoWrapGrid: {
+    aspectRatio: 3 / 2,
   },
   photo: {
     width: '100%',
@@ -331,6 +343,10 @@ const styles = StyleSheet.create({
   body: {
     padding: 13,
     paddingTop: 12,
+  },
+  bodyGrid: {
+    padding: 10,
+    paddingTop: 9,
   },
   catPill: {
     alignSelf: 'flex-start',
@@ -350,6 +366,11 @@ const styles = StyleSheet.create({
     fontSize: 23,
     lineHeight: 25,
     marginBottom: 5,
+  },
+  titleGrid: {
+    fontSize: 16,
+    lineHeight: 18,
+    marginBottom: 3,
   },
   meta: {
     flexDirection: 'row',
