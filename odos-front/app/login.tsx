@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { AlertCircle, Mail, Square } from 'lucide-react-native';
 import { DaIcon } from '@/components/ui/DaIcon';
 
@@ -90,6 +91,12 @@ export default function LoginScreen() {
     }
   };
 
+  const switchMode = useCallback((login: boolean) => {
+    setError(null);
+    setAcceptTerms(false);
+    setIsLogin(login);
+  }, []);
+
   const completeSocialLogin = (user: NonNullable<Awaited<ReturnType<typeof signIn>>['user']>) => {
     setUser(user);
     const hasInterests = Array.isArray(user.interests) && user.interests.length > 0;
@@ -136,17 +143,53 @@ export default function LoginScreen() {
         >
           {!keyboardVisible ? (
             <View style={styles.brandHeader}>
-              <View style={styles.logoCircle}>
-                <AppLogo width={44} height={44} />
+              <View style={styles.logoHalo}>
+                <LinearGradient
+                  colors={[colors.accentSoft, colors.accent, colors.accentHover]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.logoHaloGradient}
+                >
+                  <View style={styles.logoInner}>
+                    <AppLogo width={48} height={48} />
+                  </View>
+                </LinearGradient>
               </View>
-            <Text style={styles.wordmark}>ODOS</Text>
-            <BrandBaseline variant="short" style={styles.heroBaseline} />
-            <Text style={styles.tagline}>{BRAND_TAGLINE}</Text>
+              <Text style={styles.wordmark}>ODOS</Text>
+              <BrandBaseline variant="short" style={styles.heroBaseline} />
+              <Text style={styles.tagline}>{BRAND_TAGLINE}</Text>
             </View>
           ) : null}
 
           <View style={styles.card}>
-            <Text style={styles.eyebrow}>{isLogin ? 'Connexion' : 'Inscription'}</Text>
+            <View
+              style={styles.segment}
+              accessibilityRole="tablist"
+            >
+              <Pressable
+                onPress={() => switchMode(true)}
+                style={[styles.segmentItem, isLogin && styles.segmentItemActive]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isLogin }}
+                accessibilityLabel="Connexion"
+              >
+                <Text style={[styles.segmentText, isLogin && styles.segmentTextActive]}>
+                  Connexion
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => switchMode(false)}
+                style={[styles.segmentItem, !isLogin && styles.segmentItemActive]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: !isLogin }}
+                accessibilityLabel="Inscription"
+              >
+                <Text style={[styles.segmentText, !isLogin && styles.segmentTextActive]}>
+                  Inscription
+                </Text>
+              </Pressable>
+            </View>
+
             <Text style={styles.title}>
               {isLogin ? 'Heureux de vous revoir' : 'Bienvenue sur la voie'}
             </Text>
@@ -272,27 +315,6 @@ export default function LoginScreen() {
             ) : null}
           </View>
 
-          <Pressable
-            onPress={() => {
-              setError(null);
-              setAcceptTerms(false);
-              setIsLogin((v) => !v);
-            }}
-            style={styles.switchBtn}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={
-              isLogin ? 'Créer un compte, passer en mode inscription' : 'Se connecter, passer en mode connexion'
-            }
-          >
-            <Text style={styles.switchText}>
-              {isLogin ? 'Pas encore de compte ? ' : 'Déjà un compte ? '}
-              <Text style={styles.switchAction}>
-                {isLogin ? 'Créer un compte' : 'Se connecter'}
-              </Text>
-            </Text>
-          </Pressable>
-
           <Text style={styles.legal}>
             En continuant, vous acceptez nos{' '}
             <Text style={styles.legalLink} onPress={() => router.push('/legal')}>
@@ -322,19 +344,26 @@ function createStyles(colors: OdosColorPalette) {
     alignItems: 'center',
     marginBottom: 24,
   },
-  logoCircle: {
-    width: 72,
-    height: 72,
+  logoHalo: {
+    marginBottom: 16,
+    borderRadius: Radius.modal + 4,
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 22,
+    elevation: 10,
+  },
+  logoHaloGradient: {
+    padding: 3,
+    borderRadius: Radius.modal + 4,
+  },
+  logoInner: {
+    width: 76,
+    height: 76,
     borderRadius: Radius.modal,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.elevated,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 18,
-    elevation: 6,
   },
   wordmark: {
     fontSize: 28,
@@ -372,13 +401,36 @@ function createStyles(colors: OdosColorPalette) {
     shadowRadius: 28,
     elevation: 4,
   },
-  eyebrow: {
-    fontSize: 11,
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: colors.surface,
+    borderRadius: Radius.pill,
+    padding: 4,
+    gap: 4,
+  },
+  segmentItem: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: Radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentItemActive: {
+    backgroundColor: colors.elevated,
+    shadowColor: '#11181C',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  segmentText: {
+    fontSize: 14,
     fontFamily: FontFamily.uiMedium,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
+    color: colors.muted,
+  },
+  segmentTextActive: {
+    fontFamily: FontFamily.uiBold,
     color: colors.accent,
-    marginBottom: -10,
   },
   title: {
     fontSize: 26,
@@ -477,20 +529,8 @@ function createStyles(colors: OdosColorPalette) {
   socialStack: {
     gap: 12,
   },
-  switchBtn: {
-    marginTop: 20,
-  },
-  switchText: {
-    fontSize: 14,
-    fontFamily: FontFamily.ui,
-    color: colors.muted,
-  },
-  switchAction: {
-    color: colors.primary,
-    fontFamily: FontFamily.uiBold,
-  },
   legal: {
-    marginTop: 14,
+    marginTop: 20,
     fontSize: 12,
     fontFamily: FontFamily.ui,
     color: colors.muted,

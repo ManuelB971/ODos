@@ -13,10 +13,11 @@ import { Compass, Heart } from 'lucide-react-native';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useAuth } from '@/context/AuthContext';
 import { Fonts, Spacing } from '@/constants/theme';
-import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
 import { toAppError } from '@/utils/errorHandling';
 import { toggleFavoriteActivity } from '@/scripts/api';
 import { FavoriteCard } from '@/components/FavoriteCard';
+import { MosaicPopCard } from '@/components/cards/MosaicPopCard';
 import { SkeletonFavoriteCard } from '@/components/ui/Skeleton';
 import { CTAButton } from '@/components/ui/CTAButton';
 
@@ -35,6 +36,7 @@ export default function FavoritesScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
+  const { cardStyle } = useTheme();
   const { favorites, isLoading, error } = useFavorites();
 
   const errorMessage = error
@@ -160,15 +162,24 @@ export default function FavoritesScreen() {
         columnWrapperStyle={styles.row}
         contentContainerStyle={styles.gridContent}
         ListHeaderComponent={<Header count={favorites.length} />}
-        renderItem={({ item }) => (
-          <FavoriteCard
-            item={item}
-            isFavorite
-            isPending={toggleMutation.isPending}
-            onPress={() => router.push(`/activity/${item.id}`)}
-            onToggleFavorite={() => handleToggle(item.id)}
-          />
-        )}
+        renderItem={({ item }) =>
+          cardStyle === 'mosaicPop' ? (
+            <MosaicPopCard
+              item={item}
+              variant="grid"
+              isFavorite
+              onToggleFavorite={() => handleToggle(item.id)}
+            />
+          ) : (
+            <FavoriteCard
+              item={item}
+              isFavorite
+              isPending={toggleMutation.isPending}
+              onPress={() => router.push(`/activity/${item.id}`)}
+              onToggleFavorite={() => handleToggle(item.id)}
+            />
+          )
+        }
       />
     </View>
   );

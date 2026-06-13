@@ -9,9 +9,16 @@ use App\Entity\Category;
 use App\Entity\Comment;
 use App\Entity\User;
 use App\Repository\CommentRepository;
+use App\Repository\ForumReplyLikeRepository;
+use App\Repository\ForumReplyRepository;
+use App\Repository\ForumThreadRepository;
+use App\Repository\FriendshipRepository;
+use App\Repository\GroupMemberRepository;
+use App\Repository\SharedActivityRepository;
 use App\Repository\UserBadgeDisplayRepository;
 use App\Repository\UserBadgeRepository;
 use App\Repository\UserMapCellRepository;
+use App\Enum\FriendshipStatus;
 use App\Service\MapExplorationZoneRegistry;
 
 /**
@@ -25,6 +32,12 @@ final class UserDataExportService
         private readonly UserBadgeDisplayRepository $userBadgeDisplayRepository,
         private readonly UserMapCellRepository $userMapCellRepository,
         private readonly MapExplorationZoneRegistry $zoneRegistry,
+        private readonly FriendshipRepository $friendshipRepository,
+        private readonly ForumThreadRepository $forumThreadRepository,
+        private readonly ForumReplyRepository $forumReplyRepository,
+        private readonly SharedActivityRepository $sharedActivityRepository,
+        private readonly GroupMemberRepository $groupMemberRepository,
+        private readonly ForumReplyLikeRepository $forumReplyLikeRepository,
     ) {
     }
 
@@ -127,6 +140,68 @@ final class UserDataExportService
                     $this->zoneRegistry->getCatalogZone()['zoneKey']
                 ),
             ],
+            'social' => $this->exportSocialData($user),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function exportSocialData(User $user): array
+    {
+        $friendships = $this->friendshipRepository->findForUser($user, 1, 500);
+        $friends = [];
+        foreach ($friendships as $f) {
+            if (FriendshipStatus::Accepted !== $f->getStatus()) {
+                continue;
+            }
+            $other = $f->getSender()?->getId() === $user->getId() ? $f->getReceiver() : $f->getSender();
+            if (null !== $other) {
+                $friends[] = [
+                    'alias' => $other->getDisplayName(),
+                    'since' => $f->getAcceptedAt()?->format(\DateTimeInterface::ATOM),
+                ];
+            }
+        }
+
+        $threads = $this->forumThreadRepository->findBy(['author' => $user], ['createdAt' => 'DESC']);
+        $replies = $this->forumReplyRepository->findBy(['author' => $user], ['createdAt' => 'DESC']);
+        $sentShares = $this->sharedActivityRepository->findBy(['sender' => $user], ['createdAt' => 'DESC']);
+        $receivedShares = $this->sharedActivityRepository->findBy(['receiver' => $user], ['createdAt' => 'DESC']);
+        $memberships = $this->groupMemberRepository->findBy(['user' => $user]);
+        $likes = $this->forumReplyLikeRepository->findBy(['user' => $user], ['createdAt' => 'DESC']);
+
+        return [
+            'friends' => $friends,
+            'forumThreads' => array_map(static fn ($t) => [
+                'title' => $t->getTitle(),
+                'content' => $t->getContent(),
+                'createdAt' => $t->getCreatedAt()->format(\DateTimeInterface::ATOM),
+            ], $threads),
+            'forumReplies' => array_map(static fn ($r) => [
+                'content' => $r->getContent(),
+                'createdAt' => $r->getCreatedAt()->format(\DateTimeInterface::ATOM),
+            ], $replies),
+            'sharedActivitiesSent' => array_map(static fn ($s) => [
+                'activityName' => $s->getActivity()?->getName(),
+                'message' => $s->getMessage(),
+                'createdAt' => $s->getCreatedAt()->format(\DateTimeInterface::ATOM),
+            ], $sentShares),
+            'sharedActivitiesReceived' => array_map(static fn ($s) => [
+                'activityName' => $s->getActivity()?->getName(),
+                'message' => $s->getMessage(),
+                'createdAt' => $s->getCreatedAt()->format(\DateTimeInterface::ATOM),
+            ], $receivedShares),
+            'groups' => array_map(static fn ($m) => [
+                'name' => $m->getGroup()?->getName(),
+                'role' => $m->getRole()->value,
+                'joinedAt' => $m->getJoinedAt()->format(\DateTimeInterface::ATOM),
+            ], $memberships),
+            'forumLikes' => array_map(static fn ($l) => [
+                'replyExcerpt' => mb_substr($l->getReply()?->getContent() ?? '', 0, 80),
+                'threadTitle' => $l->getReply()?->getThread()?->getTitle(),
+                'createdAt' => $l->getCreatedAt()->format(\DateTimeInterface::ATOM),
+            ], $likes),
         ];
     }
 }

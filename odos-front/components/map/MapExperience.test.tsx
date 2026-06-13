@@ -4,9 +4,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import { fireEvent, render, screen, within } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { MapExperience } from '@/components/map/MapExperience';
 import type { ApiActivity } from '@/types';
+
+/** Rend MapExperience dans un QueryClientProvider (requis par useQuery interne). */
+function renderMap(ui: React.ReactElement) {
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 
 const mockBack = jest.fn();
 const mockPush = jest.fn();
@@ -144,7 +153,7 @@ describe('MapExperience', () => {
   });
 
   it('renders one marker per published geo-located activity', () => {
-    render(<MapExperience activities={[parisMuseum, lyonPark]} />);
+    renderMap(<MapExperience activities={[parisMuseum, lyonPark]} />);
 
     expect(screen.getByTestId('pin-1')).toBeTruthy();
     expect(screen.getByTestId('pin-2')).toBeTruthy();
@@ -152,7 +161,7 @@ describe('MapExperience', () => {
   });
 
   it('skips unpublished or activities without coordinates', () => {
-    render(
+    renderMap(
       <MapExperience
         activities={[
           parisMuseum,
@@ -168,7 +177,7 @@ describe('MapExperience', () => {
   });
 
   it('shows callout on pin tap and hides it on second tap', () => {
-    render(<MapExperience activities={[parisMuseum, lyonPark]} />);
+    renderMap(<MapExperience activities={[parisMuseum, lyonPark]} />);
 
     expect(screen.queryByLabelText('Activité Musée du Louvre')).toBeNull();
 
@@ -181,7 +190,7 @@ describe('MapExperience', () => {
   });
 
   it('navigates to activity detail when callout is pressed', () => {
-    render(<MapExperience activities={[parisMuseum]} />);
+    renderMap(<MapExperience activities={[parisMuseum]} />);
 
     fireEvent.press(screen.getByTestId('pin-1'));
     fireEvent.press(screen.getByLabelText('Activité Musée du Louvre'));
@@ -190,7 +199,7 @@ describe('MapExperience', () => {
   });
 
   it('filters markers via search text', () => {
-    render(<MapExperience activities={[parisMuseum, lyonPark]} />);
+    renderMap(<MapExperience activities={[parisMuseum, lyonPark]} />);
 
     fireEvent.changeText(
       screen.getByPlaceholderText('Rechercher un lieu, une activité…'),
@@ -202,7 +211,7 @@ describe('MapExperience', () => {
   });
 
   it('filters markers via category chip', () => {
-    render(<MapExperience activities={[parisMuseum, lyonPark]} />);
+    renderMap(<MapExperience activities={[parisMuseum, lyonPark]} />);
 
     fireEvent.press(screen.getByLabelText('Nature'));
 
@@ -211,19 +220,19 @@ describe('MapExperience', () => {
   });
 
   it('shows loading banner', () => {
-    render(<MapExperience activities={[]} loading />);
+    renderMap(<MapExperience activities={[]} loading />);
 
     expect(screen.getByText('Chargement des activités…')).toBeTruthy();
   });
 
   it('shows error banner', () => {
-    render(<MapExperience activities={[]} error="Impossible de charger la carte" />);
+    renderMap(<MapExperience activities={[]} error="Impossible de charger la carte" />);
 
     expect(screen.getByText('Impossible de charger la carte')).toBeTruthy();
   });
 
   it('shows empty state when filters match nothing', () => {
-    render(<MapExperience activities={[parisMuseum]} />);
+    renderMap(<MapExperience activities={[parisMuseum]} />);
 
     fireEvent.changeText(
       screen.getByPlaceholderText('Rechercher un lieu, une activité…'),

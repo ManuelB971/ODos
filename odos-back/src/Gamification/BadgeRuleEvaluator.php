@@ -27,6 +27,11 @@ final class BadgeRuleEvaluator
             BadgeRuleType::FavoritesCount => $stats->favoritesCount >= $threshold,
             BadgeRuleType::CommentsCount => $stats->commentsCount >= $threshold,
             BadgeRuleType::RatingsCount => $stats->ratingsCount >= $threshold,
+            BadgeRuleType::ForumThreadsCount => $stats->forumThreadsCount >= $threshold,
+            BadgeRuleType::ForumRepliesCount => $stats->forumRepliesCount >= $threshold,
+            BadgeRuleType::FriendsCount => $stats->friendsCount >= $threshold,
+            BadgeRuleType::GroupsCount => $stats->groupsCount >= $threshold,
+            BadgeRuleType::SharesCount => $stats->sharesCount >= $threshold,
             BadgeRuleType::CategoryExplorer => $this->evaluateCategoryExplorer($user, $config, $threshold),
         };
     }

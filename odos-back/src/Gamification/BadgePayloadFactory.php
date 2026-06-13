@@ -73,6 +73,11 @@ final class BadgePayloadFactory
             BadgeRuleType::RatingsCount => sprintf('Note %d activité(s)', $threshold),
             BadgeRuleType::CategoryExplorer => sprintf('Explore %d lieu(x) dans une catégorie', $threshold),
             BadgeRuleType::MapCells => 'Exploration carte',
+            BadgeRuleType::ForumThreadsCount => sprintf('Crée %d fil(s) forum', $threshold),
+            BadgeRuleType::ForumRepliesCount => sprintf('Publie %d réponse(s) forum', $threshold),
+            BadgeRuleType::FriendsCount => sprintf('Ajoute %d ami(s)', $threshold),
+            BadgeRuleType::GroupsCount => sprintf('Rejoint %d groupe(s)', $threshold),
+            BadgeRuleType::SharesCount => sprintf('Partage %d activité(s)', $threshold),
             BadgeRuleType::Custom => 'Objectif spécial',
         };
     }

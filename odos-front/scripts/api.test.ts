@@ -31,6 +31,7 @@ const mockApiInstance = Object.assign(jest.fn(), {
 const mockAxios = {
   create: jest.fn(() => mockApiInstance),
   post: jest.fn(),
+  isAxiosError: (e: any) => !!(e && e.isAxiosError),
 };
 
 const mockSecureStore = {
@@ -194,5 +195,49 @@ describe('api helpers', () => {
     });
     expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith('user_token', 'new-token');
     expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith('refresh_token', 'new-refresh');
+  });
+
+  it('transient refresh failure (429) keeps the session — no logout', async () => {
+    const api = loadApiModule();
+    const listener = jest.fn();
+    const unsubscribe = api.onAuthError(listener);
+    mockSecureStore.isAvailableAsync.mockResolvedValue(true);
+    mockSecureStore.getItemAsync.mockResolvedValue('refresh-1');
+    // Le endpoint refresh est rate-limité : transitoire, ne doit PAS déconnecter.
+    const rateLimitErr = { isAxiosError: true, response: { status: 429 } };
+    mockAxios.post.mockRejectedValue(rateLimitErr);
+
+    const error = {
+      response: { status: 401 },
+      config: { url: '/api/private', headers: {} as Record<string, string> },
+    };
+
+    await expect(responseErrorInterceptor!(error)).rejects.toBe(rateLimitErr);
+    // Jetons conservés, aucun listener d'auth-error déclenché.
+    expect(mockSecureStore.deleteItemAsync).not.toHaveBeenCalledWith('user_token');
+    expect(mockSecureStore.deleteItemAsync).not.toHaveBeenCalledWith('refresh_token');
+    expect(listener).not.toHaveBeenCalled();
+    unsubscribe();
+  });
+
+  it('refresh token explicitly rejected (401) logs out and notifies', async () => {
+    const api = loadApiModule();
+    const listener = jest.fn();
+    const unsubscribe = api.onAuthError(listener);
+    mockSecureStore.isAvailableAsync.mockResolvedValue(true);
+    mockSecureStore.getItemAsync.mockResolvedValue('refresh-1');
+    // 401 sur le refresh = refresh token invalide → logout légitime.
+    mockAxios.post.mockRejectedValue({ isAxiosError: true, response: { status: 401 } });
+
+    const error = {
+      response: { status: 401 },
+      config: { url: '/api/private', headers: {} as Record<string, string> },
+    };
+
+    await expect(responseErrorInterceptor!(error)).rejects.toBe(error);
+    expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('user_token');
+    expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith('refresh_token');
+    expect(listener).toHaveBeenCalled();
+    unsubscribe();
   });
 });

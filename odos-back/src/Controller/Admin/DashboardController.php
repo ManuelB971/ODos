@@ -2,15 +2,6 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\Activity;
-use App\Entity\AppTheme;
-use App\Entity\BadgeDefinition;
-use App\Entity\AdminAuditLog;
-use App\Entity\AdminWebauthnCredential;
-use App\Entity\Category;
-use App\Entity\Comment;
-use App\Entity\RefreshToken;
-use App\Entity\User;
 use App\Repository\AdminAuditLogRepository;
 use App\Service\AdminAuditLogger;
 use App\Service\AdminDashboardStatsProvider;
@@ -89,16 +80,21 @@ class DashboardController extends AbstractDashboardController
     {
         yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');
         yield MenuItem::linkToRoute('Recommandations', 'fas fa-brain', 'admin_recommendations');
-        yield MenuItem::linkToCrud('Utilisateurs', 'fas fa-users', User::class);
-        yield MenuItem::linkToCrud('Catégories', 'fas fa-list', Category::class);
-        yield MenuItem::linkToCrud('Activités', 'fas fa-map-marker-alt', Activity::class);
-        yield MenuItem::linkToCrud('Badges', 'fas fa-award', BadgeDefinition::class);
+        yield MenuItem::linkTo(UserCrudController::class, 'Utilisateurs', 'fas fa-users');
+        yield MenuItem::linkTo(CategoryCrudController::class, 'Catégories', 'fas fa-list');
+        yield MenuItem::linkTo(ActivityCrudController::class, 'Activités', 'fas fa-map-marker-alt');
+        yield MenuItem::linkTo(BadgeDefinitionCrudController::class, 'Badges', 'fas fa-award');
         yield MenuItem::linkToRoute('Importer activités', 'fas fa-file-import', 'admin_activities_import');
-        yield MenuItem::linkToCrud('Thèmes app', 'fas fa-palette', AppTheme::class);
-        yield MenuItem::linkToCrud('Commentaires', 'fas fa-comments', Comment::class);
-        yield MenuItem::linkToCrud('Jetons refresh (JWT)', 'fas fa-key', RefreshToken::class);
-        yield MenuItem::linkToCrud('WebAuthn (admin)', 'fas fa-fingerprint', AdminWebauthnCredential::class);
-        yield MenuItem::linkToCrud('Logs admin', 'fas fa-clipboard-list', AdminAuditLog::class);
+        yield MenuItem::linkTo(AppThemeCrudController::class, 'Thèmes app', 'fas fa-palette');
+        yield MenuItem::linkTo(CommentCrudController::class, 'Commentaires', 'fas fa-comments');
+        yield MenuItem::section('Communauté');
+        yield MenuItem::linkTo(ForumThreadCrudController::class, 'Fils forum', 'fas fa-comments');
+        yield MenuItem::linkTo(ForumReplyCrudController::class, 'Réponses forum', 'fas fa-reply');
+        yield MenuItem::linkTo(ForumReportCrudController::class, 'Signalements', 'fas fa-flag');
+        yield MenuItem::linkTo(ActivityGroupCrudController::class, 'Groupes', 'fas fa-users');
+        yield MenuItem::linkTo(RefreshTokenCrudController::class, 'Jetons refresh (JWT)', 'fas fa-key');
+        yield MenuItem::linkTo(AdminWebauthnCredentialCrudController::class, 'WebAuthn (admin)', 'fas fa-fingerprint');
+        yield MenuItem::linkTo(AdminAuditLogCrudController::class, 'Logs admin', 'fas fa-clipboard-list');
         yield MenuItem::linkToRoute('Export CSV logs', 'fas fa-file-csv', 'admin_logs_export_csv');
     }
 }

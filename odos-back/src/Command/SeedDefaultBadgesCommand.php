@@ -71,6 +71,46 @@ final class SeedDefaultBadgesCommand extends Command
                 'ruleConfig' => ['threshold' => 25],
                 'sortOrder' => 50,
             ],
+            [
+                'code' => 'first_thread',
+                'name' => 'Premier fil',
+                'description' => 'Tu as créé ton premier fil de discussion.',
+                'ruleType' => BadgeRuleType::ForumThreadsCount,
+                'ruleConfig' => ['threshold' => 1],
+                'sortOrder' => 60,
+            ],
+            [
+                'code' => 'five_friends',
+                'name' => 'Sociable',
+                'description' => 'Tu as atteint 5 amis sur ODOS.',
+                'ruleType' => BadgeRuleType::FriendsCount,
+                'ruleConfig' => ['threshold' => 5],
+                'sortOrder' => 70,
+            ],
+            [
+                'code' => 'first_group',
+                'name' => 'Esprit d\'équipe',
+                'description' => 'Tu as rejoint ou créé ton premier groupe.',
+                'ruleType' => BadgeRuleType::GroupsCount,
+                'ruleConfig' => ['threshold' => 1],
+                'sortOrder' => 80,
+            ],
+            [
+                'code' => 'ten_replies',
+                'name' => 'Contributeur',
+                'description' => 'Tu as posté 10 réponses au forum.',
+                'ruleType' => BadgeRuleType::ForumRepliesCount,
+                'ruleConfig' => ['threshold' => 10],
+                'sortOrder' => 90,
+            ],
+            [
+                'code' => 'first_share',
+                'name' => 'Généreux',
+                'description' => 'Tu as partagé ta première activité.',
+                'ruleType' => BadgeRuleType::SharesCount,
+                'ruleConfig' => ['threshold' => 1],
+                'sortOrder' => 100,
+            ],
         ];
 
         $created = 0;

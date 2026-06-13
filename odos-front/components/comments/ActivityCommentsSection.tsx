@@ -75,6 +75,7 @@ export type ActivityCommentsSectionProps = {
   } | null;
   onDismissToast: () => void;
   onLoginPress: () => void;
+  onComposeFocus?: () => void;
 };
 
 export function ActivityCommentsSection({
@@ -99,6 +100,7 @@ export function ActivityCommentsSection({
   commentToast,
   onDismissToast,
   onLoginPress,
+  onComposeFocus,
 }: ActivityCommentsSectionProps) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -242,6 +244,7 @@ export function ActivityCommentsSection({
             placeholderTextColor={colors.muted}
             value={commentDraft}
             onChangeText={onChangeDraft}
+            onFocus={onComposeFocus}
             multiline
             maxLength={MAX_LEN}
           />

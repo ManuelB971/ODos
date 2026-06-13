@@ -15,6 +15,11 @@ final class GamificationStats
         public readonly int $commentsCount,
         public readonly int $ratingsCount,
         public readonly float $mapExplorationPercent = 0.0,
+        public readonly int $forumThreadsCount = 0,
+        public readonly int $forumRepliesCount = 0,
+        public readonly int $friendsCount = 0,
+        public readonly int $groupsCount = 0,
+        public readonly int $sharesCount = 0,
     ) {
     }
 }

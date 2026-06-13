@@ -11,9 +11,9 @@ import {
   Linking,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { MapPin, ArrowLeft, Heart, Navigation, CircleCheck } from 'lucide-react-native';
+import { MapPin, ArrowLeft, Heart, Navigation, CircleCheck, Share2 } from 'lucide-react-native';
 import { DaIcon } from '@/components/ui/DaIcon';
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import api, {
@@ -42,6 +42,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { InlineToast, InlineToastVariant } from '@/components/InlineToast';
+import { ShareModal } from '@/components/social/ShareModal';
 
 function routeParamToString(param: string | string[] | undefined): string | undefined {
   if (param === undefined) return undefined;
@@ -120,6 +121,8 @@ export default function ActivityDetails() {
   const [editingText, setEditingText] = useState('');
   const [ratingToast, setRatingToast] = useState<ToastState | null>(null);
   const [commentToast, setCommentToast] = useState<ToastState | null>(null);
+  const [shareVisible, setShareVisible] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
   const queryClient = useQueryClient();
   const { mergeUnlocked } = useBadgeUnlock();
   const idFromRoute = routeParamToString(id as string | string[] | undefined);
@@ -486,10 +489,10 @@ export default function ActivityDetails() {
   return (
     <KeyboardAvoidingView
       style={[styles.screen, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={88}
     >
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.heroWrap}>
           {heroImage ? (
             <Image source={{ uri: heroImage }} style={styles.heroImage} resizeMode="cover" />
@@ -500,20 +503,33 @@ export default function ActivityDetails() {
             <Pressable style={styles.heroButton} onPress={() => router.back()} hitSlop={8}>
               <ArrowLeft color={colors.text} size={22} />
             </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.heroButton, pressed && styles.favoriteButtonPressed]}
-              onPress={onFavoritePress}
-              disabled={toggleFavoriteMutation.isPending || !canToggleFavorite}
-              hitSlop={12}
-              accessibilityRole="button"
-              accessibilityLabel={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-            >
-              <Heart
-                color={isFavorite ? colors.danger : colors.primary}
-                fill={isFavorite ? colors.danger : 'none'}
-                size={22}
-              />
-            </Pressable>
+            <View style={styles.heroActions}>
+              {isAuthenticated && user?.socialConsentedAt ? (
+                <Pressable
+                  style={({ pressed }) => [styles.heroButton, pressed && styles.favoriteButtonPressed]}
+                  onPress={() => setShareVisible(true)}
+                  hitSlop={12}
+                  accessibilityRole="button"
+                  accessibilityLabel="Partager cette activité"
+                >
+                  <Share2 color={colors.primary} size={22} />
+                </Pressable>
+              ) : null}
+              <Pressable
+                style={({ pressed }) => [styles.heroButton, pressed && styles.favoriteButtonPressed]}
+                onPress={onFavoritePress}
+                disabled={toggleFavoriteMutation.isPending || !canToggleFavorite}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+              >
+                <Heart
+                  color={isFavorite ? colors.danger : colors.primary}
+                  fill={isFavorite ? colors.danger : 'none'}
+                  size={22}
+                />
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -556,7 +572,7 @@ export default function ActivityDetails() {
               size={20}
             />
             <Text style={[styles.visitedButtonText, isVisited && styles.visitedButtonTextActive]}>
-              {isVisited ? 'Lieu visité' : 'J’ai visité ce lieu'}
+              {isVisited ? "Lieu visité" : "Non visité"}
             </Text>
           </Pressable>
 
@@ -667,6 +683,7 @@ export default function ActivityDetails() {
             commentToast={commentToast}
             onDismissToast={() => setCommentToast(null)}
             onLoginPress={() => router.push('/login')}
+            onComposeFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150)}
           />
         </View>
       </ScrollView>
@@ -677,6 +694,15 @@ export default function ActivityDetails() {
           latitude={activity.latitude}
           longitude={activity.longitude}
           name={activity.name}
+        />
+      ) : null}
+
+      {activity ? (
+        <ShareModal
+          visible={shareVisible}
+          activityId={activity.id}
+          activityName={activity.name}
+          onClose={() => setShareVisible(false)}
         />
       ) : null}
     </KeyboardAvoidingView>
@@ -780,6 +806,11 @@ function createStyles(colors: OdosColorPalette) {
     right: Spacing.lg,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  heroActions: {
+    flexDirection: 'row',
+    gap: 10,
   },
   heroButton: {
     backgroundColor: colors.elevated,

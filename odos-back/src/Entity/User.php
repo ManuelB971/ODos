@@ -217,6 +217,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private bool $mapExplorationEnabled = false;
 
+    /** Visibilité du profil public (stats, bio complète). */
+    #[ORM\Column(options: ['default' => true])]
+    #[Groups(['user:read', 'user:write'])]
+    private bool $profilePublic = true;
+
+    /** Consentement aux fonctionnalités communautaires (art. 6.1a RGPD). */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    #[Groups(['user:read'])]
+    private ?\DateTimeImmutable $socialConsentedAt = null;
+
+    /** Bannissement forum par un admin. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $isForumBanned = false;
+
     /**
      * @var Collection<int, UserBadge>
      */
@@ -667,5 +681,46 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getBadgeDisplays(): Collection
     {
         return $this->badgeDisplays;
+    }
+
+    public function isProfilePublic(): bool
+    {
+        return $this->profilePublic;
+    }
+
+    public function setProfilePublic(bool $profilePublic): static
+    {
+        $this->profilePublic = $profilePublic;
+
+        return $this;
+    }
+
+    public function getSocialConsentedAt(): ?\DateTimeImmutable
+    {
+        return $this->socialConsentedAt;
+    }
+
+    public function setSocialConsentedAt(?\DateTimeImmutable $socialConsentedAt): static
+    {
+        $this->socialConsentedAt = $socialConsentedAt;
+
+        return $this;
+    }
+
+    public function hasSocialConsent(): bool
+    {
+        return null !== $this->socialConsentedAt;
+    }
+
+    public function isForumBanned(): bool
+    {
+        return $this->isForumBanned;
+    }
+
+    public function setIsForumBanned(bool $isForumBanned): static
+    {
+        $this->isForumBanned = $isForumBanned;
+
+        return $this;
     }
 }

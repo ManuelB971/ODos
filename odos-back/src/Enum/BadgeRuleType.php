@@ -17,6 +17,11 @@ enum BadgeRuleType: string
     case CategoryExplorer = 'category_explorer';
     /** Pourcentage de cellules carte visitées (exploration GPS). */
     case MapCells = 'map_cells';
+    case ForumThreadsCount = 'forum_threads_count';
+    case ForumRepliesCount = 'forum_replies_count';
+    case FriendsCount = 'friends_count';
+    case GroupsCount = 'groups_count';
+    case SharesCount = 'shares_count';
     case Custom = 'custom';
 
     public function label(): string
@@ -29,6 +34,11 @@ enum BadgeRuleType: string
             self::RatingsCount => 'Nombre de notes données',
             self::CategoryExplorer => 'Activités vues dans une catégorie',
             self::MapCells => 'Exploration carte (% zone visitée)',
+            self::ForumThreadsCount => 'Nombre de fils forum créés',
+            self::ForumRepliesCount => 'Nombre de réponses forum',
+            self::FriendsCount => 'Nombre d\'amis',
+            self::GroupsCount => 'Nombre de groupes',
+            self::SharesCount => 'Nombre de partages d\'activités',
             self::Custom => 'Personnalisé (non évalué auto)',
         };
     }

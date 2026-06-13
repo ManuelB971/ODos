@@ -54,6 +54,8 @@ describe('AuthService', () => {
         interests: ['/api/interests/1'],
         hideBadgesOnProfile: false,
         mapExplorationEnabled: false,
+        profilePublic: true,
+        socialConsentedAt: null,
       },
     });
     expect(mockSafeStorage.setItem).toHaveBeenCalledWith('user_token', 'token-123456');

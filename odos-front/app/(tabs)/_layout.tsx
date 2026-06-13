@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { BlobFrame } from '@/components/ui/BlobFrame';
+import { useSocialUnreadCount } from '@/hooks/useSocialUnreadCount';
 import React, { useEffect } from 'react';
 
 type TabIconName = React.ComponentProps<typeof MaterialIcons>['name'];
@@ -14,6 +15,8 @@ export default function TabLayout() {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const colors = useOdosColors();
+  const { data: unread } = useSocialUnreadCount();
+  const badgeCount = unread?.total ?? 0;
   useEffect(() => {
 
     if (!isLoading && !isAuthenticated) {
@@ -81,6 +84,14 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="community"
+        options={{
+          title: '',
+          tabBarIcon: renderTabIcon('groups', 2, 'Communauté'),
+          tabBarBadge: badgeCount > 0 ? badgeCount : undefined,
+        }}
+      />
+      <Tabs.Screen
         name="favorites"
         options={{
           href: null,
@@ -90,7 +101,7 @@ export default function TabLayout() {
         name="account"
         options={{
           title: '',
-          tabBarIcon: renderTabIcon('person', 2, 'Compte'),
+          tabBarIcon: renderTabIcon('person', 3, 'Compte'),
         }}
       />
       <Tabs.Screen

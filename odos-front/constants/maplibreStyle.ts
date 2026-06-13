@@ -8,6 +8,8 @@
  *
  * Ces tuiles sont en usage courant MVP ; respecte toujours les conditions d'utilisation du fournisseur.
  */
+import type { ColorScheme } from '@/constants/themes/types';
+
 export type OdosMapStylePreset = 'liberty' | 'positron' | 'dark' | 'demotiles';
 
 const PRESETS: Record<OdosMapStylePreset, string> = {
@@ -21,9 +23,16 @@ const PRESETS: Record<OdosMapStylePreset, string> = {
   demotiles: 'https://demotiles.maplibre.org/style.json',
 };
 
-/** Modifie cette valeur pour changer le look global de l'app (home + /map). */
+/** Preset utilisé en mode clair (look global de l'app : home + /map). */
 export const ACTIVE_MAP_STYLE_PRESET: OdosMapStylePreset = 'liberty';
+/** Preset utilisé en mode sombre — bascule automatique selon le thème. */
+export const ACTIVE_MAP_STYLE_PRESET_DARK: OdosMapStylePreset = 'dark';
 
-export function getOdosMaplibreStyleUrl(): string {
-  return PRESETS[ACTIVE_MAP_STYLE_PRESET];
+/**
+ * URL du style MapLibre à utiliser. Suit le mode d'affichage : fond clair en
+ * `light`, fond sombre (`dark-matter`) en `dark`. Défaut `light` pour rester
+ * compatible avec les appels sans argument.
+ */
+export function getOdosMaplibreStyleUrl(scheme: ColorScheme = 'light'): string {
+  return PRESETS[scheme === 'dark' ? ACTIVE_MAP_STYLE_PRESET_DARK : ACTIVE_MAP_STYLE_PRESET];
 }
