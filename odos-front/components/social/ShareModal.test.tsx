@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import { ShareModal } from '@/components/social/ShareModal';
 import { shareActivity } from '@/scripts/api';
 
@@ -55,7 +55,8 @@ describe('ShareModal', () => {
     fireEvent.press(screen.getByText('Alice'));
     fireEvent.press(screen.getByText('Randonneurs'));
     fireEvent.press(screen.getByText('Envoyer'));
-    await Promise.resolve();
-    expect(shareActivity).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(shareActivity).toHaveBeenCalled();
+    });
   });
 });
