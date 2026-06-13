@@ -32,6 +32,9 @@ import { FontFamily, Radius, Spacing } from '@/constants/theme';
 import { BlobFrame } from '@/components/ui/BlobFrame';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { resolveImageUrl } from '@/utils/imageUrl';
+import { PopSurface } from '@/components/pop/PopSurface';
+import { PopListItem } from '@/components/pop/PopListItem';
+import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 
 /**
  * Écran profil — éditorial, low-visual-noise.
@@ -48,6 +51,8 @@ export default function AccountScreen() {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { sprayOpacity } = useTheme();
+  const isMosaicPop = useIsMosaicPop();
+  const pop = usePopTokens();
   const { user, logout } = useAuth();
   const { favorites } = useFavorites();
   const { interests } = useInterests();
@@ -106,32 +111,76 @@ export default function AccountScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* ── Hero profil ── */}
-      <View style={styles.hero}>
-        <View style={styles.avatarWrap}>
-          {avatarSrc ? (
-            <Image source={{ uri: avatarSrc }} style={styles.avatar} contentFit="cover" />
-          ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
-              <Text style={styles.avatarInitials}>{initials}</Text>
-            </View>
-          )}
-          <View style={styles.avatarRing} />
-        </View>
-        <Text style={styles.nameText} numberOfLines={1}>
-          {displayName}
-        </Text>
-        <Text style={styles.emailText} numberOfLines={1}>
-          {emailLabel}
-        </Text>
-        {hasBio ? (
-          <Text style={styles.bioText} numberOfLines={3}>
-            {user?.bio}
+      {isMosaicPop ? (
+        <PopSurface
+          shadow={6}
+          radius={14}
+          style={{ marginBottom: 22 }}
+          contentStyle={{ flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16 }}
+        >
+          <View
+            style={{
+              width: 60,
+              height: 60,
+              borderRadius: 30,
+              borderWidth: 2.5,
+              borderColor: pop.ink,
+              backgroundColor: pop.orange,
+              alignItems: 'center',
+              justifyContent: 'center',
+              overflow: 'hidden',
+            }}
+          >
+            {avatarSrc ? (
+              <Image source={{ uri: avatarSrc }} style={{ width: 60, height: 60 }} contentFit="cover" />
+            ) : (
+              <Text style={{ color: pop.ink, fontSize: 22, fontFamily: FontFamily.uiBold, letterSpacing: 1 }}>
+                {initials}
+              </Text>
+            )}
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ color: pop.ink, fontSize: 21, fontFamily: FontFamily.display }} numberOfLines={1}>
+              {displayName}
+            </Text>
+            <Text style={{ color: pop.muted, fontSize: 13, fontFamily: FontFamily.ui, marginTop: 1 }} numberOfLines={1}>
+              {emailLabel}
+            </Text>
+            {hasBio ? (
+              <Text style={{ color: pop.ink, fontSize: 12.5, fontFamily: FontFamily.ui, lineHeight: 18, marginTop: 6, fontStyle: 'italic' }} numberOfLines={2}>
+                {user?.bio}
+              </Text>
+            ) : null}
+          </View>
+        </PopSurface>
+      ) : (
+        <View style={styles.hero}>
+          <View style={styles.avatarWrap}>
+            {avatarSrc ? (
+              <Image source={{ uri: avatarSrc }} style={styles.avatar} contentFit="cover" />
+            ) : (
+              <View style={[styles.avatar, styles.avatarFallback]}>
+                <Text style={styles.avatarInitials}>{initials}</Text>
+              </View>
+            )}
+            <View style={styles.avatarRing} />
+          </View>
+          <Text style={styles.nameText} numberOfLines={1}>
+            {displayName}
           </Text>
-        ) : null}
-      </View>
+          <Text style={styles.emailText} numberOfLines={1}>
+            {emailLabel}
+          </Text>
+          {hasBio ? (
+            <Text style={styles.bioText} numberOfLines={3}>
+              {user?.bio}
+            </Text>
+          ) : null}
+        </View>
+      )}
 
       {/* ── Stats card ── */}
-      <View style={styles.statsRow}>
+      <View style={[styles.statsRow, isMosaicPop && { borderWidth: 2.5, borderColor: pop.ink, backgroundColor: pop.paper }]}>
         <StatCell
           value={favorites.length}
           label="Favoris"
@@ -149,7 +198,7 @@ export default function AccountScreen() {
 
       {/* ── Barre d'exploration ── */}
       {user && (
-        <View style={styles.explorationCard}>
+        <View style={[styles.explorationCard, isMosaicPop && { borderWidth: 2.5, borderColor: pop.ink, backgroundColor: pop.paper }]}>
           <View style={styles.explorationHeader}>
             <Text style={styles.explorationTitle}>Exploration</Text>
             <Text style={styles.explorationPct}>{explorationPct}%</Text>
@@ -165,7 +214,7 @@ export default function AccountScreen() {
 
       {profileBadges.length > 0 && (
         <Pressable
-          style={styles.badgesVitrine}
+          style={[styles.badgesVitrine, isMosaicPop && { borderWidth: 2.5, borderColor: pop.ink, backgroundColor: pop.paper }]}
           onPress={() => router.push('/badges')}
           accessibilityRole="button"
           accessibilityLabel="Voir mes badges"
@@ -195,53 +244,77 @@ export default function AccountScreen() {
       )}
 
       {/* ── Menu ── */}
-      <View style={styles.menuCard}>
-        <MenuItem
-          icon={<Award size={18} color={colors.text} />}
-          label="Mes badges"
-          helper={
-            badgesOverview
+      {(() => {
+        const iconColor = isMosaicPop ? pop.ink : colors.text;
+        const entries = [
+          {
+            icon: <Award size={18} color={iconColor} />,
+            label: 'Mes badges',
+            helper: badgesOverview
               ? `${badgesOverview.earned.length} obtenu${badgesOverview.earned.length > 1 ? 's' : ''}`
-              : 'Récompenses exploration'
-          }
-          onPress={() => router.push('/badges')}
-        />
-        <View style={styles.menuDivider} />
-        <MenuItem
-          icon={<Heart size={18} color={colors.text} />}
-          label="Mes favoris"
-          helper={`${favorites.length} lieu${favorites.length > 1 ? 'x' : ''} sauvegardé${favorites.length > 1 ? 's' : ''}`}
-          onPress={() => router.push('/(tabs)/favorites')}
-        />
-        <View style={styles.menuDivider} />
-        <MenuItem
-          icon={<Edit3 size={18} color={colors.text} />}
-          label="Mes centres d'intérêt"
-          helper="Personnalisez vos recommandations"
-          onPress={() => router.push('/interests')}
-        />
-        <View style={styles.menuDivider} />
-        <MenuItem
-          icon={<Palette size={18} color={colors.text} />}
-          label="Apparence"
-          helper="Thème et mode sombre"
-          onPress={() => router.push('/appearance')}
-        />
-        <View style={styles.menuDivider} />
-        <MenuItem
-          icon={<Settings size={18} color={colors.text} />}
-          label="Paramètres"
-          helper="Notifications, confidentialité, compte"
-          onPress={() => router.push('/settings')}
-        />
-        <View style={styles.menuDivider} />
-        <MenuItem
-          icon={<FileText size={18} color={colors.text} />}
-          label="Mentions légales"
-          helper="Conditions d'utilisation et confidentialité"
-          onPress={() => router.push('/legal')}
-        />
-      </View>
+              : 'Récompenses exploration',
+            onPress: () => router.push('/badges'),
+          },
+          {
+            icon: <Heart size={18} color={iconColor} />,
+            label: 'Mes favoris',
+            helper: `${favorites.length} lieu${favorites.length > 1 ? 'x' : ''} sauvegardé${favorites.length > 1 ? 's' : ''}`,
+            onPress: () => router.push('/(tabs)/favorites'),
+          },
+          {
+            icon: <Edit3 size={18} color={iconColor} />,
+            label: "Mes centres d'intérêt",
+            helper: 'Personnalisez vos recommandations',
+            onPress: () => router.push('/interests'),
+          },
+          {
+            icon: <Palette size={18} color={iconColor} />,
+            label: 'Apparence',
+            helper: 'Thème et mode sombre',
+            onPress: () => router.push('/appearance'),
+          },
+          {
+            icon: <Settings size={18} color={iconColor} />,
+            label: 'Paramètres',
+            helper: 'Notifications, confidentialité, compte',
+            onPress: () => router.push('/settings'),
+          },
+          {
+            icon: <FileText size={18} color={iconColor} />,
+            label: 'Mentions légales',
+            helper: "Conditions d'utilisation et confidentialité",
+            onPress: () => router.push('/legal'),
+          },
+        ];
+
+        if (isMosaicPop) {
+          return (
+            <View style={{ marginBottom: 16 }}>
+              {entries.map((e) => (
+                <PopListItem
+                  key={e.label}
+                  icon={e.icon}
+                  label={e.label}
+                  helper={e.helper}
+                  onPress={e.onPress}
+                  style={{ marginBottom: 6 }}
+                />
+              ))}
+            </View>
+          );
+        }
+
+        return (
+          <View style={styles.menuCard}>
+            {entries.map((e, i) => (
+              <React.Fragment key={e.label}>
+                {i > 0 ? <View style={styles.menuDivider} /> : null}
+                <MenuItem icon={e.icon} label={e.label} helper={e.helper} onPress={e.onPress} />
+              </React.Fragment>
+            ))}
+          </View>
+        );
+      })()}
 
       {/* ── Logout ── */}
       <View style={styles.logoutWrap}>

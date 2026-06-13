@@ -11,6 +11,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { CONVERSATIONS_QUERY_KEY } from '@/hooks/useChat';
 import { FRIENDSHIPS_QUERY_KEY } from '@/hooks/useFriendships';
 import { SOCIAL_UNREAD_QUERY_KEY } from '@/hooks/useSocialUnreadCount';
+import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 
 const { Navigator } = createMaterialTopTabNavigator();
 const MaterialTopTabs = withLayoutContext(Navigator);
@@ -90,17 +91,25 @@ function SocialConsentGate({ children }: { children: React.ReactNode }) {
 
 export default function CommunityLayout() {
   const colors = useOdosColors();
+  const isMosaicPop = useIsMosaicPop();
+  const pop = usePopTokens();
   usePushNotifications();
 
   return (
     <SocialConsentGate>
       <MaterialTopTabs
         screenOptions={{
-          tabBarActiveTintColor: colors.accent,
-          tabBarInactiveTintColor: colors.muted,
-          tabBarIndicatorStyle: { backgroundColor: colors.accent },
-          tabBarLabelStyle: { fontFamily: FontFamily.uiMedium, fontSize: 13, textTransform: 'none' },
-          tabBarStyle: { backgroundColor: colors.background },
+          tabBarActiveTintColor: isMosaicPop ? pop.ink : colors.accent,
+          tabBarInactiveTintColor: isMosaicPop ? pop.muted : colors.muted,
+          tabBarIndicatorStyle: isMosaicPop
+            ? { backgroundColor: pop.orange, height: 4 }
+            : { backgroundColor: colors.accent },
+          tabBarLabelStyle: isMosaicPop
+            ? { fontFamily: FontFamily.uiBold, fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase' }
+            : { fontFamily: FontFamily.uiMedium, fontSize: 13, textTransform: 'none' },
+          tabBarStyle: isMosaicPop
+            ? { backgroundColor: pop.paper, borderBottomWidth: 2.5, borderBottomColor: pop.ink }
+            : { backgroundColor: colors.background },
         }}
       >
         <MaterialTopTabs.Screen name="forum" options={{ title: 'Forum' }} />
