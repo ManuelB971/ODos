@@ -37,6 +37,7 @@ import type { BadgeItem } from '@/types';
 import { ApiActivity } from '@/types';
 import { FontFamily, Spacing } from '@/constants/theme';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { useIsMosaicPop, usePopTokens, type PopTokens } from '@/components/pop/usePop';
 import { logError, toAppError, AppError } from '@/utils/errorHandling';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
@@ -110,7 +111,12 @@ function StarsDisplay({ value, max = 5 }: { value: number; max?: number }) {
 
 export default function ActivityDetails() {
   const colors = useOdosColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const isMosaicPop = useIsMosaicPop();
+  const pop = usePopTokens();
+  const styles = useMemo(
+    () => createStyles(colors, isMosaicPop ? pop : null),
+    [colors, isMosaicPop, pop],
+  );
   const { id } = useLocalSearchParams();
   const { isAuthenticated, user } = useAuth();
   const [activity, setActivity] = useState<ApiActivity | null>(null);
@@ -770,7 +776,9 @@ function StickyCTABar({
   );
 }
 
-function createStyles(colors: OdosColorPalette) {
+function createStyles(colors: OdosColorPalette, pop: PopTokens | null = null) {
+  /** Contour encre « mosaïque pop » à fusionner dans les styles de cartes. */
+  const popCard = pop ? { borderWidth: 2.5, borderColor: pop.ink, backgroundColor: pop.paper } : null;
   return StyleSheet.create({
   screen: {
     flex: 1,
@@ -858,14 +866,16 @@ function createStyles(colors: OdosColorPalette) {
     backgroundColor: colors.surface,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: pop ? 100 : 16,
     alignSelf: 'flex-start',
     marginBottom: 12,
+    ...(pop ? { borderWidth: 2, borderColor: pop.ink, backgroundColor: pop.orange } : null),
   },
   categoryText: {
-    color: colors.primary,
-    fontFamily: FontFamily.uiMedium,
-    fontSize: 14,
+    color: pop ? pop.ink : colors.primary,
+    fontFamily: pop ? FontFamily.uiBold : FontFamily.uiMedium,
+    fontSize: pop ? 12 : 14,
+    ...(pop ? { letterSpacing: 1, textTransform: 'uppercase' as const } : null),
   },
   addressContainer: {
     flexDirection: 'row',
@@ -935,6 +945,7 @@ function createStyles(colors: OdosColorPalette) {
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
+    ...(popCard ?? {}),
   },
   coordsText: {
     fontSize: 13,
@@ -964,6 +975,7 @@ function createStyles(colors: OdosColorPalette) {
     padding: 12,
     backgroundColor: colors.surface,
     borderRadius: 12,
+    ...(popCard ?? {}),
   },
   removeRatingBtn: {
     marginTop: 8,
@@ -986,6 +998,7 @@ function createStyles(colors: OdosColorPalette) {
     borderRadius: 10,
     padding: 12,
     marginBottom: 10,
+    ...(pop ? { borderWidth: 2, borderColor: pop.ink, backgroundColor: pop.paper } : null),
   },
   commentCardHidden: {
     backgroundColor: colors.errorSurface,
@@ -1043,6 +1056,7 @@ function createStyles(colors: OdosColorPalette) {
     textAlignVertical: 'top',
     backgroundColor: colors.elevated,
     color: colors.text,
+    ...(pop ? { borderWidth: 2, borderColor: pop.ink } : null),
   },
   newCommentBox: {
     marginTop: 16,
@@ -1055,9 +1069,9 @@ function createStyles(colors: OdosColorPalette) {
     paddingHorizontal: Spacing.lg,
     paddingTop: 12,
     paddingBottom: Platform.OS === 'ios' ? 28 : 18,
-    backgroundColor: colors.elevated,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    backgroundColor: pop ? pop.paper : colors.elevated,
+    borderTopWidth: pop ? 2.5 : 1,
+    borderTopColor: pop ? pop.ink : colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.06,
