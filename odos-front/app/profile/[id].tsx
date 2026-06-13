@@ -36,7 +36,7 @@ export default function PublicProfileScreen() {
           <Text style={{ color: colors.muted, fontFamily: FontFamily.ui }}>Chargement…</Text>
         ) : data ? (
           <>
-            <Text style={[styles.name, { color: colors.text, fontFamily: FontFamily.serifSemiBold }]}>
+            <Text style={[styles.name, { color: colors.text, fontFamily: FontFamily.display }]}>
               {data.alias ?? 'Utilisateur'}
             </Text>
             {data.bio ? (

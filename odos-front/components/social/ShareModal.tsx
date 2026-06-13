@@ -177,7 +177,7 @@ function createStyles(colors: ReturnType<typeof useOdosColors>) {
       gap: 10,
     },
     title: {
-      fontFamily: FontFamily.serifSemiBold,
+      fontFamily: FontFamily.display,
       fontSize: 20,
       color: colors.text,
     },

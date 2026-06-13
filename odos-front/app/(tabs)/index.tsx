@@ -9,7 +9,6 @@ import {
   ScrollView,
 } from 'react-native';
 import { ArrowRight, MapPin as MapPinIcon } from 'lucide-react-native';
-import { DaIcon } from '@/components/ui/DaIcon';
 import { Link, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { useInterests } from '@/context/InterestContext';
@@ -23,13 +22,9 @@ import { BRAND_TAGLINE } from '@/constants/brand';
 import { toAppError } from '@/utils/errorHandling';
 import { AppLogo } from '@/components/AppLogo';
 import { resolveImageUrl } from '@/utils/imageUrl';
-import { lngDeltaToZoom } from '@/utils/mapViewport';
-import { MapPin as MapPinMarker } from '@/components/map/MapPin';
 import { SkeletonActivityRow, SkeletonRecommendationCard } from '@/components/ui/Skeleton';
 import { MosaicPopCard, MosaicPopRow } from '@/components/cards/MosaicPopCard';
 import { MosaicPopMap } from '@/components/cards/MosaicPopMap';
-import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
-import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
 
 /** Helper: get the category display name from the API response */
 const getCategoryName = (cat: ApiActivity['category']): string => {
@@ -143,7 +138,7 @@ const SPRAY_BG = require('@/assets/images/spray-background.png');
 export default function HomeScreen() {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { sprayOpacity, cardStyle, colorScheme } = useTheme();
+  const { sprayOpacity, cardStyle } = useTheme();
   const { interests } = useInterests();
   const { recommendations, loading, error } = useRecommendations(interests);
   const activitiesQuery = useActivities();
@@ -174,24 +169,6 @@ export default function HomeScreen() {
     [activities],
   );
   const hasMoreActivities = activities.length > HOME_ACTIVITIES_LIMIT;
-
-  const initialRegion = useMemo(() => {
-    if (geoActivities.length === 0) {
-      return { latitude: 46.603354, longitude: 1.888334, latitudeDelta: 6, longitudeDelta: 6 };
-    }
-    const lats = geoActivities.map((a) => a.latitude);
-    const lngs = geoActivities.map((a) => a.longitude);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
-    const minLng = Math.min(...lngs);
-    const maxLng = Math.max(...lngs);
-    return {
-      latitude: (minLat + maxLat) / 2,
-      longitude: (minLng + maxLng) / 2,
-      latitudeDelta: Math.max((maxLat - minLat) * 1.3, 0.05),
-      longitudeDelta: Math.max((maxLng - minLng) * 1.3, 0.05),
-    };
-  }, [geoActivities]);
 
   return (
     <ImageBackground
@@ -238,62 +215,10 @@ export default function HomeScreen() {
                   <Text style={styles.seeAllText}>EXPLORER</Text>
                 </Pressable>
               </View>
-              {cardStyle === 'mosaicPop' ? (
-                <MosaicPopMap
-                  count={geoActivities.length}
-                  onPress={() => router.push('/map')}
-                />
-              ) : (
-              <Pressable
+              <MosaicPopMap
+                count={geoActivities.length}
                 onPress={() => router.push('/map')}
-                style={styles.mapContainer}
-                accessibilityRole="button"
-                accessibilityLabel="Ouvrir la carte immersive"
-              >
-                <Map
-                  key={`hm-${colorScheme}-${initialRegion.latitude.toFixed(4)}_${initialRegion.longitude.toFixed(4)}_${geoActivities.length}`}
-                  style={styles.map}
-                  mapStyle={getOdosMaplibreStyleUrl(colorScheme)}
-                  pointerEvents="none"
-                  attribution
-                  logo
-                  compass={false}
-                  scaleBar={false}
-                  dragPan={false}
-                  touchZoom={false}
-                  doubleTapZoom={false}
-                  doubleTapHoldZoom={false}
-                  touchRotate={false}
-                  touchPitch={false}
-                >
-                  <Camera
-                    initialViewState={{
-                      center: [initialRegion.longitude, initialRegion.latitude],
-                      zoom: lngDeltaToZoom(initialRegion.longitudeDelta),
-                    }}
-                  />
-                  {geoActivities.slice(0, 40).map((activity) => (
-                    <Marker
-                      key={`marker-${activity.id}`}
-                      id={`hm-${activity.id}`}
-                      lngLat={[activity.longitude, activity.latitude]}
-                      anchor="bottom"
-                    >
-                      <MapPinMarker variant="dot" />
-                    </Marker>
-                  ))}
-                </Map>
-                <View pointerEvents="none" style={styles.mapBadgeCount}>
-                  <Text style={styles.mapBadgeCountText}>
-                    {geoActivities.length} lieu{geoActivities.length > 1 ? 'x' : ''}
-                  </Text>
-                </View>
-                <View pointerEvents="none" style={styles.mapCta}>
-                  <DaIcon name="carte" variant="cta" accessibilityLabel="Carte" />
-                  <Text style={styles.mapCtaText}>Explorer la carte</Text>
-                </View>
-              </Pressable>
-              )}
+              />
             </View>
 
             {/* ── Recommandations (carrousel horizontal) ── */}
@@ -456,64 +381,6 @@ function createStyles(colors: OdosColorPalette) {
   },
   mapSection: {
     marginBottom: 24,
-  },
-  mapContainer: {
-    borderRadius: Radius.card,
-    overflow: 'hidden',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    backgroundColor: colors.surface,
-    position: 'relative',
-  },
-  map: {
-    width: '100%',
-    height: 240,
-  },
-  mapBadgeCount: {
-    position: 'absolute',
-    top: 14,
-    left: 14,
-    backgroundColor: `${colors.elevated}F5`,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  mapBadgeCountText: {
-    fontSize: 12,
-    fontFamily: FontFamily.uiBold,
-    color: colors.text,
-    letterSpacing: 0.4,
-  },
-  mapCta: {
-    position: 'absolute',
-    right: 14,
-    bottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 11,
-    backgroundColor: colors.mapPrimaryCta,
-    borderRadius: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  mapCtaText: {
-    color: colors.onAccent,
-    fontFamily: FontFamily.uiBold,
-    fontSize: 14,
-    letterSpacing: 0.3,
   },
   sectionTitle: {
     fontSize: 20,

@@ -8,6 +8,9 @@ import { postSocialConsent } from '@/scripts/api';
 import { useAuth } from '@/context/AuthContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useQueryClient } from '@tanstack/react-query';
+import { CONVERSATIONS_QUERY_KEY } from '@/hooks/useChat';
+import { FRIENDSHIPS_QUERY_KEY } from '@/hooks/useFriendships';
+import { SOCIAL_UNREAD_QUERY_KEY } from '@/hooks/useSocialUnreadCount';
 
 const { Navigator } = createMaterialTopTabNavigator();
 const MaterialTopTabs = withLayoutContext(Navigator);
@@ -22,6 +25,8 @@ function SocialConsentGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (user && !user.socialConsentedAt) {
       setVisible(true);
+    } else {
+      setVisible(false);
     }
   }, [user]);
 
@@ -33,7 +38,16 @@ function SocialConsentGate({ children }: { children: React.ReactNode }) {
         setUser({ ...user, socialConsentedAt: result.socialConsentedAt });
       }
       setVisible(false);
-      queryClient.invalidateQueries();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: FRIENDSHIPS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: ['groups'] }),
+        queryClient.invalidateQueries({ queryKey: ['forumThreads'] }),
+        queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: ['chatMessages'] }),
+        queryClient.invalidateQueries({ queryKey: ['sharedActivities'] }),
+        queryClient.invalidateQueries({ queryKey: ['userSearch'] }),
+        queryClient.invalidateQueries({ queryKey: SOCIAL_UNREAD_QUERY_KEY }),
+      ]);
     } finally {
       setLoading(false);
     }
@@ -45,7 +59,7 @@ function SocialConsentGate({ children }: { children: React.ReactNode }) {
       <Modal visible={visible} transparent animationType="fade">
         <View style={[styles.backdrop, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.serifSemiBold }]}>
+            <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.display }]}>
               Communauté ODOS
             </Text>
             <Text style={[styles.body, { color: colors.muted, fontFamily: FontFamily.ui }]}>

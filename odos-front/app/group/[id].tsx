@@ -33,7 +33,7 @@ export default function GroupDetailScreen() {
           <Text style={{ color: colors.muted, fontFamily: FontFamily.ui }}>Chargement…</Text>
         ) : group ? (
           <>
-            <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.serifSemiBold }]}>
+            <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.display }]}>
               {group.name}
             </Text>
             {group.description ? (

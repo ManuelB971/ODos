@@ -46,7 +46,7 @@ export default function ThreadDetailScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {thread ? (
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.serifSemiBold }]}>
+          <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.display }]}>
             {thread.title}
           </Text>
           <Text style={[styles.body, { color: colors.text, fontFamily: FontFamily.ui }]}>{thread.content}</Text>
