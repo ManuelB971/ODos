@@ -122,9 +122,9 @@ export default function ActivityDetails() {
   const [ratingToast, setRatingToast] = useState<ToastState | null>(null);
   const [commentToast, setCommentToast] = useState<ToastState | null>(null);
   const [shareVisible, setShareVisible] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
   const queryClient = useQueryClient();
   const { mergeUnlocked } = useBadgeUnlock();
-  const scrollRef = useRef<ScrollView>(null);
   const idFromRoute = routeParamToString(id as string | string[] | undefined);
   const activityIdFromRoute = Number.parseInt(String(idFromRoute ?? ''), 10);
   const activityId =
