@@ -6,6 +6,11 @@ namespace App\Gamification;
 
 use App\Entity\User;
 use App\Repository\CommentRepository;
+use App\Repository\ForumReplyRepository;
+use App\Repository\ForumThreadRepository;
+use App\Repository\FriendshipRepository;
+use App\Repository\GroupMemberRepository;
+use App\Repository\SharedActivityRepository;
 use App\Repository\UserActivityViewRepository;
 use App\Repository\UserMapCellRepository;
 use App\Service\MapExplorationZoneRegistry;
@@ -17,6 +22,11 @@ final class GamificationStatsProvider
         private readonly CommentRepository $commentRepository,
         private readonly UserMapCellRepository $mapCellRepository,
         private readonly MapExplorationZoneRegistry $zoneRegistry,
+        private readonly ForumThreadRepository $forumThreadRepository,
+        private readonly ForumReplyRepository $forumReplyRepository,
+        private readonly FriendshipRepository $friendshipRepository,
+        private readonly GroupMemberRepository $groupMemberRepository,
+        private readonly SharedActivityRepository $sharedActivityRepository,
     ) {
     }
 
@@ -36,6 +46,11 @@ final class GamificationStatsProvider
             commentsCount: $this->commentRepository->countVisibleByAuthor($user),
             ratingsCount: $user->getActivityRatings()->count(),
             mapExplorationPercent: (float) $percent,
+            forumThreadsCount: $this->forumThreadRepository->countByAuthor($user),
+            forumRepliesCount: $this->forumReplyRepository->countByAuthor($user),
+            friendsCount: $this->friendshipRepository->countAcceptedFriends($user),
+            groupsCount: $this->groupMemberRepository->countForUser($user),
+            sharesCount: $this->sharedActivityRepository->countBySender($user),
         );
     }
 
