@@ -25,6 +25,7 @@ module.exports = {
     '!**/jest.config.js',
     '!**/expo-env.d.ts',
   ],
+  detectOpenHandles: true,
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html', 'clover'],
   moduleNameMapper: {
