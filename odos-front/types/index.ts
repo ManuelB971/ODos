@@ -18,6 +18,8 @@ export type User = {
     hideBadgesOnProfile?: boolean;
     /** Exploration carte activée (paramètres + consentement). */
     mapExplorationEnabled?: boolean;
+    socialConsentedAt?: string | null;
+    profilePublic?: boolean;
     interests?: Category[];
 } | null;
 
@@ -161,4 +163,119 @@ export interface RecommendationModel {
     predict: (interests: string[]) => Promise<Activity[]>;
     load: () => Promise<boolean>;
     isLoaded: boolean;
+}
+
+/** Social / Community */
+export interface SocialUserSnippet {
+    id: number;
+    displayName: string;
+    avatarUrl: string | null;
+}
+
+export interface FriendshipItem {
+    id: number;
+    status: 'pending' | 'accepted' | 'blocked';
+    isIncoming: boolean;
+    otherUser: SocialUserSnippet | null;
+    createdAt: string;
+    acceptedAt: string | null;
+}
+
+export interface ForumThreadItem {
+    id: number;
+    title: string;
+    content: string;
+    author: SocialUserSnippet | null;
+    activityId: number | null;
+    categoryId: number | null;
+    groupId: number | null;
+    isPinned: boolean;
+    isLocked: boolean;
+    replyCount: number;
+    lastReplyAt: string | null;
+    createdAt: string;
+}
+
+export interface ForumReplyItem {
+    id: number;
+    content: string;
+    author: SocialUserSnippet | null;
+    threadId: number;
+    likeCount: number;
+    likedByMe: boolean;
+    createdAt: string;
+}
+
+export interface ActivityGroupItem {
+    id: number;
+    name: string;
+    description: string | null;
+    avatarUrl: string | null;
+    isPrivate: boolean;
+    memberCount: number;
+    createdAt: string;
+}
+
+export interface SharedActivityItem {
+    id: number;
+    sender: SocialUserSnippet | null;
+    receiver: SocialUserSnippet | null;
+    groupId: number | null;
+    activity: { id: number; name: string; city: string | null } | null;
+    message: string | null;
+    createdAt: string;
+    seenAt: string | null;
+}
+
+export interface PaginatedMember<T> {
+    member: T[];
+    totalItems?: number;
+    page: number;
+    itemsPerPage: number;
+}
+
+export interface SocialUnreadCount {
+    pendingFriendRequests: number;
+    unreadShares: number;
+    pendingGroupInvitations: number;
+    unreadMessages: number;
+    total: number;
+}
+
+export type UserRelationship = 'none' | 'friends' | 'incoming' | 'outgoing';
+
+export interface UserSearchResult {
+    id: number;
+    displayName: string;
+    alias: string | null;
+    avatarUrl: string | null;
+    relationship: UserRelationship;
+}
+
+export interface ConversationItem {
+    id: number;
+    otherUser: SocialUserSnippet | null;
+    lastMessageAt: string | null;
+    unreadCount: number;
+    createdAt: string;
+}
+
+export interface ChatMessageItem {
+    id: number;
+    content: string;
+    author: SocialUserSnippet | null;
+    conversationId: number;
+    isMine: boolean;
+    readAt: string | null;
+    createdAt: string;
+}
+
+export type ForumReportReason = 'spam' | 'harassment' | 'illegal' | 'other';
+
+export interface GroupInvitationItem {
+    id: number;
+    group: ActivityGroupItem | null;
+    invitedBy: SocialUserSnippet | null;
+    status: string;
+    createdAt: string;
 }

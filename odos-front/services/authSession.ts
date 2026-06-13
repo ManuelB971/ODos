@@ -24,6 +24,8 @@ export function mapMeResponseToUser(data: Record<string, unknown>): NonNullable<
     interests: (data.interests as User['interests']) ?? [],
     hideBadgesOnProfile: (data.hideBadgesOnProfile as boolean | undefined) ?? false,
     mapExplorationEnabled: (data.mapExplorationEnabled as boolean | undefined) ?? false,
+    socialConsentedAt: (data.socialConsentedAt as string | null | undefined) ?? null,
+    profilePublic: (data.profilePublic as boolean | undefined) ?? true,
   };
 }
 

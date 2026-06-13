@@ -516,4 +516,142 @@ export async function syncMapExplorationCells(
     return response.data;
 }
 
+// --- Social / Community API ---
+
+export async function postSocialConsent(): Promise<{ socialConsentedAt: string }> {
+    const response = await api.post('/api/me/social-consent');
+    return response.data;
+}
+
+export async function fetchSocialUnreadCount(): Promise<import('@/types').SocialUnreadCount> {
+    const response = await api.get('/api/social/unread-count');
+    return response.data;
+}
+
+export async function fetchFriendships(page = 1): Promise<import('@/types').PaginatedMember<import('@/types').FriendshipItem>> {
+    const response = await api.get('/api/friendships', { params: { page } });
+    return response.data;
+}
+
+export async function sendFriendRequest(receiverId: number): Promise<{ friendship: import('@/types').FriendshipItem }> {
+    const response = await api.post('/api/friendships', { receiverId });
+    return response.data;
+}
+
+export async function patchFriendship(id: number, status: 'accepted' | 'blocked'): Promise<void> {
+    await api.patch(`/api/friendships/${id}`, { status });
+}
+
+export async function deleteFriendship(id: number): Promise<void> {
+    await api.delete(`/api/friendships/${id}`);
+}
+
+export async function fetchForumThreads(params: { page?: number; activity?: number; category?: number; group?: number } = {}): Promise<import('@/types').PaginatedMember<import('@/types').ForumThreadItem>> {
+    const response = await api.get('/api/forum/threads', { params });
+    return response.data;
+}
+
+export async function fetchForumThread(id: number): Promise<{ thread: import('@/types').ForumThreadItem }> {
+    const response = await api.get(`/api/forum/threads/${id}`);
+    return response.data;
+}
+
+export async function fetchForumReplies(threadId: number, page = 1): Promise<import('@/types').PaginatedMember<import('@/types').ForumReplyItem>> {
+    const response = await api.get(`/api/forum/threads/${threadId}/replies`, { params: { page } });
+    return response.data;
+}
+
+export async function fetchGroups(tab: 'mine' | 'discover' = 'mine', page = 1): Promise<import('@/types').PaginatedMember<import('@/types').ActivityGroupItem>> {
+    const response = await api.get('/api/groups', { params: { tab, page } });
+    return response.data;
+}
+
+export async function joinGroup(groupId: number): Promise<void> {
+    await api.post(`/api/groups/${groupId}/join`);
+}
+
+export async function inviteToGroup(groupId: number, userId: number): Promise<void> {
+    await api.post(`/api/groups/${groupId}/invite`, { userId });
+}
+
+export async function fetchGroupInvitations(page = 1): Promise<import('@/types').PaginatedMember<import('@/types').GroupInvitationItem>> {
+    const response = await api.get('/api/group-invitations', { params: { page } });
+    return response.data;
+}
+
+export async function acceptGroupInvitation(id: number): Promise<void> {
+    await api.post(`/api/group-invitations/${id}/accept`);
+}
+
+export async function declineGroupInvitation(id: number): Promise<void> {
+    await api.post(`/api/group-invitations/${id}/decline`);
+}
+
+export async function fetchSharedActivities(page = 1): Promise<import('@/types').PaginatedMember<import('@/types').SharedActivityItem>> {
+    const response = await api.get('/api/shared-activities', { params: { page } });
+    return response.data;
+}
+
+export async function shareActivity(payload: {
+    activityId: number;
+    receiverId?: number;
+    groupId?: number;
+    message?: string;
+}): Promise<void> {
+    await api.post('/api/shared-activities', payload);
+}
+
+export async function markSharedActivitySeen(id: number): Promise<void> {
+    await api.patch(`/api/shared-activities/${id}`);
+}
+
+export async function searchUsers(q: string, page = 1): Promise<{
+    users: import('@/types').UserSearchResult[];
+    page: number;
+    itemsPerPage: number;
+}> {
+    const response = await api.get('/api/users/search', { params: { q, page } });
+    return response.data;
+}
+
+export async function reportForumThread(id: number, reason: import('@/types').ForumReportReason, details?: string): Promise<void> {
+    await api.post(`/api/forum/threads/${id}/report`, { reason, details });
+}
+
+export async function reportForumReply(id: number, reason: import('@/types').ForumReportReason, details?: string): Promise<void> {
+    await api.post(`/api/forum/replies/${id}/report`, { reason, details });
+}
+
+export async function registerPushToken(token: string, platform: string): Promise<void> {
+    await api.post('/api/me/push-token', { token, platform });
+}
+
+export async function unregisterPushToken(token: string): Promise<void> {
+    await api.delete('/api/me/push-token', { data: { token } });
+}
+
+export async function fetchConversations(page = 1): Promise<import('@/types').PaginatedMember<import('@/types').ConversationItem>> {
+    const response = await api.get('/api/chat/conversations', { params: { page } });
+    return response.data;
+}
+
+export async function openConversation(userId: number): Promise<{ conversation: import('@/types').ConversationItem }> {
+    const response = await api.post('/api/chat/conversations', { userId });
+    return response.data;
+}
+
+export async function fetchChatMessages(conversationId: number, page = 1): Promise<import('@/types').PaginatedMember<import('@/types').ChatMessageItem>> {
+    const response = await api.get(`/api/chat/conversations/${conversationId}/messages`, { params: { page } });
+    return response.data;
+}
+
+export async function sendChatMessage(conversationId: number, content: string): Promise<{ message: import('@/types').ChatMessageItem }> {
+    const response = await api.post(`/api/chat/conversations/${conversationId}/messages`, { content });
+    return response.data;
+}
+
+export async function markConversationRead(conversationId: number): Promise<void> {
+    await api.patch(`/api/chat/conversations/${conversationId}/read`);
+}
+
 export default api;
