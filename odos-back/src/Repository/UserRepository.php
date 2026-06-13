@@ -33,28 +33,24 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->getEntityManager()->flush();
     }
 
-    //    /**
-    //     * @return User[] Returns an array of User objects
-    //     */
-    //    public function findByExampleField($value): array
-    //    {
-    //        return $this->createQueryBuilder('u')
-    //            ->andWhere('u.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->orderBy('u.id', 'ASC')
-    //            ->setMaxResults(10)
-    //            ->getQuery()
-    //            ->getResult()
-    //        ;
-    //    }
+    /**
+     * @return User[]
+     */
+    public function searchDiscoverable(User $viewer, string $query, int $page, int $perPage): array
+    {
+        $needle = '%'.mb_strtolower($query).'%';
 
-    //    public function findOneBySomeField($value): ?User
-    //    {
-    //        return $this->createQueryBuilder('u')
-    //            ->andWhere('u.exampleField = :val')
-    //            ->setParameter('val', $value)
-    //            ->getQuery()
-    //            ->getOneOrNullResult()
-    //        ;
-    //    }
+        return $this->createQueryBuilder('u')
+            ->andWhere('u.id != :viewer')
+            ->andWhere('u.profilePublic = true')
+            ->andWhere('u.socialConsentedAt IS NOT NULL')
+            ->andWhere('LOWER(u.alias) LIKE :q')
+            ->setParameter('viewer', $viewer)
+            ->setParameter('q', $needle)
+            ->orderBy('u.alias', 'ASC')
+            ->setFirstResult(max(0, ($page - 1) * $perPage))
+            ->setMaxResults($perPage)
+            ->getQuery()
+            ->getResult();
+    }
 }
