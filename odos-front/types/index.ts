@@ -214,6 +214,31 @@ export interface ActivityGroupItem {
     isPrivate: boolean;
     memberCount: number;
     createdAt: string;
+    /** Messages de groupe non lus (présent uniquement dans l'onglet « mes groupes »). */
+    unreadCount?: number;
+}
+
+export type GroupRole = 'creator' | 'admin' | 'member';
+
+export interface GroupMemberItem {
+    id: number;
+    user: SocialUserSnippet | null;
+    role: GroupRole;
+    joinedAt: string;
+}
+
+export interface GroupDetail {
+    group: ActivityGroupItem;
+    members: GroupMemberItem[];
+}
+
+export interface GroupMessageItem {
+    id: number;
+    content: string;
+    author: SocialUserSnippet | null;
+    groupId: number;
+    isMine: boolean;
+    createdAt: string;
 }
 
 export interface SharedActivityItem {
@@ -239,6 +264,7 @@ export interface SocialUnreadCount {
     unreadShares: number;
     pendingGroupInvitations: number;
     unreadMessages: number;
+    unreadGroupMessages: number;
     total: number;
 }
 

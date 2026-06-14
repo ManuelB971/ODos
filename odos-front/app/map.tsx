@@ -7,6 +7,9 @@ import { MapExperience } from '@/components/map/MapExperience';
 import { useOdosColors } from '@/context/ThemeContext';
 import { useActivities } from '@/hooks/useActivities';
 import { toAppError } from '@/utils/errorHandling';
+import type { ApiActivity } from '@/types';
+
+const EMPTY_ACTIVITIES: ApiActivity[] = [];
 
 /**
  * Route plein-écran `/map` — expérience immersive de découverte ODOS.
@@ -28,7 +31,7 @@ export default function MapScreen() {
       <Stack.Screen options={{ headerShown: false }} />
       <ThemedStatusBar />
       <MapExperience
-        activities={query.data ?? []}
+        activities={query.data ?? EMPTY_ACTIVITIES}
         loading={query.isLoading}
         error={error}
       />

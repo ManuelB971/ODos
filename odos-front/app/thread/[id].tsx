@@ -9,11 +9,15 @@ import { ReportContentModal } from '@/components/social/ReportContentModal';
 import { useForumReport } from '@/hooks/useForumReport';
 import { useState } from 'react';
 import type { ForumReportReason } from '@/types';
+import { PopSurface } from '@/components/pop/PopSurface';
+import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 
 export default function ThreadDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const threadId = Number(id);
   const colors = useOdosColors();
+  const isMosaicPop = useIsMosaicPop();
+  const pop = usePopTokens();
   const [reportReplyId, setReportReplyId] = useState<number | null>(null);
   const [reportThreadOpen, setReportThreadOpen] = useState(false);
   const { reportThread, reportReply } = useForumReport();
@@ -45,15 +49,27 @@ export default function ThreadDetailScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {thread ? (
-        <View style={[styles.header, { borderBottomColor: colors.border }]}>
-          <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.serifSemiBold }]}>
-            {thread.title}
-          </Text>
-          <Text style={[styles.body, { color: colors.text, fontFamily: FontFamily.ui }]}>{thread.content}</Text>
-          <Pressable onPress={() => setReportThreadOpen(true)}>
-            <Text style={[styles.report, { color: colors.muted, fontFamily: FontFamily.ui }]}>Signaler ce fil</Text>
-          </Pressable>
-        </View>
+        isMosaicPop ? (
+          <PopSurface shadow={6} radius={12} style={styles.popHeaderWrap} contentStyle={styles.popHeader}>
+            <Text style={[styles.title, { color: pop.ink, fontFamily: FontFamily.display }]}>
+              {thread.title}
+            </Text>
+            <Text style={[styles.body, { color: pop.ink, fontFamily: FontFamily.ui }]}>{thread.content}</Text>
+            <Pressable onPress={() => setReportThreadOpen(true)}>
+              <Text style={[styles.report, { color: pop.muted, fontFamily: FontFamily.ui }]}>Signaler ce fil</Text>
+            </Pressable>
+          </PopSurface>
+        ) : (
+          <View style={[styles.header, { borderBottomColor: colors.border }]}>
+            <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.display }]}>
+              {thread.title}
+            </Text>
+            <Text style={[styles.body, { color: colors.text, fontFamily: FontFamily.ui }]}>{thread.content}</Text>
+            <Pressable onPress={() => setReportThreadOpen(true)}>
+              <Text style={[styles.report, { color: colors.muted, fontFamily: FontFamily.ui }]}>Signaler ce fil</Text>
+            </Pressable>
+          </View>
+        )
       ) : null}
       <FlatList
         data={replies}
@@ -82,6 +98,8 @@ export default function ThreadDetailScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { padding: 20, borderBottomWidth: 1, gap: 12 },
+  popHeaderWrap: { margin: 16 },
+  popHeader: { padding: 16, gap: 10 },
   title: { fontSize: 22 },
   body: { fontSize: 15, lineHeight: 22 },
   report: { fontSize: 12, marginTop: 4 },

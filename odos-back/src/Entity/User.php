@@ -23,7 +23,9 @@ use Symfony\Component\Validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
 #[ORM\UniqueConstraint(name: 'UNIQ_IDENTIFIER_EMAIL', fields: ['email'])]
+#[ORM\UniqueConstraint(name: 'uniq_user_alias', fields: ['alias'])]
 #[UniqueEntity(fields: ['email'], message: 'Cet email est déjà lié à un compte existant.')]
+#[UniqueEntity(fields: ['alias'], message: 'Cet alias est déjà pris.', repositoryMethod: 'findForUniqueAlias')]
 #[ApiResource(
     operations: [
         new GetCollection(security: "is_granted('ROLE_ADMIN')"),

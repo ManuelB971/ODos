@@ -34,6 +34,9 @@ class GroupMember
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $joinedAt;
 
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $lastReadGroupMessageAt = null;
+
     public function __construct()
     {
         $this->joinedAt = new \DateTimeImmutable();
@@ -83,5 +86,17 @@ class GroupMember
     public function getJoinedAt(): \DateTimeImmutable
     {
         return $this->joinedAt;
+    }
+
+    public function getLastReadGroupMessageAt(): ?\DateTimeImmutable
+    {
+        return $this->lastReadGroupMessageAt;
+    }
+
+    public function setLastReadGroupMessageAt(?\DateTimeImmutable $lastReadGroupMessageAt): static
+    {
+        $this->lastReadGroupMessageAt = $lastReadGroupMessageAt;
+
+        return $this;
     }
 }

@@ -4,12 +4,15 @@ import { useLocalSearchParams } from 'expo-router';
 import { useChatMessages, useChatMutations } from '@/hooks/useChat';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
+import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const conversationId = Number(id);
   const colors = useOdosColors();
-  const { data, refetch } = useChatMessages(conversationId);
+  const isMosaicPop = useIsMosaicPop();
+  const pop = usePopTokens();
+  const { data } = useChatMessages(conversationId);
   const { sendMessage, markRead } = useChatMutations();
   const markConversationRead = markRead.mutate;
   const [draft, setDraft] = useState('');
@@ -25,8 +28,8 @@ export default function ChatScreen() {
   const onSend = () => {
     const content = draft.trim();
     if (!content || !Number.isFinite(conversationId)) return;
-    sendMessage.mutate({ conversationId, content }, { onSuccess: () => setDraft('') });
-    refetch();
+    setDraft('');
+    sendMessage.mutate({ conversationId, content });
   };
 
   return (
@@ -36,21 +39,54 @@ export default function ChatScreen() {
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
-          <View style={[styles.bubble, item.isMine ? styles.mine : styles.theirs, { backgroundColor: item.isMine ? colors.accentSoft : colors.surface, borderColor: colors.border }]}>
-            <Text style={{ color: colors.text, fontFamily: FontFamily.ui }}>{item.content}</Text>
+          <View
+            style={[
+              styles.bubble,
+              item.isMine ? styles.mine : styles.theirs,
+              {
+                backgroundColor: item.isMine ? colors.accentSoft : colors.surface,
+                borderColor: colors.border,
+              },
+              isMosaicPop && {
+                borderWidth: 2,
+                borderColor: pop.ink,
+                backgroundColor: item.isMine ? pop.orange : pop.paper,
+              },
+            ]}
+          >
+            <Text style={{ color: isMosaicPop ? pop.ink : colors.text, fontFamily: FontFamily.ui }}>
+              {item.content}
+            </Text>
           </View>
         )}
       />
-      <View style={[styles.composer, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
+      <View
+        style={[
+          styles.composer,
+          { borderTopColor: colors.border, backgroundColor: colors.surface },
+          isMosaicPop && { borderTopWidth: 2.5, borderTopColor: pop.ink, backgroundColor: pop.paper },
+        ]}
+      >
         <TextInput
           value={draft}
           onChangeText={setDraft}
           placeholder="Votre message…"
           placeholderTextColor={colors.muted}
-          style={[styles.input, { color: colors.text, fontFamily: FontFamily.ui }]}
+          style={[
+            styles.input,
+            { color: colors.text, fontFamily: FontFamily.ui },
+            isMosaicPop && { borderWidth: 2, borderColor: pop.ink, backgroundColor: pop.background },
+          ]}
         />
-        <Pressable onPress={onSend} style={[styles.send, { backgroundColor: colors.accent }]}>
-          <Text style={{ color: colors.onAccent, fontFamily: FontFamily.uiMedium }}>Envoyer</Text>
+        <Pressable
+          onPress={onSend}
+          style={[
+            styles.send,
+            { backgroundColor: colors.accent },
+            isMosaicPop && { backgroundColor: pop.orange, borderWidth: 2, borderColor: pop.ink, borderRadius: 100 },
+          ]}
+        >
+          <Text style={{ color: isMosaicPop ? pop.ink : colors.onAccent, fontFamily: FontFamily.uiBold }}>Envoyer</Text>
         </Pressable>
       </View>
     </View>

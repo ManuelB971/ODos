@@ -8,6 +8,7 @@ use App\Entity\Activity;
 use App\Entity\ActivityGroup;
 use App\Entity\ChatMessage;
 use App\Entity\Conversation;
+use App\Entity\GroupMessage;
 use App\Entity\ForumReply;
 use App\Entity\ForumThread;
 use App\Entity\Friendship;
@@ -96,9 +97,9 @@ final class SocialSerializer
     /**
      * @return array<string, mixed>
      */
-    public function groupToArray(ActivityGroup $group): array
+    public function groupToArray(ActivityGroup $group, ?int $unreadCount = null): array
     {
-        return [
+        $data = [
             'id' => $group->getId(),
             'name' => $group->getName(),
             'description' => $group->getDescription(),
@@ -107,6 +108,12 @@ final class SocialSerializer
             'memberCount' => $group->getMemberCount(),
             'createdAt' => $group->getCreatedAt()->format(\DateTimeInterface::ATOM),
         ];
+
+        if (null !== $unreadCount) {
+            $data['unreadCount'] = $unreadCount;
+        }
+
+        return $data;
     }
 
     /**
@@ -185,6 +192,21 @@ final class SocialSerializer
             'conversationId' => $message->getConversation()?->getId(),
             'isMine' => $message->getAuthor()?->getId() === $viewer->getId(),
             'readAt' => $message->getReadAt()?->format(\DateTimeInterface::ATOM),
+            'createdAt' => $message->getCreatedAt()->format(\DateTimeInterface::ATOM),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function groupMessageToArray(GroupMessage $message, User $viewer): array
+    {
+        return [
+            'id' => $message->getId(),
+            'content' => $message->getContent(),
+            'author' => $this->userSnippet($message->getAuthor()),
+            'groupId' => $message->getGroup()?->getId(),
+            'isMine' => $message->getAuthor()?->getId() === $viewer->getId(),
             'createdAt' => $message->getCreatedAt()->format(\DateTimeInterface::ATOM),
         ];
     }

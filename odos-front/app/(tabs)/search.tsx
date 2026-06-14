@@ -535,9 +535,11 @@ function createStyles(colors: OdosColorPalette) {
       default: {},
     }),
   },
+  // Image en absolu (et non height:'100%' en flux) : dans une boîte en
+  // aspectRatio sans hauteur fixe, une image en flux peut injecter sa taille
+  // intrinsèque dans le calcul et faire gonfler la carte. L'absolu l'évite.
   gridImage: {
-    width: '100%',
-    height: '100%',
+    ...StyleSheet.absoluteFillObject,
   },
   gridTitle: {
     fontFamily: serif,

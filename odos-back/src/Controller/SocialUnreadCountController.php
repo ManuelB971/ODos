@@ -8,6 +8,7 @@ use App\Entity\User;
 use App\Repository\FriendshipRepository;
 use App\Repository\GroupInvitationRepository;
 use App\Repository\ChatMessageRepository;
+use App\Repository\GroupMessageRepository;
 use App\Service\SharedActivityService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -23,6 +24,7 @@ final class SocialUnreadCountController extends AbstractController
         private readonly FriendshipRepository $friendshipRepository,
         private readonly GroupInvitationRepository $groupInvitationRepository,
         private readonly ChatMessageRepository $chatMessageRepository,
+        private readonly GroupMessageRepository $groupMessageRepository,
         private readonly SharedActivityService $sharedActivityService,
     ) {
     }
@@ -40,13 +42,15 @@ final class SocialUnreadCountController extends AbstractController
         $unreadShares = $this->sharedActivityService->countUnread($user);
         $pendingInvitations = $this->groupInvitationRepository->countPendingForUser($user);
         $unreadMessages = $this->chatMessageRepository->countUnreadForUser($user);
+        $unreadGroupMessages = $this->groupMessageRepository->countUnreadForUser($user);
 
         return $this->json([
             'pendingFriendRequests' => $pendingRequests,
             'unreadShares' => $unreadShares,
             'pendingGroupInvitations' => $pendingInvitations,
             'unreadMessages' => $unreadMessages,
-            'total' => $pendingRequests + $unreadShares + $pendingInvitations + $unreadMessages,
+            'unreadGroupMessages' => $unreadGroupMessages,
+            'total' => $pendingRequests + $unreadShares + $pendingInvitations + $unreadMessages + $unreadGroupMessages,
         ]);
     }
 }

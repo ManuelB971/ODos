@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { MaterialTopTabs } from './_layout';
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { withLayoutContext } from 'expo-router';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { postSocialConsent } from '@/scripts/api';
 import { useAuth } from '@/context/AuthContext';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useQueryClient } from '@tanstack/react-query';
+import { CONVERSATIONS_QUERY_KEY } from '@/hooks/useChat';
+import { FRIENDSHIPS_QUERY_KEY } from '@/hooks/useFriendships';
+import { SOCIAL_UNREAD_QUERY_KEY } from '@/hooks/useSocialUnreadCount';
+import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+const { Navigator } = createMaterialTopTabNavigator();
+const MaterialTopTabs = withLayoutContext(Navigator);
 
 function SocialConsentGate({ children }: { children: React.ReactNode }) {
   const colors = useOdosColors();
@@ -18,6 +27,8 @@ function SocialConsentGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (user && !user.socialConsentedAt) {
       setVisible(true);
+    } else {
+      setVisible(false);
     }
   }, [user]);
 
@@ -29,7 +40,16 @@ function SocialConsentGate({ children }: { children: React.ReactNode }) {
         setUser({ ...user, socialConsentedAt: result.socialConsentedAt });
       }
       setVisible(false);
-      queryClient.invalidateQueries();
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: FRIENDSHIPS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: ['groups'] }),
+        queryClient.invalidateQueries({ queryKey: ['forumThreads'] }),
+        queryClient.invalidateQueries({ queryKey: CONVERSATIONS_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: ['chatMessages'] }),
+        queryClient.invalidateQueries({ queryKey: ['sharedActivities'] }),
+        queryClient.invalidateQueries({ queryKey: ['userSearch'] }),
+        queryClient.invalidateQueries({ queryKey: SOCIAL_UNREAD_QUERY_KEY }),
+      ]);
     } finally {
       setLoading(false);
     }
@@ -41,7 +61,7 @@ function SocialConsentGate({ children }: { children: React.ReactNode }) {
       <Modal visible={visible} transparent animationType="fade">
         <View style={[styles.backdrop, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-            <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.serifSemiBold }]}>
+            <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.display }]}>
               Communauté ODOS
             </Text>
             <Text style={[styles.body, { color: colors.muted, fontFamily: FontFamily.ui }]}>
@@ -72,17 +92,29 @@ function SocialConsentGate({ children }: { children: React.ReactNode }) {
 
 export default function CommunityLayout() {
   const colors = useOdosColors();
+  const isMosaicPop = useIsMosaicPop();
+  const pop = usePopTokens();
   usePushNotifications();
 
   return (
     <SocialConsentGate>
+      <SafeAreaView
+        edges={['top']}
+        style={{ flex: 1, backgroundColor: isMosaicPop ? pop.paper : colors.background }}
+      >
       <MaterialTopTabs
         screenOptions={{
-          tabBarActiveTintColor: colors.accent,
-          tabBarInactiveTintColor: colors.muted,
-          tabBarIndicatorStyle: { backgroundColor: colors.accent },
-          tabBarLabelStyle: { fontFamily: FontFamily.uiMedium, fontSize: 13, textTransform: 'none' },
-          tabBarStyle: { backgroundColor: colors.background },
+          tabBarActiveTintColor: isMosaicPop ? pop.ink : colors.accent,
+          tabBarInactiveTintColor: isMosaicPop ? pop.muted : colors.muted,
+          tabBarIndicatorStyle: isMosaicPop
+            ? { backgroundColor: pop.orange, height: 4 }
+            : { backgroundColor: colors.accent },
+          tabBarLabelStyle: isMosaicPop
+            ? { fontFamily: FontFamily.uiBold, fontSize: 12, letterSpacing: 0.4, textTransform: 'uppercase' }
+            : { fontFamily: FontFamily.uiMedium, fontSize: 13, textTransform: 'none' },
+          tabBarStyle: isMosaicPop
+            ? { backgroundColor: pop.paper, borderBottomWidth: 2.5, borderBottomColor: pop.ink }
+            : { backgroundColor: colors.background },
         }}
       >
         <MaterialTopTabs.Screen name="forum" options={{ title: 'Forum' }} />
@@ -90,6 +122,7 @@ export default function CommunityLayout() {
         <MaterialTopTabs.Screen name="messages" options={{ title: 'Messages' }} />
         <MaterialTopTabs.Screen name="groups" options={{ title: 'Groupes' }} />
       </MaterialTopTabs>
+      </SafeAreaView>
     </SocialConsentGate>
   );
 }

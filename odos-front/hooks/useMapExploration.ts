@@ -14,6 +14,24 @@ import type { MapExplorationOverview } from '@/types';
 
 export const MAP_EXPLORATION_QUERY_KEY = ['mapExploration'] as const;
 
+/**
+ * Conserve le `visitedGeoJson` précédent quand une réponse ne le renvoie pas.
+ * Le calque "zones visitées" lit `overview.visitedGeoJson` ; or seules les
+ * réponses GET (et désormais sync/consent) sérialisent la géométrie. Sans ce
+ * garde-fou, écraser le cache avec un overview sans géométrie (ancien backend,
+ * réponse partielle) fait disparaître le calque orange aussitôt après son
+ * affichage — le symptôme « l'overlay clignote puis disparaît ».
+ */
+function withVisitedGeoJson(
+  next: MapExplorationOverview,
+  prev?: MapExplorationOverview
+): MapExplorationOverview {
+  if (!next.visitedGeoJson && prev?.visitedGeoJson) {
+    return { ...next, visitedGeoJson: prev.visitedGeoJson };
+  }
+  return next;
+}
+
 const SYNC_MIN_INTERVAL_MS = 25_000;
 const LOCATION_DISTANCE_M = 80;
 
@@ -33,13 +51,18 @@ export function useMapExploration(screenActive: boolean) {
 
   const consentMutation = useMutation({
     mutationFn: postMapExplorationConsent,
-    onSuccess: (data) => queryClient.setQueryData(MAP_EXPLORATION_QUERY_KEY, data),
+    onSuccess: (data) =>
+      queryClient.setQueryData<MapExplorationOverview>(MAP_EXPLORATION_QUERY_KEY, (prev) =>
+        withVisitedGeoJson(data, prev)
+      ),
   });
 
   const syncMutation = useMutation({
     mutationFn: (cells: string[]) => syncMapExplorationCells(cells),
     onSuccess: (data) => {
-      queryClient.setQueryData(MAP_EXPLORATION_QUERY_KEY, data.overview);
+      queryClient.setQueryData<MapExplorationOverview>(MAP_EXPLORATION_QUERY_KEY, (prev) =>
+        withVisitedGeoJson(data.overview, prev)
+      );
       if (data.unlockedBadges?.length) {
         mergeUnlocked(data.unlockedBadges);
       }

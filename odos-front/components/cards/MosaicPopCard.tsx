@@ -30,7 +30,10 @@ const RADIUS = 10;
 const CARD_SHADOW = 7;
 const ROW_SHADOW = 5;
 const BAND_H = 13;
-const CARD_W = 232;
+// Mêmes dimensions que les cartes classiques (RecommendationCard width 250,
+// image ~155) pour que la taille soit identique en mosaïque et en classique.
+const CARD_W = 250;
+const PHOTO_H = 150;
 
 /** Accents par catégorie — uniquement les tokens DA officiels (orange, teal, bleu, terracotta). */
 const CATEGORY_ACCENTS = ['#F4A261', '#5FC2D8', '#3B82F6', '#E07D3A'];
@@ -124,24 +127,27 @@ export function MosaicPopCard({
   const cat = getCategoryName(item.category);
   const accent = getCategoryAccent(cat);
   const rating = item.ratingAverage;
+  // Variante grille (favoris, 2 colonnes) : plus compacte que le carrousel.
+  const isGrid = variant === 'grid';
+  const shadow = isGrid ? 4 : CARD_SHADOW;
 
   return (
     <Link href={`/activity/${item.id}`} asChild>
-      <Pressable style={[styles.cardWrap, variant === 'grid' ? styles.cardWrapGrid : styles.cardWrapCarousel]}>
+      <Pressable style={[styles.cardWrap, isGrid ? styles.cardWrapGrid : styles.cardWrapCarousel]}>
         {/* Ombre dure décalée (rendu net cross-platform via un calque encre) */}
         <View
           pointerEvents="none"
           style={[
             StyleSheet.absoluteFill,
             styles.hardShadow,
-            { backgroundColor: t.ink, borderRadius: RADIUS, transform: [{ translateX: CARD_SHADOW }, { translateY: CARD_SHADOW }] },
+            { backgroundColor: t.ink, borderRadius: RADIUS, transform: [{ translateX: shadow }, { translateY: shadow }] },
           ]}
         />
         <View style={[styles.card, { backgroundColor: t.paper, borderColor: t.ink }]}>
           {/* Photo sertie de tesselles */}
-          <View style={[styles.frame, { backgroundColor: accent, borderBottomColor: t.ink }]}>
+          <View style={[styles.frame, isGrid && styles.frameGrid, { backgroundColor: accent, borderBottomColor: t.ink }]}>
             <TesseraGrid color={t.paper} />
-            <View style={[styles.photoWrap, { borderColor: t.ink }]}>
+            <View style={[styles.photoWrap, isGrid ? styles.photoWrapGrid : styles.photoWrapCarousel, { borderColor: t.ink }]}>
               {img ? (
                 <Image source={{ uri: img }} style={styles.photo} resizeMode="cover" />
               ) : (
@@ -149,7 +155,7 @@ export function MosaicPopCard({
               )}
             </View>
             {rating != null && rating > 0 ? (
-              <Tessera value={rating} t={t} accent={accent} style={styles.cardTessera} />
+              <Tessera value={rating} t={t} accent={accent} small={isGrid} style={styles.cardTessera} />
             ) : null}
             {onToggleFavorite ? (
               <Pressable
@@ -168,13 +174,15 @@ export function MosaicPopCard({
             ) : null}
           </View>
 
-          {/* Bandeau méandre */}
-          <View style={[styles.band, { backgroundColor: accent, borderBottomColor: t.ink }]}>
-            <Meander color={t.ink} height={BAND_H} />
-          </View>
+          {/* Bandeau méandre (masqué en grille pour gagner de la hauteur) */}
+          {!isGrid ? (
+            <View style={[styles.band, { backgroundColor: accent, borderBottomColor: t.ink }]}>
+              <Meander color={t.ink} height={BAND_H} />
+            </View>
+          ) : null}
 
           {/* Corps */}
-          <View style={styles.body}>
+          <View style={[styles.body, isGrid && styles.bodyGrid]}>
             {cat ? (
               <View style={[styles.catPill, { backgroundColor: accent, borderColor: t.ink }]}>
                 <Text style={[styles.catText, { color: t.ink }]} numberOfLines={1}>
@@ -182,7 +190,7 @@ export function MosaicPopCard({
                 </Text>
               </View>
             ) : null}
-            <Text style={[styles.title, { color: t.ink }]} numberOfLines={2}>
+            <Text style={[styles.title, isGrid && styles.titleGrid, { color: t.ink }]} numberOfLines={2}>
               {item.name}
             </Text>
             {item.city ? (
@@ -283,7 +291,8 @@ const styles = StyleSheet.create({
   },
   cardWrapGrid: {
     flex: 1,
-    marginRight: CARD_SHADOW,
+    marginRight: 4,
+    marginBottom: 8,
   },
   heartBtn: {
     position: 'absolute',
@@ -306,18 +315,36 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   frame: {
-    padding: 9,
+    padding: 7,
     borderBottomWidth: OUTLINE,
     position: 'relative',
   },
-  photoWrap: {
-    borderWidth: 2,
-    aspectRatio: 4 / 3,
-    overflow: 'hidden',
+  frameGrid: {
+    padding: 6,
   },
-  photo: {
+  photoWrap: {
     width: '100%',
-    height: '100%',
+    borderWidth: 2,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  // Carrousel : hauteur fixe (≈ classique 155) → totalement déterministe.
+  photoWrapCarousel: {
+    height: PHOTO_H,
+  },
+  // Grille favoris : même proportion portrait que la FavoriteCard classique (4/5).
+  photoWrapGrid: {
+    aspectRatio: 4 / 5,
+  },
+  // Image en absolu : elle ne participe pas au calcul de taille du parent, sinon
+  // `height: '100%'` + `aspectRatio` entrent en conflit sous Fabric et la carte
+  // gonfle pour remplir tout l'espace. Le parent se dimensionne seul via aspectRatio.
+  photo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   cardTessera: {
     top: 9,
@@ -329,8 +356,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   body: {
-    padding: 13,
-    paddingTop: 12,
+    padding: 11,
+    paddingTop: 10,
+  },
+  bodyGrid: {
+    padding: 10,
+    paddingTop: 8,
   },
   catPill: {
     alignSelf: 'flex-start',
@@ -347,9 +378,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FontFamily.display,
-    fontSize: 23,
-    lineHeight: 25,
-    marginBottom: 5,
+    fontSize: 17,
+    lineHeight: 20,
+    marginBottom: 4,
+  },
+  titleGrid: {
+    fontSize: 14,
+    lineHeight: 17,
+    marginBottom: 3,
   },
   meta: {
     flexDirection: 'row',
@@ -391,20 +427,25 @@ const styles = StyleSheet.create({
   },
   thumb: {
     position: 'relative',
-    width: 94,
+    width: 80,
     padding: 5,
     borderWidth: 2,
     borderRadius: 6,
     overflow: 'hidden',
   },
   thumbPhotoWrap: {
+    width: '100%',
     borderWidth: 2,
     aspectRatio: 1,
     overflow: 'hidden',
+    position: 'relative',
   },
   thumbPhoto: {
-    width: '100%',
-    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   rowTessera: {
     left: 8,
@@ -434,8 +475,8 @@ const styles = StyleSheet.create({
   },
   rowName: {
     fontFamily: FontFamily.display,
-    fontSize: 19,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 19,
     marginBottom: 3,
   },
   rowDesc: {

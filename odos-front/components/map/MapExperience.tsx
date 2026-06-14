@@ -75,6 +75,11 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [consentDismissed, setConsentDismissed] = useState(false);
   const [showConsentModal, setShowConsentModal] = useState(false);
+  // Incrémenté à chaque (re)chargement du style MapLibre. Les style-layers
+  // ajoutés à la volée (calque "zones visitées") sont purgés quand le style finit
+  // de charger ; on remonte donc le calque via `key={styleVersion}` une fois le
+  // style prêt, sinon les zones orange n'apparaissent qu'une fraction de seconde.
+  const [styleVersion, setStyleVersion] = useState(0);
 
   const exploration = useMapExploration(isAuthenticated && (user?.mapExplorationEnabled ?? false));
 
@@ -265,11 +270,15 @@ export function MapExperience({ activities, loading = false, error = null }: Map
           logo
           touchPitch={false}
           touchRotate={false}
+          onDidFinishLoadingStyle={() => setStyleVersion((v) => v + 1)}
         >
           <Camera ref={cameraRef} initialViewState={initialCamera} />
-          <ExplorationVisitedLayer
-            geoJson={exploration.active ? (exploration.visitedGeoJson ?? null) : null}
-          />
+          {styleVersion > 0 ? (
+            <ExplorationVisitedLayer
+              key={`visited-${styleVersion}`}
+              geoJson={exploration.active ? (exploration.visitedGeoJson ?? null) : null}
+            />
+          ) : null}
           {filtered.map((activity) => {
             const isActive = activity.id === selectedId;
             return (
