@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\State\ProcessorInterface;
 use App\Entity\User;
+use App\Service\AliasGenerator;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 
@@ -22,6 +23,7 @@ final class UserRegistrationProcessor implements ProcessorInterface
         /** @var ProcessorInterface<mixed, mixed> */
         private readonly ProcessorInterface $innerProcessor,
         private readonly RequestStack $requestStack,
+        private readonly AliasGenerator $aliasGenerator,
     ) {
     }
 
@@ -39,6 +41,13 @@ final class UserRegistrationProcessor implements ProcessorInterface
             }
 
             $data->setConsentedAt(new \DateTimeImmutable());
+
+            // Attribue un alias public par défaut (dérivé de l'e-mail) pour que
+            // le compte soit trouvable dans la recherche d'amis dès l'inscription.
+            $email = $data->getEmail();
+            if (null === $data->getAlias() && null !== $email && '' !== $email) {
+                $data->setAlias($this->aliasGenerator->fromEmail($email));
+            }
         }
 
         return $this->innerProcessor->process($data, $operation, $uriVariables, $context);
