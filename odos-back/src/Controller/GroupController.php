@@ -12,7 +12,9 @@ use App\Gamification\GamificationEvent;
 use App\Gamification\GamificationService;
 use App\Repository\ActivityGroupRepository;
 use App\Repository\GroupMemberRepository;
+use App\Repository\GroupMessageRepository;
 use App\Service\CommentContentSanitizer;
+use App\Service\GroupChatService;
 use App\Service\GroupService;
 use App\Service\SocialSerializer;
 use App\Service\ThrottledActionException;
@@ -35,7 +37,9 @@ final class GroupController extends AbstractController
         private readonly Security $security,
         private readonly ActivityGroupRepository $groupRepository,
         private readonly GroupMemberRepository $groupMemberRepository,
+        private readonly GroupMessageRepository $groupMessageRepository,
         private readonly GroupService $groupService,
+        private readonly GroupChatService $groupChatService,
         private readonly SocialSerializer $serializer,
         private readonly CommentContentSanitizer $sanitizer,
         private readonly UserActionThrottleService $throttle,
@@ -65,8 +69,15 @@ final class GroupController extends AbstractController
 
         $items = $this->groupRepository->findByMember($user, $page, self::PER_PAGE);
 
+        $member = array_map(function (ActivityGroup $g) use ($user) {
+            $membership = $this->groupMemberRepository->findMembership($user, $g);
+            $unread = null !== $membership ? $this->groupMessageRepository->countUnreadForMember($membership) : 0;
+
+            return $this->serializer->groupToArray($g, $unread);
+        }, $items);
+
         return $this->json([
-            'member' => array_map(fn (ActivityGroup $g) => $this->serializer->groupToArray($g), $items),
+            'member' => $member,
             'page' => $page,
             'itemsPerPage' => self::PER_PAGE,
         ]);
@@ -313,6 +324,72 @@ final class GroupController extends AbstractController
         $this->eventDispatcher->dispatch(new \App\Event\GroupMemberLeftEvent($group));
 
         return $this->json(['message' => 'Membre exclu.']);
+    }
+
+    #[Route('/{id}/messages', name: 'api_groups_messages_list', methods: ['GET'], requirements: ['id' => '\d+'])]
+    public function listMessages(int $id, Request $request): JsonResponse
+    {
+        $user = $this->requireUser();
+        $group = $this->groupRepository->find($id);
+        if (!$group instanceof ActivityGroup || !$this->groupService->isMember($user, $group)) {
+            return $this->json(['message' => 'Accès refusé.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $page = max(1, (int) $request->query->get('page', 1));
+        $items = array_reverse($this->groupMessageRepository->findForGroupPaginated($group, $page, self::PER_PAGE));
+
+        return $this->json([
+            'member' => array_map(fn ($m) => $this->serializer->groupMessageToArray($m, $user), $items),
+            'totalItems' => $this->groupMessageRepository->countForGroup($group),
+            'page' => $page,
+            'itemsPerPage' => self::PER_PAGE,
+        ]);
+    }
+
+    #[Route('/{id}/messages', name: 'api_groups_messages_create', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function sendMessage(int $id, Request $request): JsonResponse
+    {
+        $user = $this->requireUser();
+        $group = $this->groupRepository->find($id);
+        if (!$group instanceof ActivityGroup) {
+            return $this->json(['message' => 'Groupe introuvable.'], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $this->throttle->assertCanSendChatMessage((int) $user->getId());
+        } catch (ThrottledActionException $e) {
+            return $this->throttleResponse($e);
+        }
+
+        try {
+            $message = $this->groupChatService->sendMessage($user, $group, (string) ($request->toArray()['content'] ?? ''));
+        } catch (\InvalidArgumentException $e) {
+            return $this->json(['message' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
+
+        $this->throttle->markChatMessageSent((int) $user->getId());
+
+        return $this->json([
+            'message' => $this->serializer->groupMessageToArray($message, $user),
+        ], Response::HTTP_CREATED);
+    }
+
+    #[Route('/{id}/messages/read', name: 'api_groups_messages_read', methods: ['PATCH'], requirements: ['id' => '\d+'])]
+    public function markMessagesRead(int $id): JsonResponse
+    {
+        $user = $this->requireUser();
+        $group = $this->groupRepository->find($id);
+        if (!$group instanceof ActivityGroup) {
+            return $this->json(['message' => 'Groupe introuvable.'], Response::HTTP_NOT_FOUND);
+        }
+
+        try {
+            $this->groupChatService->markRead($user, $group);
+        } catch (\InvalidArgumentException $e) {
+            return $this->json(['message' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
+        }
+
+        return $this->json(['message' => 'Lu.']);
     }
 
     private function requireUser(): User
