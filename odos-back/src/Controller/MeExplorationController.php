@@ -38,7 +38,10 @@ final class MeExplorationController extends AbstractController
         $user = $this->requireUser();
         $this->explorationService->recordConsent($user);
 
-        return $this->json($this->explorationService->buildOverview($user));
+        $overview = $this->explorationService->buildOverview($user);
+        $overview['visitedGeoJson'] = $this->explorationService->visitedCellsGeoJson($user);
+
+        return $this->json($overview);
     }
 
     #[Route('/exploration/settings', name: 'api_me_exploration_settings', methods: ['PATCH'])]
@@ -80,6 +83,13 @@ final class MeExplorationController extends AbstractController
         } catch (\InvalidArgumentException $e) {
             return $this->json(['message' => $e->getMessage()], Response::HTTP_FORBIDDEN);
         }
+
+        // buildOverview() n'inclut pas la géométrie (comme pour le GET) : on l'ajoute
+        // ici, sinon le sync déclenché par le GPS renvoie un overview sans
+        // visitedGeoJson, le cache front est écrasé et le calque orange disparaît
+        // aussitôt. On renvoie la géométrie à jour (cellules fraîchement visitées
+        // incluses) pour que l'overlay se mette à jour en direct.
+        $result['overview']['visitedGeoJson'] = $this->explorationService->visitedCellsGeoJson($user);
 
         return $this->json($result);
     }
