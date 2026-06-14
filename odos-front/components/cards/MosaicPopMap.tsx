@@ -46,11 +46,15 @@ function usePatternId(prefix: string): string {
  * bitmap de plusieurs centaines de Mo → `Canvas: trying to draw too large bitmap`
  * → crash. En pixels mesurés, le bitmap reste borné à la taille affichée.
  */
+/** Plafond de sécurité anti-bitmap-géant (voir GreekMotifs : Fabric + onLayout). */
+const SVG_MAX = 1200;
+
 function useMeasuredSize() {
   const [size, setSize] = React.useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const onLayout = React.useCallback((e: { nativeEvent: { layout: { width: number; height: number } } }) => {
-    const { width, height } = e.nativeEvent.layout;
-    setSize((prev) => (prev.w === width && prev.h === height ? prev : { w: width, h: height }));
+    const w = Math.min(e.nativeEvent.layout.width, SVG_MAX);
+    const h = Math.min(e.nativeEvent.layout.height, SVG_MAX);
+    setSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
   }, []);
   return { size, onLayout };
 }

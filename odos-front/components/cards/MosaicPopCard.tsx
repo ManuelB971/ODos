@@ -30,7 +30,10 @@ const RADIUS = 10;
 const CARD_SHADOW = 7;
 const ROW_SHADOW = 5;
 const BAND_H = 13;
-const CARD_W = 232;
+// Mêmes dimensions que les cartes classiques (RecommendationCard width 250,
+// image ~155) pour que la taille soit identique en mosaïque et en classique.
+const CARD_W = 250;
+const PHOTO_H = 150;
 
 /** Accents par catégorie — uniquement les tokens DA officiels (orange, teal, bleu, terracotta). */
 const CATEGORY_ACCENTS = ['#F4A261', '#5FC2D8', '#3B82F6', '#E07D3A'];
@@ -144,7 +147,7 @@ export function MosaicPopCard({
           {/* Photo sertie de tesselles */}
           <View style={[styles.frame, isGrid && styles.frameGrid, { backgroundColor: accent, borderBottomColor: t.ink }]}>
             <TesseraGrid color={t.paper} />
-            <View style={[styles.photoWrap, isGrid && styles.photoWrapGrid, { borderColor: t.ink }]}>
+            <View style={[styles.photoWrap, isGrid ? styles.photoWrapGrid : styles.photoWrapCarousel, { borderColor: t.ink }]}>
               {img ? (
                 <Image source={{ uri: img }} style={styles.photo} resizeMode="cover" />
               ) : (
@@ -312,7 +315,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   frame: {
-    padding: 9,
+    padding: 7,
     borderBottomWidth: OUTLINE,
     position: 'relative',
   },
@@ -320,16 +323,28 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   photoWrap: {
-    borderWidth: 2,
-    aspectRatio: 4 / 3,
-    overflow: 'hidden',
-  },
-  photoWrapGrid: {
-    aspectRatio: 3 / 2,
-  },
-  photo: {
     width: '100%',
-    height: '100%',
+    borderWidth: 2,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  // Carrousel : hauteur fixe (≈ classique 155) → totalement déterministe.
+  photoWrapCarousel: {
+    height: PHOTO_H,
+  },
+  // Grille favoris : même proportion portrait que la FavoriteCard classique (4/5).
+  photoWrapGrid: {
+    aspectRatio: 4 / 5,
+  },
+  // Image en absolu : elle ne participe pas au calcul de taille du parent, sinon
+  // `height: '100%'` + `aspectRatio` entrent en conflit sous Fabric et la carte
+  // gonfle pour remplir tout l'espace. Le parent se dimensionne seul via aspectRatio.
+  photo: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   cardTessera: {
     top: 9,
@@ -341,12 +356,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   body: {
-    padding: 13,
-    paddingTop: 12,
+    padding: 11,
+    paddingTop: 10,
   },
   bodyGrid: {
     padding: 10,
-    paddingTop: 9,
+    paddingTop: 8,
   },
   catPill: {
     alignSelf: 'flex-start',
@@ -363,13 +378,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: FontFamily.display,
-    fontSize: 23,
-    lineHeight: 25,
-    marginBottom: 5,
+    fontSize: 17,
+    lineHeight: 20,
+    marginBottom: 4,
   },
   titleGrid: {
-    fontSize: 16,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 17,
     marginBottom: 3,
   },
   meta: {
@@ -412,20 +427,25 @@ const styles = StyleSheet.create({
   },
   thumb: {
     position: 'relative',
-    width: 94,
+    width: 80,
     padding: 5,
     borderWidth: 2,
     borderRadius: 6,
     overflow: 'hidden',
   },
   thumbPhotoWrap: {
+    width: '100%',
     borderWidth: 2,
     aspectRatio: 1,
     overflow: 'hidden',
+    position: 'relative',
   },
   thumbPhoto: {
-    width: '100%',
-    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   rowTessera: {
     left: 8,
@@ -455,8 +475,8 @@ const styles = StyleSheet.create({
   },
   rowName: {
     fontFamily: FontFamily.display,
-    fontSize: 19,
-    lineHeight: 21,
+    fontSize: 16,
+    lineHeight: 19,
     marginBottom: 3,
   },
   rowDesc: {

@@ -18,11 +18,20 @@ function svgSafeId(prefix: string, raw: string): string {
   return `${prefix}-${raw.replace(/[^a-zA-Z0-9_-]/g, '')}`;
 }
 
+/**
+ * Plafond de sécurité : sous Fabric, `onLayout` sur une vue `absoluteFill` peut
+ * renvoyer une taille démesurée à la première passe → bitmap SVG géant → crash
+ * (`Canvas: trying to draw too large bitmap`). Les vrais motifs font ≤ ~400 px,
+ * donc on borne sans jamais rogner du contenu réel.
+ */
+const SVG_MAX = 1200;
+
 function useMeasuredSize() {
   const [size, setSize] = React.useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const onLayout = React.useCallback((e: { nativeEvent: { layout: { width: number; height: number } } }) => {
-    const { width, height } = e.nativeEvent.layout;
-    setSize((prev) => (prev.w === width && prev.h === height ? prev : { w: width, h: height }));
+    const w = Math.min(e.nativeEvent.layout.width, SVG_MAX);
+    const h = Math.min(e.nativeEvent.layout.height, SVG_MAX);
+    setSize((prev) => (prev.w === w && prev.h === h ? prev : { w, h }));
   }, []);
   return { size, onLayout };
 }
