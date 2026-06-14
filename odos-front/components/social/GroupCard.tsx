@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
@@ -21,14 +21,22 @@ export function GroupCard({ group, onJoin, joining }: GroupCardProps) {
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const meta = `${group.memberCount} membres${group.isPrivate ? ' · Privé' : ''}`;
+  const unread = group.unreadCount ?? 0;
 
   if (isMosaicPop) {
     return (
       <Pressable onPress={() => router.push(`/group/${group.id}`)}>
         <PopSurface shadow={5} radius={12} contentStyle={styles.popContent}>
-          <Text style={[styles.name, { color: pop.ink, fontFamily: FontFamily.display, fontSize: 19 }]}>
-            {group.name}
-          </Text>
+          <View style={styles.titleRow}>
+            <Text style={[styles.name, { color: pop.ink, fontFamily: FontFamily.display, fontSize: 19, flex: 1 }]}>
+              {group.name}
+            </Text>
+            {unread > 0 ? (
+              <View style={[styles.unreadBadge, { backgroundColor: pop.orange, borderColor: pop.ink, borderWidth: 2 }]}>
+                <Text style={[styles.unreadText, { color: pop.ink }]}>{unread}</Text>
+              </View>
+            ) : null}
+          </View>
           <Text style={[styles.meta, { color: pop.muted }]}>{meta}</Text>
           {group.description ? (
             <Text style={[styles.desc, { color: pop.ink }]} numberOfLines={2}>
@@ -51,7 +59,14 @@ export function GroupCard({ group, onJoin, joining }: GroupCardProps) {
 
   return (
     <Pressable style={styles.card} onPress={() => router.push(`/group/${group.id}`)}>
-      <Text style={styles.name}>{group.name}</Text>
+      <View style={styles.titleRow}>
+        <Text style={[styles.name, { flex: 1 }]}>{group.name}</Text>
+        {unread > 0 ? (
+          <View style={[styles.unreadBadge, { backgroundColor: colors.accent }]}>
+            <Text style={[styles.unreadText, { color: colors.onAccent }]}>{unread}</Text>
+          </View>
+        ) : null}
+      </View>
       <Text style={styles.meta}>{meta}</Text>
       {group.description ? (
         <Text style={styles.desc} numberOfLines={2}>{group.description}</Text>
@@ -76,6 +91,9 @@ function createStyles(colors: ReturnType<typeof useOdosColors>) {
       gap: 6,
     },
     popContent: { padding: 14, gap: 6 },
+    titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    unreadBadge: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+    unreadText: { fontSize: 11, fontFamily: FontFamily.uiBold },
     name: {
       fontFamily: FontFamily.uiMedium,
       fontSize: 16,

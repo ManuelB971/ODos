@@ -12,7 +12,7 @@ export default function ChatScreen() {
   const colors = useOdosColors();
   const isMosaicPop = useIsMosaicPop();
   const pop = usePopTokens();
-  const { data, refetch } = useChatMessages(conversationId);
+  const { data } = useChatMessages(conversationId);
   const { sendMessage, markRead } = useChatMutations();
   const markConversationRead = markRead.mutate;
   const [draft, setDraft] = useState('');
@@ -28,8 +28,8 @@ export default function ChatScreen() {
   const onSend = () => {
     const content = draft.trim();
     if (!content || !Number.isFinite(conversationId)) return;
-    sendMessage.mutate({ conversationId, content }, { onSuccess: () => setDraft('') });
-    refetch();
+    setDraft('');
+    sendMessage.mutate({ conversationId, content });
   };
 
   return (

@@ -566,12 +566,75 @@ export async function fetchGroups(tab: 'mine' | 'discover' = 'mine', page = 1): 
     return response.data;
 }
 
+export async function createGroup(payload: {
+    name: string;
+    description?: string;
+    isPrivate?: boolean;
+}): Promise<{ group: import('@/types').ActivityGroupItem }> {
+    const response = await api.post('/api/groups', payload);
+    return response.data;
+}
+
+export async function fetchGroupDetail(groupId: number): Promise<import('@/types').GroupDetail> {
+    const response = await api.get(`/api/groups/${groupId}`);
+    return response.data;
+}
+
+export async function patchGroup(groupId: number, payload: {
+    name?: string;
+    description?: string | null;
+    avatarUrl?: string;
+}): Promise<{ group: import('@/types').ActivityGroupItem }> {
+    const response = await api.patch(`/api/groups/${groupId}`, payload);
+    return response.data;
+}
+
+export async function deleteGroup(groupId: number): Promise<void> {
+    await api.delete(`/api/groups/${groupId}`);
+}
+
 export async function joinGroup(groupId: number): Promise<void> {
     await api.post(`/api/groups/${groupId}/join`);
 }
 
+export async function leaveGroup(groupId: number): Promise<void> {
+    await api.delete(`/api/groups/${groupId}/leave`);
+}
+
 export async function inviteToGroup(groupId: number, userId: number): Promise<void> {
     await api.post(`/api/groups/${groupId}/invite`, { userId });
+}
+
+export async function patchGroupMember(
+    groupId: number,
+    userId: number,
+    role: import('@/types').GroupRole,
+): Promise<void> {
+    await api.patch(`/api/groups/${groupId}/members/${userId}`, { role });
+}
+
+export async function removeGroupMember(groupId: number, userId: number): Promise<void> {
+    await api.delete(`/api/groups/${groupId}/members/${userId}`);
+}
+
+export async function fetchGroupMessages(
+    groupId: number,
+    page = 1,
+): Promise<import('@/types').PaginatedMember<import('@/types').GroupMessageItem>> {
+    const response = await api.get(`/api/groups/${groupId}/messages`, { params: { page } });
+    return response.data;
+}
+
+export async function sendGroupMessage(
+    groupId: number,
+    content: string,
+): Promise<{ message: import('@/types').GroupMessageItem }> {
+    const response = await api.post(`/api/groups/${groupId}/messages`, { content });
+    return response.data;
+}
+
+export async function markGroupMessagesRead(groupId: number): Promise<void> {
+    await api.patch(`/api/groups/${groupId}/messages/read`);
 }
 
 export async function fetchGroupInvitations(page = 1): Promise<import('@/types').PaginatedMember<import('@/types').GroupInvitationItem>> {
