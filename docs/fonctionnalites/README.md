@@ -37,6 +37,9 @@ Chaque fiche décrit le principe, les routes API, les fichiers mobile et les lie
 
 | Document | Sujet |
 |----------|--------|
+| [../DESIGN_JAKOB_FLOWS.md](../DESIGN_JAKOB_FLOWS.md) | Flows UX — loi de Jakob, audit parcours, grille réutilisable |
+| [../DESIGN_DIRECTION.md](../DESIGN_DIRECTION.md) | DA mobile : tokens, typo, composants |
+| [../DA_APP_GAP.md](../DA_APP_GAP.md) | Audit conformité DA écran par écran |
 | [../GAMIFICATION.md](../GAMIFICATION.md) | Implémentation badges (modèle, tests, admin) |
 | [../TODO_GAMIFICATION_BADGES.md](../TODO_GAMIFICATION_BADGES.md) | Plan de livraison gamification |
 | [../ARCHITECTURE.md](../ARCHITECTURE.md) | Vue d’ensemble stack, flux, modèle de données |
@@ -67,4 +70,4 @@ docs/fonctionnalites/
 
 ---
 
-*Dernière mise à jour : mai 2026.*
+*Dernière mise à jour : juin 2026.*
