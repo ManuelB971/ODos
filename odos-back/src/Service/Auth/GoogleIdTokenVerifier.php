@@ -62,11 +62,18 @@ final class GoogleIdTokenVerifier
             throw new \InvalidArgumentException('Email Google non vérifié.');
         }
 
-        return [
+        $result = [
             'sub' => $sub,
             'email' => $email,
             'email_verified' => $verified,
-            'name' => isset($payload['name']) ? (string) $payload['name'] : null,
         ];
+        if (isset($payload['name'])) {
+            $name = trim((string) $payload['name']);
+            if ('' !== $name) {
+                $result['name'] = $name;
+            }
+        }
+
+        return $result;
     }
 }

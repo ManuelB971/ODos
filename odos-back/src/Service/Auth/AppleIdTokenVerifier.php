@@ -64,11 +64,14 @@ final class AppleIdTokenVerifier
             throw new \InvalidArgumentException('Token Apple incomplet.');
         }
 
-        $email = isset($claims['email']) ? strtolower(trim((string) $claims['email'])) : null;
+        $result = ['sub' => $sub];
+        if (isset($claims['email'])) {
+            $email = strtolower(trim((string) $claims['email']));
+            if ('' !== $email) {
+                $result['email'] = $email;
+            }
+        }
 
-        return [
-            'sub' => $sub,
-            'email' => ('' !== ($email ?? '')) ? $email : null,
-        ];
+        return $result;
     }
 }

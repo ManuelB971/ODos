@@ -93,7 +93,9 @@ class ActivityRatingController extends AbstractController
             new Assert\Range(min: 1, max: 5, notInRangeMessage: 'La note doit être entre 1 et 5.'),
         ]);
         if (\count($violations) > 0) {
-            return $this->json(['message' => $violations[0]->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            foreach ($violations as $violation) {
+                return $this->json(['message' => $violation->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
         }
 
         $rating = $this->ratingRepository->findOneByUserAndActivity($user, $activity);

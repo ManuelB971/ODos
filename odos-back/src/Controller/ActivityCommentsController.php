@@ -101,7 +101,9 @@ class ActivityCommentsController extends AbstractController
             new Assert\Length(min: 2, max: 1000, minMessage: 'Minimum 2 caractères.', maxMessage: 'Maximum 1000 caractères.'),
         ]);
         if (\count($violations) > 0) {
-            return $this->json(['message' => $violations[0]->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            foreach ($violations as $violation) {
+                return $this->json(['message' => $violation->getMessage()], Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
         }
 
         $comment = new Comment();
