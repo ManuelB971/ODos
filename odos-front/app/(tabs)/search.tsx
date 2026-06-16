@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
+  FlatList,
   Platform,
   Pressable,
   ScrollView,
@@ -24,7 +25,7 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 /** Palette alignée sur docs/DESIGN_DIRECTION.md */
 import { FontFamily } from '@/constants/theme';
 import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
-import { MosaicPopRow } from '@/components/cards/MosaicPopCard';
+import { MosaicPopCard, MosaicPopRow } from '@/components/cards/MosaicPopCard';
 
 const serif = FontFamily.display;
 const sans = FontFamily.ui;
@@ -103,61 +104,94 @@ export default function SearchScreen() {
     ? 'Impossible de charger les activités.'
     : null;
 
+  const searchChrome = (
+    <>
+      <View style={styles.headerRow}>
+        <View style={styles.headlineBlock}>
+          <Text style={styles.headlineSerifDark}>L&apos;Odyssée</Text>
+          <Text style={styles.headlineSerifAccent}>Commence Ici</Text>
+        </View>
+        <Text style={styles.wordmark}>ODOS</Text>
+      </View>
+
+      <View style={styles.searchPill}>
+        <DaIcon name="loupe" variant="input" accessibilityLabel="Rechercher" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Rechercher des activités..."
+          placeholderTextColor={colors.muted}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          returnKeyType="search"
+        />
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipsRow}
+      >
+        {chipOptions.map((label) => {
+          const active = activeChip === label;
+          return (
+            <Pressable
+              key={label}
+              onPress={() => setActiveChip(label)}
+              style={[styles.chip, active ? styles.chipActive : styles.chipInactive]}
+            >
+              <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+
+      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
+    </>
+  );
+
+  const listPadding = {
+    paddingTop: insets.top + 12,
+    paddingBottom: insets.bottom + 88,
+    paddingHorizontal: horizontalPad,
+  };
+
+  // Mosaïque pop + recherche active : FlatList virtualisée (évite N× SVG en ScrollView).
+  if (cardStyle === 'mosaicPop' && isSearching) {
+    return (
+      <View style={styles.screen}>
+        <FlatList
+          data={filtered}
+          keyExtractor={(item) => String(item.id)}
+          renderItem={({ item }) => <MosaicPopRow item={item} />}
+          ListHeaderComponent={
+            <>
+              {searchChrome}
+              <Text style={styles.sectionLabel}>Résultats</Text>
+              {filtered.length === 0 ? (
+                <Text style={styles.emptyText}>Aucun résultat trouvé</Text>
+              ) : null}
+            </>
+          }
+          contentContainerStyle={listPadding}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={8}
+          maxToRenderPerBatch={6}
+          windowSize={7}
+          removeClippedSubviews={Platform.OS === 'android'}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 88 },
-        ]}
+        contentContainerStyle={[styles.scrollContent, listPadding]}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Header maquette */}
-        <View style={styles.headerRow}>
-          <View style={styles.headlineBlock}>
-            <Text style={styles.headlineSerifDark}>L&apos;Odyssée</Text>
-            <Text style={styles.headlineSerifAccent}>Commence Ici</Text>
-          </View>
-          <Text style={styles.wordmark}>ODOS</Text>
-        </View>
-
-        {/* Barre recherche pilule */}
-        <View style={styles.searchPill}>
-          <DaIcon name="loupe" variant="input" accessibilityLabel="Rechercher" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Rechercher des activités..."
-            placeholderTextColor={colors.muted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-          />
-        </View>
-
-        {/* Chips catégories */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipsRow}
-        >
-          {chipOptions.map((label) => {
-            const active = activeChip === label;
-            return (
-              <Pressable
-                key={label}
-                onPress={() => setActiveChip(label)}
-                style={[styles.chip, active ? styles.chipActive : styles.chipInactive]}
-              >
-                <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-
-        {errorMessage ? (
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        ) : null}
+        {searchChrome}
 
         {isSearching ? (
           <View style={styles.searchResultsBlock}>
@@ -165,13 +199,9 @@ export default function SearchScreen() {
             {filtered.length === 0 ? (
               <Text style={styles.emptyText}>Aucun résultat trouvé</Text>
             ) : (
-              filtered.map((item) =>
-                cardStyle === 'mosaicPop' ? (
-                  <MosaicPopRow key={item.id} item={item} />
-                ) : (
-                  <SearchResultRow key={item.id} item={item} onPress={() => navigateToActivity(item.id)} />
-                )
-              )
+              filtered.map((item) => (
+                <SearchResultRow key={item.id} item={item} onPress={() => navigateToActivity(item.id)} />
+              ))
             )}
           </View>
         ) : published.length === 0 ? (
@@ -179,11 +209,13 @@ export default function SearchScreen() {
         ) : browseList.length === 0 ? (
           <Text style={styles.emptyText}>Aucune activité dans cette catégorie.</Text>
         ) : cardStyle === 'mosaicPop' ? (
-          <View style={styles.searchResultsBlock}>
-            {browseList.map((item) => (
-              <MosaicPopRow key={item.id} item={item} />
-            ))}
-          </View>
+          <MosaicPopBrowseSection
+            featured={featured}
+            gridLeft={gridLeft}
+            gridRight={gridRight}
+            banner={banner}
+            extraCount={Math.max(0, browseList.length - 4)}
+          />
         ) : (
           <>
             {/* Grande carte « incontournable » */}
@@ -232,6 +264,53 @@ export default function SearchScreen() {
           </>
         )}
       </ScrollView>
+    </View>
+  );
+}
+
+/** Parcours browse mosaïque : même sélection éditoriale que le mode classique (4 cartes max). */
+function MosaicPopBrowseSection({
+  featured,
+  gridLeft,
+  gridRight,
+  banner,
+  extraCount,
+}: {
+  featured?: ApiActivity;
+  gridLeft?: ApiActivity;
+  gridRight?: ApiActivity;
+  banner?: ApiActivity;
+  extraCount: number;
+}) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
+    <View style={styles.searchResultsBlock}>
+      {featured ? (
+        <View style={styles.mosaicFeaturedWrap}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>INCONTOURNABLE</Text>
+          </View>
+          <MosaicPopCard item={featured} variant="carousel" />
+        </View>
+      ) : null}
+
+      {(gridLeft || gridRight) ? (
+        <View style={styles.gridRow}>
+          {gridLeft ? <MosaicPopCard item={gridLeft} variant="grid" /> : <View style={styles.gridSpacer} />}
+          {gridRight ? <MosaicPopCard item={gridRight} variant="grid" /> : <View style={styles.gridSpacer} />}
+        </View>
+      ) : null}
+
+      {banner ? <MosaicPopRow item={banner} /> : null}
+
+      {extraCount > 0 ? (
+        <Text style={styles.mosaicBrowseHint}>
+          {extraCount} autre{extraCount > 1 ? 's' : ''} activité{extraCount > 1 ? 's' : ''} — utilisez la recherche ou
+          les catégories pour affiner.
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -515,6 +594,20 @@ function createStyles(colors: OdosColorPalette) {
     flexDirection: 'row',
     gap: 12,
     marginBottom: 16,
+  },
+  gridSpacer: {
+    flex: 1,
+  },
+  mosaicFeaturedWrap: {
+    marginBottom: 16,
+  },
+  mosaicBrowseHint: {
+    fontFamily: sans,
+    fontSize: 13,
+    lineHeight: 19,
+    color: colors.muted,
+    marginTop: 4,
+    paddingHorizontal: 2,
   },
   gridCard: {
     flex: 1,
