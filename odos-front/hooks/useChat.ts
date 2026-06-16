@@ -8,7 +8,7 @@ import {
 } from '@/scripts/api';
 import { useAuth } from '@/context/AuthContext';
 import { SOCIAL_UNREAD_QUERY_KEY } from '@/hooks/useSocialUnreadCount';
-import type { ChatMessageItem, PaginatedMember } from '@/types';
+import type { ChatActivitySnippet, ChatMessageItem, ChatParcoursSnippet, PaginatedMember } from '@/types';
 
 export const CONVERSATIONS_QUERY_KEY = ['conversations'] as const;
 
@@ -56,9 +56,22 @@ export function useChatMutations() {
   });
 
   const sendMessage = useMutation({
-    mutationFn: ({ conversationId, content }: { conversationId: number; content: string }) =>
-      sendChatMessage(conversationId, content),
-    onMutate: async ({ conversationId, content }) => {
+    mutationFn: ({
+      conversationId,
+      content,
+      activityId,
+      parcoursId,
+    }: {
+      conversationId: number;
+      content: string;
+      activityId?: number;
+      parcoursId?: number;
+      /** Activité jointe — utilisée pour l'affichage optimiste de la carte. */
+      activity?: ChatActivitySnippet;
+      /** Parcours joint — affichage optimiste de la carte parcours. */
+      parcours?: ChatParcoursSnippet;
+    }) => sendChatMessage(conversationId, content, activityId, parcoursId),
+    onMutate: async ({ conversationId, content, activity, parcours }) => {
       const key = chatMessagesKey(conversationId);
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<PaginatedMember<ChatMessageItem>>(key);
@@ -70,6 +83,8 @@ export function useChatMutations() {
           : null,
         conversationId,
         isMine: true,
+        activity: activity ?? null,
+        parcours: parcours ?? null,
         readAt: null,
         createdAt: new Date().toISOString(),
       };
