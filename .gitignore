@@ -6,6 +6,10 @@ Document/
 .vscode/
 .cursor/
 .agents/
+# Claude Code — hooks versionnés, reste local (skills, cache…)
+.claude/*
+!.claude/hooks/
+!.claude/hooks/**
 *.swp
 *.swo
 *~
