@@ -19,6 +19,8 @@ import {
   ArrowLeft,
   Camera,
   ChevronRight,
+  Eye,
+  EyeOff,
   FileText,
   Map,
   Scale,
@@ -29,6 +31,7 @@ import {
 } from 'lucide-react-native';
 
 import { useAuth } from '@/context/AuthContext';
+import { useProfileVisibility } from '@/hooks/useProfileVisibility';
 import {
   deleteAvatar,
   deleteMyAccount,
@@ -83,6 +86,7 @@ function validateAlias(alias: string): string | null {
 
 export default function SettingsScreen() {
   const { user, setUser, logout, isAuthenticated } = useAuth();
+  const { isPublic, isPending: visibilityPending, setPublic } = useProfileVisibility();
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const queryClient = useQueryClient();
@@ -440,9 +444,38 @@ export default function SettingsScreen() {
           />
         </View>
 
-        {/* ── Carte & confidentialité ── */}
+        {/* ── Confidentialité ── */}
         {isAuthenticated ? (
           <>
+            <Text style={styles.sectionTitle}>Confidentialité</Text>
+            <View style={styles.card}>
+              <View style={styles.switchRow}>
+                <View style={styles.switchIcon}>
+                  {isPublic ? (
+                    <Eye size={18} color={colors.muted} />
+                  ) : (
+                    <EyeOff size={18} color={colors.muted} />
+                  )}
+                </View>
+                <View style={styles.switchTextCol}>
+                  <Text style={styles.switchLabel}>Profil visible par les autres</Text>
+                  <Text style={styles.switchHint}>
+                    {isPublic
+                      ? 'Activé : les autres voyageurs peuvent vous trouver par alias et vous envoyer une demande d’ami.'
+                      : 'Désactivé : vous n’apparaissez dans aucune recherche et personne ne peut vous ajouter. Vos amis actuels vous voient toujours.'}
+                  </Text>
+                </View>
+                <Switch
+                  value={isPublic}
+                  onValueChange={(on) => setPublic(on)}
+                  disabled={visibilityPending}
+                  trackColor={{ true: colors.accent }}
+                  accessibilityLabel="Rendre mon profil visible par les autres utilisateurs"
+                />
+              </View>
+            </View>
+
+            {/* ── Carte ── */}
             <Text style={styles.sectionTitle}>Carte</Text>
             <View style={styles.card}>
               <View style={styles.switchRow}>

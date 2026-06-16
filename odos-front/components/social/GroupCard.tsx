@@ -25,7 +25,10 @@ export function GroupCard({ group, onJoin, joining }: GroupCardProps) {
 
   if (isMosaicPop) {
     return (
-      <Pressable onPress={() => router.push(`/group/${group.id}`)}>
+      <Pressable
+        onPress={() => router.push(`/group/${group.id}`)}
+        style={({ pressed }) => (pressed ? styles.popPressed : undefined)}
+      >
         <PopSurface shadow={5} radius={12} contentStyle={styles.popContent}>
           <View style={styles.titleRow}>
             <Text style={[styles.name, { color: pop.ink, fontFamily: FontFamily.display, fontSize: 19, flex: 1 }]}>
@@ -91,6 +94,7 @@ function createStyles(colors: ReturnType<typeof useOdosColors>) {
       gap: 6,
     },
     popContent: { padding: 14, gap: 6 },
+    popPressed: { transform: [{ translateX: 1.5 }, { translateY: 1.5 }] },
     titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     unreadBadge: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
     unreadText: { fontSize: 11, fontFamily: FontFamily.uiBold },

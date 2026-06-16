@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import Animated, { FadeIn, FadeOut, useReducedMotion } from 'react-native-reanimated';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { PopSurface } from '@/components/pop/PopSurface';
@@ -20,33 +21,38 @@ export function FriendRequest({ request, onAccept, onDecline, loading }: FriendR
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const name = request.otherUser?.displayName ?? 'Utilisateur';
+  const reduceMotion = useReducedMotion();
+  const entering = reduceMotion ? undefined : FadeIn.duration(200);
+  const exiting = reduceMotion ? undefined : FadeOut.duration(180);
 
   if (isMosaicPop) {
     return (
-      <PopSurface shadow={4} radius={12} style={styles.popWrap} contentStyle={styles.popContent}>
-        <Text style={[styles.name, { color: pop.ink, fontFamily: FontFamily.uiBold }]} numberOfLines={1}>
-          {name}
-        </Text>
-        <Pressable
-          onPress={onAccept}
-          disabled={loading}
-          style={[styles.btnPop, { backgroundColor: pop.orange, borderColor: pop.ink }]}
-        >
-          <Text style={[styles.btnPopText, { color: pop.ink }]}>Accepter</Text>
-        </Pressable>
-        <Pressable
-          onPress={onDecline}
-          disabled={loading}
-          style={[styles.btnPop, { backgroundColor: pop.paper, borderColor: pop.ink }]}
-        >
-          <Text style={[styles.btnPopText, { color: pop.muted }]}>Refuser</Text>
-        </Pressable>
-      </PopSurface>
+      <Animated.View entering={entering} exiting={exiting}>
+        <PopSurface shadow={4} radius={12} style={styles.popWrap} contentStyle={styles.popContent}>
+          <Text style={[styles.name, { color: pop.ink, fontFamily: FontFamily.uiBold }]} numberOfLines={1}>
+            {name}
+          </Text>
+          <Pressable
+            onPress={onAccept}
+            disabled={loading}
+            style={[styles.btnPop, { backgroundColor: pop.orange, borderColor: pop.ink }]}
+          >
+            <Text style={[styles.btnPopText, { color: pop.ink }]}>Accepter</Text>
+          </Pressable>
+          <Pressable
+            onPress={onDecline}
+            disabled={loading}
+            style={[styles.btnPop, { backgroundColor: pop.paper, borderColor: pop.ink }]}
+          >
+            <Text style={[styles.btnPopText, { color: pop.muted }]}>Refuser</Text>
+          </Pressable>
+        </PopSurface>
+      </Animated.View>
     );
   }
 
   return (
-    <View style={styles.row}>
+    <Animated.View entering={entering} exiting={exiting} style={styles.row}>
       <Text style={styles.name}>{name}</Text>
       <Pressable onPress={onAccept} disabled={loading} style={[styles.btn, styles.accept]}>
         <Text style={styles.acceptText}>Accepter</Text>
@@ -54,7 +60,7 @@ export function FriendRequest({ request, onAccept, onDecline, loading }: FriendR
       <Pressable onPress={onDecline} disabled={loading} style={[styles.btn, styles.decline]}>
         <Text style={styles.declineText}>Refuser</Text>
       </Pressable>
-    </View>
+    </Animated.View>
   );
 }
 

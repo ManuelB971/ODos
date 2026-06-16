@@ -105,7 +105,10 @@ export function UserSearchBar() {
               <Text style={styles.statusText}>Recherche…</Text>
             </View>
           ) : results.length === 0 ? (
-            <Text style={styles.statusText}>Aucun utilisateur trouvé pour « {trimmed} ».</Text>
+            <Text style={styles.statusText}>
+              Aucun utilisateur trouvé pour « {trimmed} ». Seuls les profils publics ayant rejoint la
+              Communauté apparaissent ici.
+            </Text>
           ) : (
             results.map((user, i) => (
               <View
