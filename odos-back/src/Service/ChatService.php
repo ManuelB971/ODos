@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\Activity;
 use App\Entity\ChatMessage;
 use App\Entity\Conversation;
+use App\Entity\Parcours;
 use App\Entity\User;
 use App\Repository\ChatMessageRepository;
 use App\Repository\ConversationRepository;
@@ -19,6 +21,7 @@ final class ChatService
         private readonly FriendshipService $friendshipService,
         private readonly CommentContentSanitizer $sanitizer,
         private readonly PushNotificationService $pushNotificationService,
+        private readonly ParcoursService $parcoursService,
         private readonly EntityManagerInterface $em,
     ) {
     }
@@ -53,38 +56,71 @@ final class ChatService
         return $conversation;
     }
 
-    public function sendMessage(User $author, Conversation $conversation, string $content): ChatMessage
-    {
+    public function sendMessage(
+        User $author,
+        Conversation $conversation,
+        string $content,
+        ?Activity $activity = null,
+        ?Parcours $parcours = null,
+    ): ChatMessage {
         if (!$conversation->involves($author)) {
             throw new \InvalidArgumentException('Accès refusé.');
         }
 
         $content = $this->sanitizer->sanitize(trim($content));
-        if (mb_strlen($content) < 1 || mb_strlen($content) > 2000) {
+        if (mb_strlen($content) > 2000) {
             throw new \InvalidArgumentException('Message invalide.');
+        }
+        // Un message doit porter du texte OU une pièce jointe (activité / parcours).
+        if (mb_strlen($content) < 1 && !$activity instanceof Activity && !$parcours instanceof Parcours) {
+            throw new \InvalidArgumentException('Message invalide.');
+        }
+
+        $recipient = $conversation->otherParticipant($author);
+
+        // Partager un parcours ouvre l'édition collaborative au destinataire.
+        if ($parcours instanceof Parcours && $recipient instanceof User) {
+            $this->parcoursService->addCollaborator($parcours, $recipient);
         }
 
         $message = new ChatMessage();
         $message->setConversation($conversation);
         $message->setAuthor($author);
         $message->setContent($content);
+        $message->setActivity($activity);
+        $message->setParcours($parcours);
 
         $conversation->setLastMessageAt($message->getCreatedAt());
 
         $this->em->persist($message);
         $this->em->flush();
 
-        $recipient = $conversation->otherParticipant($author);
         if ($recipient instanceof User) {
+            $preview = $this->notificationPreview($content, $activity, $parcours);
             $this->pushNotificationService->notifyUser(
                 $recipient,
                 $author->getDisplayName(),
-                mb_substr($content, 0, 120),
+                $preview,
                 ['type' => 'chat_message', 'conversationId' => $conversation->getId()],
             );
         }
 
         return $message;
+    }
+
+    private function notificationPreview(string $content, ?Activity $activity, ?Parcours $parcours): string
+    {
+        if ('' !== $content) {
+            return mb_substr($content, 0, 120);
+        }
+        if ($parcours instanceof Parcours) {
+            return sprintf('a partagé le parcours : %s', $parcours->getTitle());
+        }
+        if ($activity instanceof Activity) {
+            return sprintf('a partagé : %s', $activity->getName() ?? 'une activité');
+        }
+
+        return 'a partagé du contenu';
     }
 
     public function markRead(User $viewer, Conversation $conversation): void

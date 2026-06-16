@@ -12,6 +12,9 @@ use App\Entity\GroupMessage;
 use App\Entity\ForumReply;
 use App\Entity\ForumThread;
 use App\Entity\Friendship;
+use App\Entity\Parcours;
+use App\Entity\ParcoursCollaborator;
+use App\Entity\ParcoursItem;
 use App\Entity\SharedActivity;
 use App\Entity\User;
 use App\Enum\FriendshipStatus;
@@ -185,12 +188,26 @@ final class SocialSerializer
      */
     public function chatMessageToArray(ChatMessage $message, User $viewer): array
     {
+        $activity = $message->getActivity();
+        $parcours = $message->getParcours();
+
         return [
             'id' => $message->getId(),
             'content' => $message->getContent(),
             'author' => $this->userSnippet($message->getAuthor()),
             'conversationId' => $message->getConversation()?->getId(),
             'isMine' => $message->getAuthor()?->getId() === $viewer->getId(),
+            'activity' => null !== $activity ? [
+                'id' => $activity->getId(),
+                'name' => $activity->getName(),
+                'city' => $activity->getCity(),
+                'imageUrl' => $activity->getImageUrl(),
+            ] : null,
+            'parcours' => null !== $parcours ? [
+                'id' => $parcours->getId(),
+                'title' => $parcours->getTitle(),
+                'itemCount' => $parcours->getItemCount(),
+            ] : null,
             'readAt' => $message->getReadAt()?->format(\DateTimeInterface::ATOM),
             'createdAt' => $message->getCreatedAt()->format(\DateTimeInterface::ATOM),
         ];
@@ -209,5 +226,74 @@ final class SocialSerializer
             'isMine' => $message->getAuthor()?->getId() === $viewer->getId(),
             'createdAt' => $message->getCreatedAt()->format(\DateTimeInterface::ATOM),
         ];
+    }
+
+    /**
+     * Résumé d'un parcours (listes, cartes de chat). `coverImageUrl` et
+     * `collaboratorCount` sont calculés par l'appelant (évite un N+1 implicite).
+     *
+     * @return array<string, mixed>
+     */
+    public function parcoursToArray(Parcours $parcours, User $viewer, ?string $coverImageUrl = null, int $collaboratorCount = 0): array
+    {
+        return [
+            'id' => $parcours->getId(),
+            'title' => $parcours->getTitle(),
+            'description' => $parcours->getDescription(),
+            'itemCount' => $parcours->getItemCount(),
+            'coverImageUrl' => $coverImageUrl,
+            'owner' => $this->userSnippet($parcours->getOwner()),
+            'isOwner' => $parcours->getOwner()?->getId() === $viewer->getId(),
+            'collaboratorCount' => $collaboratorCount,
+            'updatedAt' => $parcours->getUpdatedAt()->format(\DateTimeInterface::ATOM),
+            'createdAt' => $parcours->getCreatedAt()->format(\DateTimeInterface::ATOM),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function parcoursItemToArray(ParcoursItem $item): array
+    {
+        $activity = $item->getActivity();
+
+        return [
+            'id' => $item->getId(),
+            'position' => $item->getPosition(),
+            'note' => $item->getNote(),
+            'activity' => null !== $activity ? [
+                'id' => $activity->getId(),
+                'name' => $activity->getName(),
+                'city' => $activity->getCity(),
+                'imageUrl' => $activity->getImageUrl(),
+                'latitude' => $activity->getLatitude(),
+                'longitude' => $activity->getLongitude(),
+            ] : null,
+        ];
+    }
+
+    /**
+     * Détail complet : résumé + étapes ordonnées + collaborateurs.
+     *
+     * @param ParcoursItem[]         $items
+     * @param ParcoursCollaborator[] $collaborators
+     *
+     * @return array<string, mixed>
+     */
+    public function parcoursDetailToArray(Parcours $parcours, array $items, array $collaborators, User $viewer): array
+    {
+        $cover = null;
+        foreach ($items as $item) {
+            $cover = $item->getActivity()?->getImageUrl();
+            if (null !== $cover) {
+                break;
+            }
+        }
+
+        $base = $this->parcoursToArray($parcours, $viewer, $cover, \count($collaborators));
+        $base['items'] = array_map(fn (ParcoursItem $i): array => $this->parcoursItemToArray($i), $items);
+        $base['collaborators'] = array_map(fn (ParcoursCollaborator $c): ?array => $this->userSnippet($c->getUser()), $collaborators);
+
+        return $base;
     }
 }

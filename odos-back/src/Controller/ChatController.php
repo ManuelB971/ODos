@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Activity;
 use App\Entity\Conversation;
+use App\Entity\Parcours;
 use App\Entity\User;
+use App\Repository\ActivityRepository;
 use App\Repository\ChatMessageRepository;
 use App\Repository\ConversationRepository;
+use App\Repository\ParcoursRepository;
 use App\Repository\UserRepository;
 use App\Service\ChatService;
+use App\Service\ParcoursService;
 use App\Service\SocialSerializer;
 use App\Service\ThrottledActionException;
 use App\Service\UserActionThrottleService;
@@ -30,6 +35,9 @@ final class ChatController extends AbstractController
         private readonly ConversationRepository $conversationRepository,
         private readonly ChatMessageRepository $messageRepository,
         private readonly UserRepository $userRepository,
+        private readonly ActivityRepository $activityRepository,
+        private readonly ParcoursRepository $parcoursRepository,
+        private readonly ParcoursService $parcoursService,
         private readonly ChatService $chatService,
         private readonly SocialSerializer $serializer,
         private readonly UserActionThrottleService $throttle,
@@ -111,8 +119,34 @@ final class ChatController extends AbstractController
             return $this->throttleResponse($e);
         }
 
+        $payload = $request->toArray();
+
+        $activity = null;
+        $activityId = (int) ($payload['activityId'] ?? 0);
+        if ($activityId > 0) {
+            $activity = $this->activityRepository->find($activityId);
+            if (!$activity instanceof Activity) {
+                return $this->json(['message' => 'Activité introuvable.'], Response::HTTP_NOT_FOUND);
+            }
+        }
+
+        $parcours = null;
+        $parcoursId = (int) ($payload['parcoursId'] ?? 0);
+        if ($parcoursId > 0) {
+            $parcours = $this->parcoursRepository->find($parcoursId);
+            if (!$parcours instanceof Parcours || !$this->parcoursService->canAccess($parcours, $user)) {
+                return $this->json(['message' => 'Parcours introuvable.'], Response::HTTP_NOT_FOUND);
+            }
+        }
+
         try {
-            $message = $this->chatService->sendMessage($user, $conversation, (string) ($request->toArray()['content'] ?? ''));
+            $message = $this->chatService->sendMessage(
+                $user,
+                $conversation,
+                (string) ($payload['content'] ?? ''),
+                $activity,
+                $parcours,
+            );
         } catch (\InvalidArgumentException $e) {
             return $this->json(['message' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
         }
