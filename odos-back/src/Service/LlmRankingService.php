@@ -50,13 +50,13 @@ final class LlmRankingService
 
             $candidateMap[$activityId] = $activity;
             $cat = $activity->getCategory();
-            $catName = \is_object($cat) && method_exists($cat, 'getName') ? $cat->getName() : '';
+            $catName = \is_object($cat) && method_exists($cat, 'getName') ? (string) ($cat->getName() ?? '') : '';
             // Keep prompt small to reduce latency/timeouts on local CPU models.
             $desc = mb_substr((string) $activity->getDescription(), 0, 120);
 
             $dtos[] = new CandidateForLlm(
                 $activityId,
-                $activity->getName(),
+                $activity->getName() ?? '',
                 $desc,
                 $catName,
                 $activity->getCity(),

@@ -1,10 +1,12 @@
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { MessageCircle } from 'lucide-react-native';
 import { useConversations } from '@/hooks/useChat';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { PopSurface } from '@/components/pop/PopSurface';
 import { PopBadge } from '@/components/pop/PopPill';
+import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 
 export default function MessagesScreen() {
@@ -24,9 +26,15 @@ export default function MessagesScreen() {
       onRefresh={() => refetch()}
       contentContainerStyle={styles.list}
       ListEmptyComponent={
-        <Text style={[styles.empty, { color: colors.muted, fontFamily: FontFamily.ui }]}>
-          {isLoading ? 'Chargement…' : 'Aucune conversation. Ajoutez un ami et envoyez un message.'}
-        </Text>
+        isLoading ? (
+          <Text style={[styles.empty, { color: colors.muted, fontFamily: FontFamily.ui }]}>Chargement…</Text>
+        ) : (
+          <PopEmptyState
+            icon={<MessageCircle size={28} color={isMosaicPop ? pop.ink : colors.onAccent} />}
+            title="Aucune conversation"
+            subtitle="Ajoutez un ami depuis l’onglet Amis, puis démarrez une conversation."
+          />
+        )
       }
       renderItem={({ item }) => {
         const name = item.otherUser?.displayName ?? 'Utilisateur';
@@ -34,7 +42,10 @@ export default function MessagesScreen() {
 
         if (isMosaicPop) {
           return (
-            <Pressable onPress={() => router.push(`/chat/${item.id}`)}>
+            <Pressable
+              onPress={() => router.push(`/chat/${item.id}`)}
+              style={({ pressed }) => (pressed ? styles.popPressed : undefined)}
+            >
               <PopSurface shadow={4} radius={12} contentStyle={styles.popRow}>
                 <View style={styles.info}>
                   <Text style={[styles.name, { color: pop.ink, fontFamily: FontFamily.uiBold }]} numberOfLines={1}>
@@ -72,10 +83,11 @@ export default function MessagesScreen() {
 }
 
 const styles = StyleSheet.create({
-  list: { padding: 16, gap: 10 },
+  list: { padding: 16, gap: 10, flexGrow: 1 },
   empty: { textAlign: 'center', marginTop: 32, fontSize: 14 },
   row: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, borderWidth: 1, padding: 14, gap: 12 },
   popRow: { flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12 },
+  popPressed: { transform: [{ translateX: 1.5 }, { translateY: 1.5 }] },
   info: { flex: 1, gap: 4 },
   name: { fontSize: 15 },
   meta: { fontSize: 12 },

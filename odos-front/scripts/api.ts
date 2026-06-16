@@ -358,14 +358,17 @@ export async function fetchVisitedIds(): Promise<number[]> {
 }
 
 /**
- * Update editable profile fields (alias, bio) for the current user.
+ * Update editable profile fields (alias, bio, visibilité) for the current user.
  *
  * NB : `avatarUrl` n'est volontairement pas settable directement : il doit passer
  * par {@link uploadAvatar} (upload contrôlé côté serveur).
+ *
+ * `profilePublic` pilote la découvrabilité sociale : à `false`, l'utilisateur
+ * disparaît de la recherche par alias (cf. `UserRepository::searchDiscoverable`).
  */
 export async function updateProfile(
     userId: number,
-    data: { alias?: string | null; bio?: string | null; mapExplorationEnabled?: boolean }
+    data: { alias?: string | null; bio?: string | null; mapExplorationEnabled?: boolean; profilePublic?: boolean }
 ): Promise<void> {
     await api.patch(`/api/users/${userId}`, data, {
         headers: { 'Content-Type': 'application/merge-patch+json' },
@@ -561,6 +564,41 @@ export async function fetchForumReplies(threadId: number, page = 1): Promise<imp
     return response.data;
 }
 
+/**
+ * Crée un sujet de forum. Le backend exige une cible (activité, catégorie ou
+ * groupe) — au moins l'un des trois doit être fourni.
+ */
+export async function createForumThread(payload: {
+    title: string;
+    content: string;
+    activityId?: number;
+    categoryId?: number;
+    groupId?: number;
+}): Promise<{ thread: import('@/types').ForumThreadItem }> {
+    const response = await api.post('/api/forum/threads', payload);
+    return response.data;
+}
+
+/** Poste une réponse dans un fil. */
+export async function createForumReply(
+    threadId: number,
+    content: string,
+): Promise<{ reply: import('@/types').ForumReplyItem }> {
+    const response = await api.post(`/api/forum/threads/${threadId}/replies`, { content });
+    return response.data;
+}
+
+/** Like / unlike une réponse. Le backend interdit de liker sa propre réponse. */
+export async function setForumReplyLike(
+    replyId: number,
+    liked: boolean,
+): Promise<{ liked: boolean; likeCount: number }> {
+    const response = liked
+        ? await api.post(`/api/forum/replies/${replyId}/like`)
+        : await api.delete(`/api/forum/replies/${replyId}/like`);
+    return response.data;
+}
+
 export async function fetchGroups(tab: 'mine' | 'discover' = 'mine', page = 1): Promise<import('@/types').PaginatedMember<import('@/types').ActivityGroupItem>> {
     const response = await api.get('/api/groups', { params: { tab, page } });
     return response.data;
@@ -708,13 +746,80 @@ export async function fetchChatMessages(conversationId: number, page = 1): Promi
     return response.data;
 }
 
-export async function sendChatMessage(conversationId: number, content: string): Promise<{ message: import('@/types').ChatMessageItem }> {
-    const response = await api.post(`/api/chat/conversations/${conversationId}/messages`, { content });
+export async function sendChatMessage(
+    conversationId: number,
+    content: string,
+    activityId?: number,
+    parcoursId?: number,
+): Promise<{ message: import('@/types').ChatMessageItem }> {
+    const response = await api.post(`/api/chat/conversations/${conversationId}/messages`, {
+        content,
+        ...(activityId ? { activityId } : {}),
+        ...(parcoursId ? { parcoursId } : {}),
+    });
     return response.data;
 }
 
 export async function markConversationRead(conversationId: number): Promise<void> {
     await api.patch(`/api/chat/conversations/${conversationId}/read`);
+}
+
+// --- Parcours (itinéraires collaboratifs) ---
+
+export async function fetchParcours(): Promise<{ member: import('@/types').ParcoursSummary[] }> {
+    const response = await api.get('/api/parcours');
+    return response.data;
+}
+
+export async function fetchParcoursDetail(id: number): Promise<{ parcours: import('@/types').ParcoursDetail }> {
+    const response = await api.get(`/api/parcours/${id}`);
+    return response.data;
+}
+
+export async function createParcours(payload: {
+    title: string;
+    description?: string;
+    activityIds?: number[];
+}): Promise<{ parcours: import('@/types').ParcoursDetail }> {
+    const response = await api.post('/api/parcours', payload);
+    return response.data;
+}
+
+export async function updateParcours(
+    id: number,
+    payload: { title?: string; description?: string },
+): Promise<{ parcours: import('@/types').ParcoursDetail }> {
+    const response = await api.patch(`/api/parcours/${id}`, payload);
+    return response.data;
+}
+
+export async function addParcoursItem(
+    id: number,
+    activityId: number,
+    note?: string,
+): Promise<{ parcours: import('@/types').ParcoursDetail }> {
+    const response = await api.post(`/api/parcours/${id}/items`, { activityId, ...(note ? { note } : {}) });
+    return response.data;
+}
+
+export async function reorderParcoursItems(
+    id: number,
+    order: number[],
+): Promise<{ parcours: import('@/types').ParcoursDetail }> {
+    const response = await api.patch(`/api/parcours/${id}/items/reorder`, { order });
+    return response.data;
+}
+
+export async function removeParcoursItem(
+    id: number,
+    itemId: number,
+): Promise<{ parcours: import('@/types').ParcoursDetail }> {
+    const response = await api.delete(`/api/parcours/${id}/items/${itemId}`);
+    return response.data;
+}
+
+export async function deleteParcours(id: number): Promise<void> {
+    await api.delete(`/api/parcours/${id}`);
 }
 
 export default api;

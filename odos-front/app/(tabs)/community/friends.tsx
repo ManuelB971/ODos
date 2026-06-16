@@ -1,11 +1,14 @@
-import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { EyeOff, Users } from 'lucide-react-native';
 import { useFriendshipMutations, useFriendships } from '@/hooks/useFriendships';
 import { useSharedActivities } from '@/hooks/useSharedActivities';
+import { useProfileVisibility } from '@/hooks/useProfileVisibility';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { FriendCard } from '@/components/social/FriendCard';
 import { FriendRequest } from '@/components/social/FriendRequest';
 import { UserSearchBar } from '@/components/social/UserSearchBar';
+import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 
 export default function FriendsScreen() {
@@ -15,19 +18,62 @@ export default function FriendsScreen() {
   const { friends, pending, isLoading, refetch, isRefetching } = useFriendships();
   const { data: sharesData } = useSharedActivities();
   const { acceptRequest, declineRequest } = useFriendshipMutations();
+  const { isPublic, isPending: visibilityPending, setPublic } = useProfileVisibility();
 
   const unreadShares = (sharesData?.member ?? []).filter((s) => !s.seenAt);
 
   const incomingPending = pending.filter((r) => r.isIncoming);
 
+  const sectionTitleColor = isMosaicPop ? pop.ink : colors.text;
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
+    <View style={[styles.container, { backgroundColor: isMosaicPop ? pop.paper : colors.background }]}>
       <View style={styles.section}>
         <UserSearchBar />
       </View>
+
+      {/* Bannière découvrabilité : un profil privé n'est trouvable par personne. */}
+      {!isPublic && (
+        <View style={styles.section}>
+          <View
+            style={[
+              styles.privacyBanner,
+              { backgroundColor: colors.surface, borderColor: colors.border },
+              isMosaicPop && { borderWidth: 2.5, borderColor: pop.ink, backgroundColor: pop.paper },
+            ]}
+          >
+            <View style={[styles.privacyIcon, { backgroundColor: isMosaicPop ? pop.orange : colors.accentSoft }]}>
+              <EyeOff size={18} color={isMosaicPop ? pop.ink : colors.accent} />
+            </View>
+            <View style={styles.privacyTextCol}>
+              <Text style={[styles.privacyTitle, { color: sectionTitleColor }]}>Votre profil est privé</Text>
+              <Text style={[styles.privacyBody, { color: colors.muted }]}>
+                Les autres voyageurs ne peuvent pas vous trouver ni vous ajouter tant que votre profil
+                reste privé.
+              </Text>
+            </View>
+            <Pressable
+              onPress={() => setPublic(true)}
+              disabled={visibilityPending}
+              accessibilityRole="button"
+              accessibilityLabel="Rendre mon profil public"
+              style={[
+                styles.privacyBtn,
+                { backgroundColor: isMosaicPop ? pop.orange : colors.accent },
+                isMosaicPop && { borderWidth: 2, borderColor: pop.ink, borderRadius: 100 },
+              ]}
+            >
+              <Text style={[styles.privacyBtnText, { color: isMosaicPop ? pop.ink : colors.onAccent }]}>
+                {visibilityPending ? '…' : 'Rendre public'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
       {incomingPending.length > 0 && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FontFamily.uiMedium }]}>
+          <Text style={[styles.sectionTitle, { color: sectionTitleColor, fontFamily: FontFamily.uiBold }]}>
             Demandes ({incomingPending.length})
           </Text>
           {incomingPending.map((req) => (
@@ -44,7 +90,7 @@ export default function FriendsScreen() {
 
       {unreadShares.length > 0 && (
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FontFamily.uiMedium }]}>
+          <Text style={[styles.sectionTitle, { color: sectionTitleColor, fontFamily: FontFamily.uiBold }]}>
             Partages reçus ({unreadShares.length})
           </Text>
           {unreadShares.map((share) => (
@@ -73,15 +119,23 @@ export default function FriendsScreen() {
         refreshing={isRefetching}
         onRefresh={() => refetch()}
         ListHeaderComponent={
-          <Text style={[styles.sectionTitle, { color: colors.text, fontFamily: FontFamily.uiMedium }]}>
-            Mes amis ({friends.length})
-          </Text>
+          friends.length > 0 ? (
+            <Text style={[styles.sectionTitle, { color: sectionTitleColor, fontFamily: FontFamily.uiBold }]}>
+              Mes amis ({friends.length})
+            </Text>
+          ) : null
         }
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <Text style={[styles.empty, { color: colors.muted, fontFamily: FontFamily.ui }]}>
-            {isLoading ? 'Chargement…' : 'Pas encore d\'amis.'}
-          </Text>
+          isLoading ? (
+            <Text style={[styles.empty, { color: colors.muted, fontFamily: FontFamily.ui }]}>Chargement…</Text>
+          ) : (
+            <PopEmptyState
+              icon={<Users size={28} color={isMosaicPop ? pop.ink : colors.onAccent} />}
+              title="Pas encore d’amis"
+              subtitle="Cherchez un voyageur par son alias dans la barre ci-dessus pour lui envoyer une demande."
+            />
+          )
         }
         renderItem={({ item }) => <FriendCard friendship={item} />}
       />
@@ -93,7 +147,32 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   section: { paddingHorizontal: 16, paddingTop: 16, gap: 4 },
   sectionTitle: { fontSize: 15, marginBottom: 8 },
-  list: { padding: 16, gap: 10 },
   shareCard: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 4, marginBottom: 8 },
   empty: { textAlign: 'center', marginTop: 24, fontSize: 14 },
+  list: { padding: 16, gap: 10, flexGrow: 1 },
+  privacyBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 12,
+  },
+  privacyIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  privacyTextCol: { flex: 1, minWidth: 0 },
+  privacyTitle: { fontSize: 14, fontFamily: FontFamily.uiBold, marginBottom: 2 },
+  privacyBody: { fontSize: 12, fontFamily: FontFamily.ui, lineHeight: 16 },
+  privacyBtn: {
+    alignSelf: 'center',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  privacyBtnText: { fontSize: 12.5, fontFamily: FontFamily.uiBold },
 });

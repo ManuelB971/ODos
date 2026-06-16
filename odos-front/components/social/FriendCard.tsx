@@ -52,7 +52,7 @@ export function FriendCard({ friendship }: FriendCardProps) {
     return (
       <PopSurface shadow={5} radius={12} contentStyle={styles.popContent}>
         <Pressable
-          style={styles.main}
+          style={({ pressed }) => [styles.main, pressed && styles.mainPressed]}
           onPress={() => other?.id && router.push(`/profile/${other.id}`)}
         >
           {avatarNode}
@@ -100,6 +100,7 @@ function createStyles(colors: ReturnType<typeof useOdosColors>) {
       padding: 12,
     },
     main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+    mainPressed: { opacity: 0.6 },
     avatar: { width: 40, height: 40, borderRadius: 20 },
     avatarPop: { borderRadius: 20 },
     avatarPlaceholder: {

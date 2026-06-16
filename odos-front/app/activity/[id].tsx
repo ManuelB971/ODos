@@ -11,7 +11,7 @@ import {
   Linking,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { MapPin, ArrowLeft, Heart, Navigation, CircleCheck, Share2 } from 'lucide-react-native';
+import { MapPin, ArrowLeft, Heart, Navigation, CircleCheck, Share2, Route } from 'lucide-react-native';
 import { DaIcon } from '@/components/ui/DaIcon';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { CTAButton } from '@/components/ui/CTAButton';
@@ -44,6 +44,7 @@ import { useAuth } from '@/context/AuthContext';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { InlineToast, InlineToastVariant } from '@/components/InlineToast';
 import { ShareModal } from '@/components/social/ShareModal';
+import { ParcoursPickerSheet } from '@/components/social/ParcoursPickerSheet';
 
 function routeParamToString(param: string | string[] | undefined): string | undefined {
   if (param === undefined) return undefined;
@@ -128,6 +129,7 @@ export default function ActivityDetails() {
   const [ratingToast, setRatingToast] = useState<ToastState | null>(null);
   const [commentToast, setCommentToast] = useState<ToastState | null>(null);
   const [shareVisible, setShareVisible] = useState(false);
+  const [parcoursVisible, setParcoursVisible] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const queryClient = useQueryClient();
   const { mergeUnlocked } = useBadgeUnlock();
@@ -510,6 +512,17 @@ export default function ActivityDetails() {
               <ArrowLeft color={colors.text} size={22} />
             </Pressable>
             <View style={styles.heroActions}>
+              {isAuthenticated ? (
+                <Pressable
+                  style={({ pressed }) => [styles.heroButton, pressed && styles.favoriteButtonPressed]}
+                  onPress={() => setParcoursVisible(true)}
+                  hitSlop={12}
+                  accessibilityRole="button"
+                  accessibilityLabel="Ajouter à un parcours"
+                >
+                  <Route color={colors.primary} size={22} />
+                </Pressable>
+              ) : null}
               {isAuthenticated && user?.socialConsentedAt ? (
                 <Pressable
                   style={({ pressed }) => [styles.heroButton, pressed && styles.favoriteButtonPressed]}
@@ -709,6 +722,14 @@ export default function ActivityDetails() {
           activityId={activity.id}
           activityName={activity.name}
           onClose={() => setShareVisible(false)}
+        />
+      ) : null}
+
+      {activity ? (
+        <ParcoursPickerSheet
+          visible={parcoursVisible}
+          onClose={() => setParcoursVisible(false)}
+          activity={{ id: activity.id, name: activity.name }}
         />
       ) : null}
     </KeyboardAvoidingView>

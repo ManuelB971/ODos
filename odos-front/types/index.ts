@@ -206,6 +206,42 @@ export interface ForumReplyItem {
     createdAt: string;
 }
 
+/** Activité telle qu'embarquée dans une étape de parcours (avec géo pour le tracé). */
+export interface ParcoursActivitySnippet {
+    id: number;
+    name: string;
+    city: string | null;
+    imageUrl: string | null;
+    latitude: number;
+    longitude: number;
+}
+
+export interface ParcoursItemDetail {
+    id: number;
+    position: number;
+    note: string | null;
+    activity: ParcoursActivitySnippet | null;
+}
+
+/** Résumé d'un parcours (listes, picker, carte de chat). */
+export interface ParcoursSummary {
+    id: number;
+    title: string;
+    description: string | null;
+    itemCount: number;
+    coverImageUrl: string | null;
+    owner: SocialUserSnippet | null;
+    isOwner: boolean;
+    collaboratorCount: number;
+    updatedAt: string;
+    createdAt: string;
+}
+
+export interface ParcoursDetail extends ParcoursSummary {
+    items: ParcoursItemDetail[];
+    collaborators: (SocialUserSnippet | null)[];
+}
+
 export interface ActivityGroupItem {
     id: number;
     name: string;
@@ -286,12 +322,31 @@ export interface ConversationItem {
     createdAt: string;
 }
 
+/** Activité attachée à un message de chat (carte riche façon WhatsApp). */
+export interface ChatActivitySnippet {
+    id: number;
+    name: string;
+    city: string | null;
+    imageUrl: string | null;
+}
+
+/** Parcours attaché à un message de chat (carte cliquable). */
+export interface ChatParcoursSnippet {
+    id: number;
+    title: string;
+    itemCount: number;
+}
+
 export interface ChatMessageItem {
     id: number;
     content: string;
     author: SocialUserSnippet | null;
     conversationId: number;
     isMine: boolean;
+    /** Activité partagée dans le fil, `null` pour un message texte simple. */
+    activity: ChatActivitySnippet | null;
+    /** Parcours partagé dans le fil, `null` sinon. */
+    parcours: ChatParcoursSnippet | null;
     readAt: string | null;
     createdAt: string;
 }
