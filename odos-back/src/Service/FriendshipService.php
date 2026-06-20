@@ -10,6 +10,7 @@ use App\Entity\User;
 use App\Enum\FriendshipStatus;
 use App\Repository\ConversationRepository;
 use App\Repository\FriendshipRepository;
+use App\Repository\ParcoursCollaboratorRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 final class FriendshipService
@@ -17,6 +18,7 @@ final class FriendshipService
     public function __construct(
         private readonly FriendshipRepository $friendshipRepository,
         private readonly ConversationRepository $conversationRepository,
+        private readonly ParcoursCollaboratorRepository $collaboratorRepository,
         private readonly EntityManagerInterface $em,
     ) {
     }
@@ -71,7 +73,9 @@ final class FriendshipService
      * Bloque (de façon stricte) `$blocked` au nom de `$blocker` :
      * - l'éventuelle amitié/demande existante est convertie en blocage, avec le
      *   bloqueur enregistré comme `sender` (sens du blocage, pour le déblocage) ;
-     * - la conversation existante entre les deux est supprimée (messages en cascade).
+     * - la conversation existante entre les deux est supprimée (messages en cascade) ;
+     * - la co-édition mutuelle de parcours est révoquée (les étapes déjà ajoutées
+     *   restent en place, seul le lien collaborateur saute).
      */
     public function block(User $blocker, User $blocked): Friendship
     {
@@ -93,6 +97,10 @@ final class FriendshipService
         $conversation = $this->conversationRepository->findBetweenUsers($blocker, $blocked);
         if ($conversation instanceof Conversation) {
             $this->em->remove($conversation);
+        }
+
+        foreach ($this->collaboratorRepository->findCollaborationsBetween($blocker, $blocked) as $collaborator) {
+            $this->em->remove($collaborator);
         }
 
         $this->em->flush();

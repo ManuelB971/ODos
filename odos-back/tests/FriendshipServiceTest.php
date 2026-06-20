@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Tests;
 
 use App\Entity\Friendship;
+use App\Entity\ParcoursCollaborator;
 use App\Entity\User;
 use App\Enum\FriendshipStatus;
 use App\Repository\ConversationRepository;
 use App\Repository\FriendshipRepository;
+use App\Repository\ParcoursCollaboratorRepository;
 use App\Service\FriendshipService;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -21,9 +23,11 @@ final class FriendshipServiceTest extends TestCase
         $repo->method('findBetweenUsers')->willReturn($existing);
 
         $conversationRepo = $this->createMock(ConversationRepository::class);
+        $collaboratorRepo = $this->createMock(ParcoursCollaboratorRepository::class);
+        $collaboratorRepo->method('findCollaborationsBetween')->willReturn([]);
         $em = $this->createMock(EntityManagerInterface::class);
 
-        return new FriendshipService($repo, $conversationRepo, $em);
+        return new FriendshipService($repo, $conversationRepo, $collaboratorRepo, $em);
     }
 
     public function testCannotSendRequestToSelf(): void
@@ -93,5 +97,32 @@ final class FriendshipServiceTest extends TestCase
         $service = $this->createService();
         $this->expectException(\InvalidArgumentException::class);
         $service->acceptRequest($friendship);
+    }
+
+    public function testBlockRevokesCrossCollaborations(): void
+    {
+        $a = new User();
+        $b = new User();
+        $ref = new \ReflectionProperty(User::class, 'id');
+        $ref->setValue($a, 1);
+        $ref->setValue($b, 2);
+
+        $collab = new ParcoursCollaborator();
+
+        $repo = $this->createMock(FriendshipRepository::class);
+        $repo->method('findBetweenUsers')->willReturn(null);
+        $conversationRepo = $this->createMock(ConversationRepository::class);
+        $collaboratorRepo = $this->createMock(ParcoursCollaboratorRepository::class);
+        $collaboratorRepo->expects(self::once())
+            ->method('findCollaborationsBetween')
+            ->with($a, $b)
+            ->willReturn([$collab]);
+
+        $em = $this->createMock(EntityManagerInterface::class);
+        // Le lien collaborateur est retiré (les étapes déjà ajoutées, elles, restent).
+        $em->expects(self::once())->method('remove')->with($collab);
+
+        $service = new FriendshipService($repo, $conversationRepo, $collaboratorRepo, $em);
+        $service->block($a, $b);
     }
 }
