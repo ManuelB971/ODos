@@ -22,6 +22,22 @@ jest.mock('expo-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+// La carte branche désormais le favori + l'ajout à un parcours (audit multi-accès).
+// On les neutralise ici pour garder un test de rendu pur, sans providers réseau.
+jest.mock('@/hooks/useFavoriteToggle', () => ({
+  useFavoriteToggle: () => ({
+    favoriteIds: [],
+    isFavorite: () => false,
+    toggleFavorite: jest.fn(),
+    canFavorite: true,
+    isPending: false,
+  }),
+}));
+
+jest.mock('@/components/social/ParcoursPickerSheet', () => ({
+  ParcoursPickerSheet: () => null,
+}));
+
 describe('Mosaïque pop', () => {
   it('renders the list row', () => {
     expect(() => render(<MosaicPopRow item={item} />)).not.toThrow();

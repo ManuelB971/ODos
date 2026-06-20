@@ -37,7 +37,7 @@ export function ParcoursShareTargetSheet({ visible, onClose, onSelect, title }: 
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { friends } = useFriendships();
   const { data: groupsData } = useGroups('mine');
-  const groups = groupsData?.member ?? [];
+  const groups = useMemo(() => groupsData?.member ?? [], [groupsData]);
 
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];

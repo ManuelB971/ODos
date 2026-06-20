@@ -8,6 +8,7 @@ import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { OdosTokens } from '@/constants/themes/tokens';
 import { ApiActivity } from '@/types';
 import { resolveImageUrl } from '@/utils/imageUrl';
+import { ActivityCardQuickActions } from '@/components/cards/ActivityCardQuickActions';
 
 export type ActivityCardProps = {
   activity: ApiActivity;
@@ -16,10 +17,12 @@ export type ActivityCardProps = {
   active?: boolean;
   /** Si `true`, la card prend la largeur de son container (utile pour la liste pleine). */
   fullWidth?: boolean;
+  /** Masque les contrôles rapides (cœur + parcours) — ex. cartes non interactives. */
+  hideQuickActions?: boolean;
   onPress?: () => void;
 };
 
-function ActivityCardComponent({ activity, distanceKm, active = false, fullWidth = false, onPress }: ActivityCardProps) {
+function ActivityCardComponent({ activity, distanceKm, active = false, fullWidth = false, hideQuickActions = false, onPress }: ActivityCardProps) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const img = resolveImageUrl(activity.imageUrl);
@@ -59,6 +62,11 @@ function ActivityCardComponent({ activity, distanceKm, active = false, fullWidth
           )}
         </Animated.View>
 
+
+        {/* Contrôles rapides — haut gauche (cœur favori + ajout à un parcours) */}
+        {!hideQuickActions ? (
+          <ActivityCardQuickActions activity={{ id: activity.id, name: activity.name }} />
+        ) : null}
 
         {/* Rating — haut droite, toujours blanc sur sombre */}
         {typeof activity.ratingAverage === 'number' && activity.ratingAverage > 0 ? (
