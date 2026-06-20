@@ -10,16 +10,18 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { MapPin, MessageCircle, Plus, Route, Send } from 'lucide-react-native';
-import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { MessageCircle, Plus, Send } from 'lucide-react-native';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import { useChatMessages, useChatMutations, useConversations } from '@/hooks/useChat';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { ActivityPickerSheet } from '@/components/social/ActivityPickerSheet';
+import { MessageActivityCard, MessageParcoursCard } from '@/components/social/MessageAttachmentCards';
+import { UserLink } from '@/components/social/UserLink';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
-import type { ChatActivitySnippet, ChatParcoursSnippet } from '@/types';
+import type { ChatActivitySnippet } from '@/types';
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -108,13 +110,15 @@ export default function ChatScreen() {
               <View style={[styles.msgRow, item.isMine ? styles.rowMine : styles.rowTheirs]}>
                 {!item.isMine ? (
                   showAvatar ? (
-                    <ChatAvatar
-                      uri={resolveImageUrl(item.author?.avatarUrl ?? null)}
-                      name={item.author?.displayName ?? '?'}
-                      isMosaicPop={isMosaicPop}
-                      pop={pop}
-                      colors={colors}
-                    />
+                    <UserLink userId={item.author?.id} name={item.author?.displayName}>
+                      <ChatAvatar
+                        uri={resolveImageUrl(item.author?.avatarUrl ?? null)}
+                        name={item.author?.displayName ?? '?'}
+                        isMosaicPop={isMosaicPop}
+                        pop={pop}
+                        colors={colors}
+                      />
+                    </UserLink>
                   ) : (
                     <View style={styles.avatarSpacer} />
                   )
@@ -134,22 +138,8 @@ export default function ChatScreen() {
                       },
                     ]}
                   >
-                    {item.activity ? (
-                      <ChatActivityCard
-                        activity={item.activity}
-                        isMosaicPop={isMosaicPop}
-                        pop={pop}
-                        colors={colors}
-                      />
-                    ) : null}
-                    {item.parcours ? (
-                      <ChatParcoursCard
-                        parcours={item.parcours}
-                        isMosaicPop={isMosaicPop}
-                        pop={pop}
-                        colors={colors}
-                      />
-                    ) : null}
+                    {item.activity ? <MessageActivityCard activity={item.activity} /> : null}
+                    {item.parcours ? <MessageParcoursCard parcours={item.parcours} /> : null}
                     {item.content ? (
                       <Text
                         style={[
@@ -230,101 +220,6 @@ export default function ChatScreen() {
 const AVATAR_SIZE = 28;
 
 /**
- * Carte d'activité partagée dans le fil (façon WhatsApp : image + nom + ville).
- * Tap → fiche activité. Bordure encre en Mosaïque pop.
- */
-function ChatActivityCard({
-  activity,
-  isMosaicPop,
-  pop,
-  colors,
-}: {
-  activity: ChatActivitySnippet;
-  isMosaicPop: boolean;
-  pop: ReturnType<typeof usePopTokens>;
-  colors: ReturnType<typeof useOdosColors>;
-}) {
-  const uri = resolveImageUrl(activity.imageUrl);
-  const ink = isMosaicPop ? pop.ink : colors.text;
-  const sub = isMosaicPop ? pop.muted : colors.muted;
-  // Fond contrasté avec la bulle pour détacher la carte.
-  const cardBg = isMosaicPop ? pop.paper : colors.surface;
-  return (
-    <Pressable
-      onPress={() => router.push(`/activity/${activity.id}`)}
-      accessibilityRole="button"
-      accessibilityLabel={`Voir l'activité ${activity.name}`}
-      style={[
-        styles.activityCard,
-        { backgroundColor: cardBg, borderColor: isMosaicPop ? pop.ink : colors.border },
-        isMosaicPop && { borderWidth: 2 },
-      ]}
-    >
-      {uri ? (
-        <Image source={{ uri }} style={styles.activityImage} contentFit="cover" />
-      ) : (
-        <View style={[styles.activityImage, styles.activityImageFallback, { backgroundColor: isMosaicPop ? pop.orange : colors.accent }]}>
-          <MapPin size={22} color={isMosaicPop ? pop.ink : colors.onAccent} />
-        </View>
-      )}
-      <View style={styles.activityText}>
-        <Text style={[styles.activityName, { color: ink }]} numberOfLines={2}>{activity.name}</Text>
-        {activity.city ? (
-          <Text style={[styles.activityCity, { color: sub }]} numberOfLines={1}>{activity.city}</Text>
-        ) : null}
-        <Text style={[styles.activityCta, { color: isMosaicPop ? pop.orange : colors.accent }]}>
-          Voir l’activité ›
-        </Text>
-      </View>
-    </Pressable>
-  );
-}
-
-/**
- * Carte de parcours partagé dans le fil. Tap → détail du parcours (édition
- * collaborative). Style aligné sur la carte activité.
- */
-function ChatParcoursCard({
-  parcours,
-  isMosaicPop,
-  pop,
-  colors,
-}: {
-  parcours: ChatParcoursSnippet;
-  isMosaicPop: boolean;
-  pop: ReturnType<typeof usePopTokens>;
-  colors: ReturnType<typeof useOdosColors>;
-}) {
-  const ink = isMosaicPop ? pop.ink : colors.text;
-  const sub = isMosaicPop ? pop.muted : colors.muted;
-  const cardBg = isMosaicPop ? pop.paper : colors.surface;
-  const accent = isMosaicPop ? pop.orange : colors.accent;
-  return (
-    <Pressable
-      onPress={() => router.push(`/parcours/${parcours.id}`)}
-      accessibilityRole="button"
-      accessibilityLabel={`Voir le parcours ${parcours.title}`}
-      style={[
-        styles.activityCard,
-        { backgroundColor: cardBg, borderColor: isMosaicPop ? pop.ink : colors.border },
-        isMosaicPop && { borderWidth: 2 },
-      ]}
-    >
-      <View style={[styles.activityImage, styles.activityImageFallback, { backgroundColor: accent }]}>
-        <Route size={22} color={isMosaicPop ? pop.ink : colors.onAccent} />
-      </View>
-      <View style={styles.activityText}>
-        <Text style={[styles.activityName, { color: ink }]} numberOfLines={2}>{parcours.title}</Text>
-        <Text style={[styles.activityCity, { color: sub }]}>
-          Parcours · {parcours.itemCount} étape{parcours.itemCount > 1 ? 's' : ''}
-        </Text>
-        <Text style={[styles.activityCta, { color: accent }]}>Voir le parcours ›</Text>
-      </View>
-    </Pressable>
-  );
-}
-
-/**
  * Avatar d'interlocuteur affiché à gauche des messages reçus (façon WhatsApp).
  * Photo si disponible, sinon initiales sur fond accent. Bordure encre en
  * Mosaïque pop pour rester dans la DA.
@@ -376,13 +271,6 @@ const styles = StyleSheet.create({
   alignEnd: { alignItems: 'flex-end' },
   alignStart: { alignItems: 'flex-start' },
   bubble: { borderRadius: 12, borderWidth: 1, padding: 12 },
-  activityCard: { flexDirection: 'row', gap: 10, borderRadius: 12, borderWidth: 1, padding: 8, width: 240 },
-  activityImage: { width: 56, height: 56, borderRadius: 8 },
-  activityImageFallback: { alignItems: 'center', justifyContent: 'center' },
-  activityText: { flex: 1, justifyContent: 'center' },
-  activityName: { fontFamily: FontFamily.uiBold, fontSize: 14 },
-  activityCity: { fontFamily: FontFamily.ui, fontSize: 12, marginTop: 2 },
-  activityCta: { fontFamily: FontFamily.uiMedium, fontSize: 12, marginTop: 4 },
   metaLine: { fontSize: 10.5, fontFamily: FontFamily.ui, marginTop: 3, marginHorizontal: 4 },
   composer: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, alignItems: 'flex-end' },
   attach: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
