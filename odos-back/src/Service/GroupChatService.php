@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Entity\Activity;
 use App\Entity\ActivityGroup;
 use App\Entity\GroupMessage;
+use App\Entity\Parcours;
 use App\Entity\User;
 use App\Repository\GroupMemberRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -20,26 +22,39 @@ final class GroupChatService
     ) {
     }
 
-    public function sendMessage(User $author, ActivityGroup $group, string $content): GroupMessage
-    {
+    public function sendMessage(
+        User $author,
+        ActivityGroup $group,
+        string $content,
+        ?Activity $activity = null,
+        ?Parcours $parcours = null,
+    ): GroupMessage {
         if (null === $this->groupMemberRepository->findMembership($author, $group)) {
             throw new \InvalidArgumentException('Vous devez être membre du groupe pour écrire.');
         }
 
         $content = $this->sanitizer->sanitize(trim($content));
-        if (mb_strlen($content) < 1 || mb_strlen($content) > 2000) {
+        if (mb_strlen($content) > 2000) {
+            throw new \InvalidArgumentException('Message invalide.');
+        }
+        // Un message doit porter du texte OU une pièce jointe (activité / parcours).
+        if (mb_strlen($content) < 1 && !$activity instanceof Activity && !$parcours instanceof Parcours) {
             throw new \InvalidArgumentException('Message invalide.');
         }
 
+        // Partager un parcours envoie une carte (lecture) au fil du groupe ; la
+        // co-édition se fait via une invitation explicite, réservée aux amis.
         $message = new GroupMessage();
         $message->setGroup($group);
         $message->setAuthor($author);
         $message->setContent($content);
+        $message->setActivity($activity);
+        $message->setParcours($parcours);
 
         $this->em->persist($message);
         $this->em->flush();
 
-        $this->notifyOtherMembers($author, $group, $content);
+        $this->notifyOtherMembers($author, $group, $this->notificationPreview($content, $activity, $parcours));
 
         return $message;
     }
@@ -55,9 +70,23 @@ final class GroupChatService
         $this->em->flush();
     }
 
-    private function notifyOtherMembers(User $author, ActivityGroup $group, string $content): void
+    private function notificationPreview(string $content, ?Activity $activity, ?Parcours $parcours): string
     {
-        $preview = mb_substr($content, 0, 120);
+        if ('' !== $content) {
+            return mb_substr($content, 0, 120);
+        }
+        if ($parcours instanceof Parcours) {
+            return sprintf('a partagé le parcours : %s', $parcours->getTitle());
+        }
+        if ($activity instanceof Activity) {
+            return sprintf('a partagé : %s', $activity->getName() ?? 'une activité');
+        }
+
+        return 'a partagé du contenu';
+    }
+
+    private function notifyOtherMembers(User $author, ActivityGroup $group, string $preview): void
+    {
         $title = $group->getName().' · '.$author->getDisplayName();
 
         foreach ($this->groupMemberRepository->findForGroup($group) as $member) {

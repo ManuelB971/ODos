@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Entity\Activity;
 use App\Entity\ActivityGroup;
 use App\Entity\GroupMember;
+use App\Entity\Parcours;
 use App\Entity\User;
 use App\Enum\GroupRole;
 use App\Gamification\GamificationEvent;
 use App\Gamification\GamificationService;
 use App\Repository\ActivityGroupRepository;
+use App\Repository\ActivityRepository;
 use App\Repository\GroupMemberRepository;
 use App\Repository\GroupMessageRepository;
+use App\Repository\ParcoursRepository;
 use App\Service\CommentContentSanitizer;
 use App\Service\GroupChatService;
 use App\Service\GroupService;
+use App\Service\ParcoursService;
 use App\Service\SocialSerializer;
 use App\Service\ThrottledActionException;
 use App\Service\UserActionThrottleService;
@@ -46,6 +51,9 @@ final class GroupController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly GamificationService $gamificationService,
         private readonly EventDispatcherInterface $eventDispatcher,
+        private readonly ActivityRepository $activityRepository,
+        private readonly ParcoursRepository $parcoursRepository,
+        private readonly ParcoursService $parcoursService,
     ) {
     }
 
@@ -361,8 +369,34 @@ final class GroupController extends AbstractController
             return $this->throttleResponse($e);
         }
 
+        $payload = $request->toArray();
+
+        $activity = null;
+        $activityId = (int) ($payload['activityId'] ?? 0);
+        if ($activityId > 0) {
+            $activity = $this->activityRepository->find($activityId);
+            if (!$activity instanceof Activity) {
+                return $this->json(['message' => 'Activité introuvable.'], Response::HTTP_NOT_FOUND);
+            }
+        }
+
+        $parcours = null;
+        $parcoursId = (int) ($payload['parcoursId'] ?? 0);
+        if ($parcoursId > 0) {
+            $parcours = $this->parcoursRepository->find($parcoursId);
+            if (!$parcours instanceof Parcours || !$this->parcoursService->canAccess($parcours, $user)) {
+                return $this->json(['message' => 'Parcours introuvable.'], Response::HTTP_NOT_FOUND);
+            }
+        }
+
         try {
-            $message = $this->groupChatService->sendMessage($user, $group, (string) ($request->toArray()['content'] ?? ''));
+            $message = $this->groupChatService->sendMessage(
+                $user,
+                $group,
+                (string) ($payload['content'] ?? ''),
+                $activity,
+                $parcours,
+            );
         } catch (\InvalidArgumentException $e) {
             return $this->json(['message' => $e->getMessage()], Response::HTTP_BAD_REQUEST);
         }

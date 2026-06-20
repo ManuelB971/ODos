@@ -21,7 +21,6 @@ final class ChatService
         private readonly FriendshipService $friendshipService,
         private readonly CommentContentSanitizer $sanitizer,
         private readonly PushNotificationService $pushNotificationService,
-        private readonly ParcoursService $parcoursService,
         private readonly EntityManagerInterface $em,
     ) {
     }
@@ -78,11 +77,8 @@ final class ChatService
 
         $recipient = $conversation->otherParticipant($author);
 
-        // Partager un parcours ouvre l'édition collaborative au destinataire.
-        if ($parcours instanceof Parcours && $recipient instanceof User) {
-            $this->parcoursService->addCollaborator($parcours, $recipient);
-        }
-
+        // Partager un parcours envoie une carte (lecture) ; la co-édition se fait via
+        // une invitation explicite distincte ({@see ParcoursService::addCollaborator}).
         $message = new ChatMessage();
         $message->setConversation($conversation);
         $message->setAuthor($author);
