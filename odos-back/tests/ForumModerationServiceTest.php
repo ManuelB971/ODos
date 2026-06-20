@@ -12,6 +12,7 @@ use App\Repository\ConversationRepository;
 use App\Repository\FriendshipRepository;
 use App\Repository\GroupInvitationRepository;
 use App\Repository\GroupMemberRepository;
+use App\Repository\ParcoursCollaboratorRepository;
 use App\Service\CommentContentSanitizer;
 use App\Service\ForumModerationService;
 use App\Service\FriendshipService;
@@ -43,6 +44,7 @@ final class ForumModerationServiceTest extends TestCase
             new FriendshipService(
                 $this->createMock(FriendshipRepository::class),
                 $this->createMock(ConversationRepository::class),
+                $this->createMock(ParcoursCollaboratorRepository::class),
                 $em,
             ),
             $em,
@@ -73,6 +75,7 @@ final class ForumModerationServiceTest extends TestCase
             new FriendshipService(
                 $this->createMock(FriendshipRepository::class),
                 $this->createMock(ConversationRepository::class),
+                $this->createMock(ParcoursCollaboratorRepository::class),
                 $em,
             ),
             $em,

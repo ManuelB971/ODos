@@ -90,7 +90,8 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Communauté');
         yield MenuItem::linkTo(ForumThreadCrudController::class, 'Fils forum', 'fas fa-comments');
         yield MenuItem::linkTo(ForumReplyCrudController::class, 'Réponses forum', 'fas fa-reply');
-        yield MenuItem::linkTo(ForumReportCrudController::class, 'Signalements', 'fas fa-flag');
+        yield MenuItem::linkTo(ForumReportCrudController::class, 'Signalements forum', 'fas fa-flag');
+        yield MenuItem::linkTo(ContentReportCrudController::class, 'Signalements contenu', 'fas fa-flag');
         yield MenuItem::linkTo(ActivityGroupCrudController::class, 'Groupes', 'fas fa-users');
         yield MenuItem::linkTo(RefreshTokenCrudController::class, 'Jetons refresh (JWT)', 'fas fa-key');
         yield MenuItem::linkTo(AdminWebauthnCredentialCrudController::class, 'WebAuthn (admin)', 'fas fa-fingerprint');

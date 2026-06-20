@@ -14,6 +14,7 @@ use App\Repository\ConversationRepository;
 use App\Repository\FriendshipRepository;
 use App\Repository\GroupInvitationRepository;
 use App\Repository\GroupMemberRepository;
+use App\Repository\ParcoursCollaboratorRepository;
 use App\Repository\SharedActivityRepository;
 use App\Service\CommentContentSanitizer;
 use App\Service\FriendshipService;
@@ -40,7 +41,12 @@ final class SharedActivityServiceTest extends TestCase
         $em->method('flush');
 
         return new SharedActivityService(
-            new FriendshipService($friendshipRepo, $this->createMock(ConversationRepository::class), $em),
+            new FriendshipService(
+                $friendshipRepo,
+                $this->createMock(ConversationRepository::class),
+                $this->createMock(ParcoursCollaboratorRepository::class),
+                $em,
+            ),
             new GroupService(
                 $memberRepo,
                 $this->createMock(GroupInvitationRepository::class),

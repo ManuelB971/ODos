@@ -158,6 +158,16 @@ final class UserActionThrottleService
         $this->incrementDailyCounter('forum_report_'.$userId);
     }
 
+    public function assertCanReportContent(int $userId): void
+    {
+        $this->assertDailyLimit('content_report_'.$userId, 15, 'Limite de signalements atteinte (15/jour).');
+    }
+
+    public function markContentReported(int $userId): void
+    {
+        $this->incrementDailyCounter('content_report_'.$userId);
+    }
+
     public function assertCanSearchUsers(int $userId): void
     {
         $this->assertHourlyLimit('user_search_'.$userId, 60, 'Trop de recherches. Réessayez plus tard.');
