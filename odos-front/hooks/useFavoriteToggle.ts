@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchFavoriteIds, toggleFavoriteActivity } from '@/scripts/api';
 import { useAuth } from '@/context/AuthContext';
 import { logError } from '@/utils/errorHandling';
+import { tapHaptic } from '@/utils/haptics';
 
 const FAVORITE_IDS_KEY = ['favoriteIds'] as const;
 
@@ -62,6 +63,7 @@ export function useFavoriteToggle() {
   const toggleFavorite = useCallback(
     (activityId: number) => {
       if (!isAuthenticated) return;
+      tapHaptic();
       mutation.mutate({ activityId, currentlyFavorite: favoriteIds.includes(activityId) });
     },
     [favoriteIds, isAuthenticated, mutation],

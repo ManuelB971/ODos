@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { BlobFrame } from '@/components/ui/BlobFrame';
+import { HapticTab } from '@/components/HapticTab';
 import { useSocialUnreadCount } from '@/hooks/useSocialUnreadCount';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import React, { useEffect } from 'react';
@@ -112,6 +113,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarButton: HapticTab,
         tabBarStyle: isMosaicPop
           ? {
               backgroundColor: pop.paper,
@@ -189,12 +191,6 @@ export default function TabLayout() {
           tabBarIcon: renderTabIcon('person', 3, 'Compte'),
         }}
       />
-      <Tabs.Screen
-        name="styles"
-        options={{
-          href: null,
-        }}
-      />
     </Tabs>
 
   );
@@ -205,7 +201,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 48,
-    minHeight: 32,
+    minHeight: 44,
   },
   // ── pop pill (onglet actif) ──
   popPillWrap: {

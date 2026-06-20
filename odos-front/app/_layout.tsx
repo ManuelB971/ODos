@@ -15,6 +15,7 @@ import {
 import { Courgette_400Regular } from '@expo-google-fonts/courgette';
 import { useFonts } from 'expo-font';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
+import { useNotificationResponse } from '@/hooks/useNotificationResponse';
 import { InterestProvider } from '@/context/InterestContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
@@ -35,6 +36,12 @@ const queryClient = new QueryClient({
 function BadgeUnlockOverlay() {
   const { pendingUnlock, dismissUnlock } = useBadgeUnlock();
   return <BadgeUnlockModal badge={pendingUnlock} onClose={dismissUnlock} />;
+}
+
+/** Route les taps sur notification (doit être monté sous le Stack expo-router). */
+function NotificationRouter() {
+  useNotificationResponse();
+  return null;
 }
 
 export default function RootLayout() {
@@ -74,6 +81,7 @@ export default function RootLayout() {
                   <Stack.Screen name="+not-found" />
                 </Stack>
                 <BadgeUnlockOverlay />
+                <NotificationRouter />
                 <ThemedStatusBar />
                 {!splashDone && (
                   <SplashScreen onFinish={() => setSplashDone(true)} />

@@ -17,9 +17,11 @@ export type MapPinProps = {
   label?: string;
   /** Variante visuelle : `dot` (compacte) ou `arch` (forme demi-cercle inspirée du logo). */
   variant?: 'arch' | 'dot';
+  /** Description lue par le lecteur d'écran (ex. « {nom}, {catégorie} »). */
+  accessibilityLabel?: string;
 };
 
-function MapPinComponent({ active = false, label, variant = 'arch' }: MapPinProps) {
+function MapPinComponent({ active = false, label, variant = 'arch', accessibilityLabel }: MapPinProps) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const scale = useSharedValue(1);
@@ -61,7 +63,13 @@ function MapPinComponent({ active = false, label, variant = 'arch' }: MapPinProp
   const tailHeight = Math.round(size * 0.95);
 
   return (
-    <View style={styles.wrap} pointerEvents="none">
+    <View
+      style={styles.wrap}
+      pointerEvents="none"
+      accessible={Boolean(accessibilityLabel)}
+      accessibilityRole={accessibilityLabel ? 'button' : undefined}
+      accessibilityLabel={accessibilityLabel}
+    >
       <Animated.View
         style={[
           styles.pulse,
