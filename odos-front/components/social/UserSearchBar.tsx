@@ -7,6 +7,7 @@ import { useUserSearch } from '@/hooks/useUserSearch';
 import { useFriendshipMutations } from '@/hooks/useFriendships';
 import { useChatMutations } from '@/hooks/useChat';
 import { useRouter } from 'expo-router';
+import { UserAvatar } from '@/components/social/UserAvatar';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import type { UserSearchResult } from '@/types';
 
@@ -43,13 +44,25 @@ export function UserSearchBar() {
     switch (user.relationship) {
       case 'none':
         return (
-          <Pressable onPress={() => onAddFriend(user.id)} style={[styles.btn, popBtn(isMosaicPop, pop)]}>
+          <Pressable
+            onPress={() => onAddFriend(user.id)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`Ajouter ${user.displayName ?? user.alias ?? 'cet utilisateur'} en ami`}
+            style={[styles.btn, popBtn(isMosaicPop, pop)]}
+          >
             <Text style={[styles.btnText, isMosaicPop && { color: pop.ink }]}>Ajouter</Text>
           </Pressable>
         );
       case 'friends':
         return (
-          <Pressable onPress={() => onMessage(user.id)} style={[styles.btn, popBtn(isMosaicPop, pop)]}>
+          <Pressable
+            onPress={() => onMessage(user.id)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={`Envoyer un message à ${user.displayName ?? user.alias ?? 'cet utilisateur'}`}
+            style={[styles.btn, popBtn(isMosaicPop, pop)]}
+          >
             <Text style={[styles.btnText, isMosaicPop && { color: pop.ink }]}>Message</Text>
           </Pressable>
         );
@@ -121,18 +134,10 @@ export function UserSearchBar() {
                 <Pressable
                   style={styles.rowMain}
                   onPress={() => router.push(`/profile/${user.id}`)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Voir le profil de ${user.displayName ?? user.alias ?? 'cet utilisateur'}`}
                 >
-                  <View
-                    style={[
-                      styles.avatar,
-                      { backgroundColor: isMosaicPop ? pop.orange : colors.accentSoft, borderColor: pop.ink },
-                      isMosaicPop && styles.avatarPop,
-                    ]}
-                  >
-                    <Text style={[styles.avatarLetter, { color: isMosaicPop ? pop.ink : colors.accent }]}>
-                      {(user.displayName ?? user.alias ?? '?')[0]?.toUpperCase()}
-                    </Text>
-                  </View>
+                  <UserAvatar name={user.displayName ?? user.alias} avatarUrl={user.avatarUrl} size={36} />
                   <View style={styles.info}>
                     <Text style={[styles.name, { color: ink }]} numberOfLines={1}>
                       {user.displayName ?? user.alias ?? 'Utilisateur'}
@@ -197,19 +202,10 @@ function createStyles(colors: ReturnType<typeof useOdosColors>) {
       paddingVertical: 10,
     },
     rowMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
-    avatar: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    avatarPop: { borderWidth: 2 },
-    avatarLetter: { fontFamily: FontFamily.uiBold, fontSize: 15 },
     info: { flex: 1, minWidth: 0 },
     name: { fontFamily: FontFamily.uiBold, color: colors.text, fontSize: 14 },
     alias: { fontFamily: FontFamily.ui, color: colors.muted, fontSize: 12 },
-    btn: { backgroundColor: colors.accentSoft, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+    btn: { backgroundColor: colors.accentSoft, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9, minHeight: 38, justifyContent: 'center' },
     btnText: { fontFamily: FontFamily.uiBold, color: colors.accent, fontSize: 13 },
     pending: { fontFamily: FontFamily.ui, color: colors.muted, fontSize: 12 },
   });
