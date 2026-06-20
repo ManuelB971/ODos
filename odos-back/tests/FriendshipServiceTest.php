@@ -7,6 +7,7 @@ namespace App\Tests;
 use App\Entity\Friendship;
 use App\Entity\User;
 use App\Enum\FriendshipStatus;
+use App\Repository\ConversationRepository;
 use App\Repository\FriendshipRepository;
 use App\Service\FriendshipService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -19,9 +20,10 @@ final class FriendshipServiceTest extends TestCase
         $repo = $this->createMock(FriendshipRepository::class);
         $repo->method('findBetweenUsers')->willReturn($existing);
 
+        $conversationRepo = $this->createMock(ConversationRepository::class);
         $em = $this->createMock(EntityManagerInterface::class);
 
-        return new FriendshipService($repo, $em);
+        return new FriendshipService($repo, $conversationRepo, $em);
     }
 
     public function testCannotSendRequestToSelf(): void

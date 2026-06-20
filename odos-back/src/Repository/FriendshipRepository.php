@@ -58,6 +58,25 @@ class FriendshipRepository extends ServiceEntityRepository
             ->getSingleScalarResult();
     }
 
+    /**
+     * Utilisateurs bloqués PAR `$blocker` (lignes Blocked dont il est le sender).
+     *
+     * @return Friendship[]
+     */
+    public function findBlockedByUser(User $blocker, int $page, int $perPage): array
+    {
+        return $this->createQueryBuilder('f')
+            ->andWhere('f.sender = :user')
+            ->andWhere('f.status = :blocked')
+            ->setParameter('user', $blocker)
+            ->setParameter('blocked', FriendshipStatus::Blocked)
+            ->orderBy('f.createdAt', 'DESC')
+            ->setFirstResult(max(0, ($page - 1) * $perPage))
+            ->setMaxResults($perPage)
+            ->getQuery()
+            ->getResult();
+    }
+
     public function countPendingReceived(User $user): int
     {
         return (int) $this->createQueryBuilder('f')

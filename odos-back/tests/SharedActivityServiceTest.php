@@ -10,6 +10,7 @@ use App\Entity\Friendship;
 use App\Entity\GroupMember;
 use App\Entity\User;
 use App\Enum\FriendshipStatus;
+use App\Repository\ConversationRepository;
 use App\Repository\FriendshipRepository;
 use App\Repository\GroupInvitationRepository;
 use App\Repository\GroupMemberRepository;
@@ -39,7 +40,7 @@ final class SharedActivityServiceTest extends TestCase
         $em->method('flush');
 
         return new SharedActivityService(
-            new FriendshipService($friendshipRepo, $em),
+            new FriendshipService($friendshipRepo, $this->createMock(ConversationRepository::class), $em),
             new GroupService(
                 $memberRepo,
                 $this->createMock(GroupInvitationRepository::class),
