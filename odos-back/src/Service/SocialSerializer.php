@@ -218,12 +218,26 @@ final class SocialSerializer
      */
     public function groupMessageToArray(GroupMessage $message, User $viewer): array
     {
+        $activity = $message->getActivity();
+        $parcours = $message->getParcours();
+
         return [
             'id' => $message->getId(),
             'content' => $message->getContent(),
             'author' => $this->userSnippet($message->getAuthor()),
             'groupId' => $message->getGroup()?->getId(),
             'isMine' => $message->getAuthor()?->getId() === $viewer->getId(),
+            'activity' => null !== $activity ? [
+                'id' => $activity->getId(),
+                'name' => $activity->getName(),
+                'city' => $activity->getCity(),
+                'imageUrl' => $activity->getImageUrl(),
+            ] : null,
+            'parcours' => null !== $parcours ? [
+                'id' => $parcours->getId(),
+                'title' => $parcours->getTitle(),
+                'itemCount' => $parcours->getItemCount(),
+            ] : null,
             'createdAt' => $message->getCreatedAt()->format(\DateTimeInterface::ATOM),
         ];
     }
@@ -234,16 +248,19 @@ final class SocialSerializer
      *
      * @return array<string, mixed>
      */
-    public function parcoursToArray(Parcours $parcours, User $viewer, ?string $coverImageUrl = null, int $collaboratorCount = 0): array
+    public function parcoursToArray(Parcours $parcours, User $viewer, ?string $coverImageUrl = null, int $collaboratorCount = 0, bool $canEdit = true): array
     {
         return [
             'id' => $parcours->getId(),
             'title' => $parcours->getTitle(),
             'description' => $parcours->getDescription(),
             'itemCount' => $parcours->getItemCount(),
-            'coverImageUrl' => $coverImageUrl,
+            // Pochette personnalisée prioritaire, repli sur l'image calculée (1ʳᵉ activité).
+            'coverImageUrl' => $parcours->getCoverImageUrl() ?? $coverImageUrl,
+            'visibility' => $parcours->getVisibility()->value,
             'owner' => $this->userSnippet($parcours->getOwner()),
             'isOwner' => $parcours->getOwner()?->getId() === $viewer->getId(),
+            'canEdit' => $canEdit,
             'collaboratorCount' => $collaboratorCount,
             'updatedAt' => $parcours->getUpdatedAt()->format(\DateTimeInterface::ATOM),
             'createdAt' => $parcours->getCreatedAt()->format(\DateTimeInterface::ATOM),
@@ -290,7 +307,16 @@ final class SocialSerializer
             }
         }
 
-        $base = $this->parcoursToArray($parcours, $viewer, $cover, \count($collaborators));
+        $isCollaborator = false;
+        foreach ($collaborators as $c) {
+            if ($c->getUser()?->getId() === $viewer->getId()) {
+                $isCollaborator = true;
+                break;
+            }
+        }
+        $canEdit = $parcours->getOwner()?->getId() === $viewer->getId() || $isCollaborator;
+
+        $base = $this->parcoursToArray($parcours, $viewer, $cover, \count($collaborators), $canEdit);
         $base['items'] = array_map(fn (ParcoursItem $i): array => $this->parcoursItemToArray($i), $items);
         $base['collaborators'] = array_map(fn (ParcoursCollaborator $c): ?array => $this->userSnippet($c->getUser()), $collaborators);
 

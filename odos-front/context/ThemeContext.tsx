@@ -9,7 +9,7 @@ import React, {
 import { useColorScheme as useSystemColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-import { resolvePalette } from '@/constants/themes/registry';
+import { BUNDLED_THEMES, resolvePalette } from '@/constants/themes/registry';
 import type {
   ColorScheme,
   OdosColorPalette,
@@ -26,6 +26,9 @@ const CARD_STYLE_STORAGE_KEY = 'odos_card_style';
 export type BackgroundPattern = 'off' | 'subtle' | 'medium' | 'strong';
 
 const BG_PATTERN_VALUES: BackgroundPattern[] = ['off', 'subtle', 'medium', 'strong'];
+
+/** Slugs de variantes valides (default / ocean / forest…), dérivés du registry. */
+const VARIANT_IDS: string[] = Object.keys(BUNDLED_THEMES);
 
 /**
  * Style des cartes d'activité — réglable par l'utilisateur, se superpose au thème de base.
@@ -83,7 +86,7 @@ async function readVariantId(): Promise<ThemeVariantId> {
   try {
     if (!(await SecureStore.isAvailableAsync())) return 'default';
     const raw = await SecureStore.getItemAsync(VARIANT_STORAGE_KEY);
-    if (raw === 'default') return raw;
+    if (raw && VARIANT_IDS.includes(raw)) return raw;
   } catch {
     // fallback
   }

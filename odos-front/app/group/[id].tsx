@@ -16,6 +16,10 @@ import { useUserSearch } from '@/hooks/useUserSearch';
 import { useAuth } from '@/context/AuthContext';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
+import { UserAvatar } from '@/components/social/UserAvatar';
+import { UserLink } from '@/components/social/UserLink';
+import { CTAButton } from '@/components/ui/CTAButton';
+import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import type { GroupMemberItem, GroupRole } from '@/types';
 
 const ROLE_LABEL: Record<GroupRole, string> = {
@@ -28,6 +32,8 @@ export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = Number(id);
   const colors = useOdosColors();
+  const isMosaicPop = useIsMosaicPop();
+  const pop = usePopTokens();
   const router = useRouter();
   const { user } = useAuth();
   const { data, isLoading } = useGroupDetail(groupId);
@@ -136,29 +142,23 @@ export default function GroupDetailScreen() {
 
             {/* Actions principales */}
             {isMember ? (
-              <Pressable
+              <CTAButton
+                label="Ouvrir la discussion"
                 onPress={() => router.push(`/group-chat/${groupId}`)}
-                style={[styles.primary, { backgroundColor: colors.accent }]}
-              >
-                <MessageCircle size={18} color={colors.onAccent} />
-                <Text style={[styles.primaryText, { color: colors.onAccent, fontFamily: FontFamily.uiBold }]}>
-                  Ouvrir la discussion
-                </Text>
-              </Pressable>
+                fullWidth
+                leftIcon={<MessageCircle size={18} color={isMosaicPop ? pop.ink : colors.onAccent} />}
+              />
             ) : group.isPrivate ? (
               <Text style={[styles.note, { color: colors.muted, fontFamily: FontFamily.ui }]}>
                 Groupe privé — vous devez être invité pour le rejoindre.
               </Text>
             ) : (
-              <Pressable
+              <CTAButton
+                label="Rejoindre le groupe"
                 onPress={() => join.mutate(groupId)}
-                disabled={join.isPending}
-                style={[styles.primary, { backgroundColor: colors.accent }]}
-              >
-                <Text style={[styles.primaryText, { color: colors.onAccent, fontFamily: FontFamily.uiBold }]}>
-                  {join.isPending ? '…' : 'Rejoindre le groupe'}
-                </Text>
-              </Pressable>
+                loading={join.isPending}
+                fullWidth
+              />
             )}
 
             {/* Boutons secondaires */}
@@ -232,17 +232,35 @@ export default function GroupDetailScreen() {
                   style={[styles.input, { color: colors.text, borderColor: colors.border, fontFamily: FontFamily.ui }]}
                 />
                 {searching ? <ActivityIndicator color={colors.accent} style={{ marginTop: 8 }} /> : null}
+                {!searching && inviteQuery.trim().length >= 2 && (searchData?.users ?? []).length === 0 ? (
+                  <Text style={{ color: colors.muted, fontFamily: FontFamily.ui, fontSize: 13, paddingVertical: 6 }}>
+                    Aucun profil public trouvé pour « {inviteQuery.trim()} ».
+                  </Text>
+                ) : null}
                 {(searchData?.users ?? []).map((u) => {
                   const already = memberIds.has(u.id);
                   const invited = invitedIds.includes(u.id);
                   return (
                     <View key={u.id} style={styles.inviteRow}>
-                      <Text style={{ color: colors.text, fontFamily: FontFamily.uiMedium, flex: 1 }} numberOfLines={1}>
-                        {u.displayName}
-                      </Text>
+                      <UserLink userId={u.id} name={u.displayName} style={styles.inviteMain}>
+                        <UserAvatar name={u.displayName} avatarUrl={u.avatarUrl} size={36} />
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={{ color: colors.text, fontFamily: FontFamily.uiMedium }} numberOfLines={1}>
+                            {u.displayName}
+                          </Text>
+                          {u.alias ? (
+                            <Text style={{ color: colors.muted, fontFamily: FontFamily.ui, fontSize: 12 }} numberOfLines={1}>
+                              @{u.alias}
+                            </Text>
+                          ) : null}
+                        </View>
+                      </UserLink>
                       <Pressable
                         disabled={already || invited}
                         onPress={() => doInvite(u.id)}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Inviter ${u.displayName}`}
                         style={[styles.inviteBtn, { backgroundColor: already || invited ? colors.border : colors.accent }]}
                       >
                         <Text style={{ color: already || invited ? colors.muted : colors.onAccent, fontFamily: FontFamily.uiMedium, fontSize: 12 }}>
@@ -261,15 +279,13 @@ export default function GroupDetailScreen() {
             </Text>
             {members.map((m) => (
               <View key={m.id} style={[styles.memberRow, { borderBottomColor: colors.border }]}>
-                <View style={[styles.avatar, { backgroundColor: colors.accentSoft }]}>
-                  <Text style={[styles.avatarLetter, { color: colors.accent }]}>
-                    {(m.user?.displayName ?? '?')[0]?.toUpperCase()}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: colors.text, fontFamily: FontFamily.uiMedium }}>{m.user?.displayName}</Text>
-                  <Text style={{ color: colors.muted, fontFamily: FontFamily.ui, fontSize: 12 }}>{ROLE_LABEL[m.role]}</Text>
-                </View>
+                <UserLink userId={m.user?.id} name={m.user?.displayName} style={styles.memberMain}>
+                  <UserAvatar name={m.user?.displayName} avatarUrl={m.user?.avatarUrl} size={38} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: colors.text, fontFamily: FontFamily.uiMedium }}>{m.user?.displayName}</Text>
+                    <Text style={{ color: colors.muted, fontFamily: FontFamily.ui, fontSize: 12 }}>{ROLE_LABEL[m.role]}</Text>
+                  </View>
+                </UserLink>
                 {canManage(m) ? (
                   <View style={styles.memberActions}>
                     {isCreator && m.role === 'member' ? (
@@ -302,8 +318,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 24 },
   desc: { fontSize: 14, lineHeight: 20 },
   meta: { fontSize: 13 },
-  primary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, paddingVertical: 14 },
-  primaryText: { fontSize: 15 },
   note: { fontSize: 13, fontStyle: 'italic', paddingVertical: 8 },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   secondary: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9 },
@@ -314,11 +328,11 @@ const styles = StyleSheet.create({
   panelActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 16 },
   saveBtn: { borderRadius: 10, paddingHorizontal: 16, paddingVertical: 9 },
   inviteRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
-  inviteBtn: { borderRadius: 8, paddingHorizontal: 12, paddingVertical: 7 },
+  inviteMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  inviteBtn: { borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9, minHeight: 38, justifyContent: 'center' },
   section: { fontSize: 15, marginTop: 8 },
   memberRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
-  avatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  avatarLetter: { fontFamily: FontFamily.uiBold, fontSize: 16 },
+  memberMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   memberActions: { flexDirection: 'row', gap: 12 },
   memberAction: { fontFamily: FontFamily.uiMedium, fontSize: 12 },
 });

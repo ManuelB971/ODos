@@ -6,6 +6,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { BlobFrame } from '@/components/ui/BlobFrame';
+import { HapticTab } from '@/components/HapticTab';
 import { useSocialUnreadCount } from '@/hooks/useSocialUnreadCount';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import React, { useEffect } from 'react';
@@ -75,6 +76,35 @@ export default function TabLayout() {
     );
   };
 
+  // Onglet central « Parcours » : bouton orange proéminent (playlist façon
+  // Spotify). Pastille pleine + léger soulèvement, distinct des icônes-traits.
+  const renderParcoursIcon = () => function ParcoursTabIcon() {
+    if (isMosaicPop) {
+      return (
+        <View style={styles.centerSlot}>
+          <View style={styles.centerWrap}>
+            <View
+              pointerEvents="none"
+              style={[StyleSheet.absoluteFill, styles.centerShadow, { backgroundColor: pop.ink }]}
+            />
+            <View style={[styles.centerBtn, { backgroundColor: pop.orange, borderColor: pop.ink, borderWidth: 2.5 }]}>
+              <MaterialIcons name="route" size={26} color={pop.ink} />
+            </View>
+          </View>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.centerSlot}>
+        <View style={styles.centerWrap}>
+          <View style={[styles.centerBtn, { backgroundColor: colors.accent, borderColor: colors.background, borderWidth: 4 }]}>
+            <MaterialIcons name="route" size={26} color={colors.onAccent} />
+          </View>
+        </View>
+      </View>
+    );
+  };
+
   // En mosaïque pop, on affiche des libellés majuscules sous chaque icône (le
   // classique reste sans libellé — `title: ''`).
   const tabTitle = (mosaic: string) => (isMosaicPop ? mosaic : '');
@@ -83,6 +113,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
+        tabBarButton: HapticTab,
         tabBarStyle: isMosaicPop
           ? {
               backgroundColor: pop.paper,
@@ -133,6 +164,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="parcours"
+        options={{
+          title: tabTitle('Parcours'),
+          tabBarIcon: renderParcoursIcon(),
+        }}
+      />
+      <Tabs.Screen
         name="community"
         options={{
           title: tabTitle('Communauté'),
@@ -153,12 +191,6 @@ export default function TabLayout() {
           tabBarIcon: renderTabIcon('person', 3, 'Compte'),
         }}
       />
-      <Tabs.Screen
-        name="styles"
-        options={{
-          href: null,
-        }}
-      />
     </Tabs>
 
   );
@@ -169,7 +201,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minWidth: 48,
-    minHeight: 32,
+    minHeight: 44,
   },
   // ── pop pill (onglet actif) ──
   popPillWrap: {
@@ -184,6 +216,28 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 100,
     borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // ── Onglet central Parcours (bouton proéminent) ──
+  centerSlot: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 56,
+  },
+  centerWrap: {
+    width: 52,
+    height: 52,
+    transform: [{ translateY: -8 }],
+  },
+  centerShadow: {
+    borderRadius: 100,
+    transform: [{ translateX: 2 }, { translateY: 2 }],
+  },
+  centerBtn: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },

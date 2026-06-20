@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Enum\ParcoursVisibility;
 use App\Repository\ParcoursRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -36,6 +37,16 @@ class Parcours
 
     #[ORM\Column(length: 500, nullable: true)]
     private ?string $description = null;
+
+    /**
+     * Pochette personnalisée (façon playlist Spotify) ; `null` → repli sur l'image
+     * de la première activité côté sérialiseur.
+     */
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $coverImageUrl = null;
+
+    #[ORM\Column(length: 20, enumType: ParcoursVisibility::class, options: ['default' => 'private'])]
+    private ParcoursVisibility $visibility = ParcoursVisibility::Private;
 
     #[ORM\Column(options: ['default' => 0])]
     private int $itemCount = 0;
@@ -89,6 +100,30 @@ class Parcours
     public function setDescription(?string $description): static
     {
         $this->description = $description;
+
+        return $this;
+    }
+
+    public function getCoverImageUrl(): ?string
+    {
+        return $this->coverImageUrl;
+    }
+
+    public function setCoverImageUrl(?string $coverImageUrl): static
+    {
+        $this->coverImageUrl = $coverImageUrl;
+
+        return $this;
+    }
+
+    public function getVisibility(): ParcoursVisibility
+    {
+        return $this->visibility;
+    }
+
+    public function setVisibility(ParcoursVisibility $visibility): static
+    {
+        $this->visibility = $visibility;
 
         return $this;
     }

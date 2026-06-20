@@ -40,19 +40,24 @@ final class UserProfileController extends AbstractController
             return $this->json(['message' => 'Utilisateur introuvable.'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($this->friendshipService->hasBlockBetween($viewer, $profileUser)) {
+        // L'autre m'a bloqué : profil totalement inaccessible.
+        if ($this->friendshipService->hasBlocked($profileUser, $viewer)) {
             return $this->json(['message' => 'Profil inaccessible.'], Response::HTTP_FORBIDDEN);
         }
+
+        // Moi je l'ai bloqué : profil minimal, juste de quoi le reconnaître et le débloquer.
+        $iBlockedThem = $this->friendshipService->hasBlocked($viewer, $profileUser);
 
         $payload = [
             'id' => $profileUser->getId(),
             'alias' => $profileUser->getAlias(),
-            'bio' => $profileUser->isProfilePublic() ? $profileUser->getBio() : null,
+            'bio' => (!$iBlockedThem && $profileUser->isProfilePublic()) ? $profileUser->getBio() : null,
             'avatarUrl' => $profileUser->getAvatarUrl(),
             'joinedAt' => $profileUser->getConsentedAt()?->format(\DateTimeInterface::ATOM),
+            'isBlockedByMe' => $iBlockedThem,
         ];
 
-        if ($profileUser->isProfilePublic()) {
+        if (!$iBlockedThem && $profileUser->isProfilePublic()) {
             $payload['badgeCount'] = count($this->userBadgeRepository->findForUserOrdered($profileUser));
             $payload['favoriteCount'] = $profileUser->getFavorites()->count();
             $payload['visitCount'] = $profileUser->getVisitedActivities()->count();

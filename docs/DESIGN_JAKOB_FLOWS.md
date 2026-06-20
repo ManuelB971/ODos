@@ -65,13 +65,13 @@ Avant de valider un flow, vérifier les **7 principes Jakob × ODOS** :
 ### 4.1 Navigation racine
 
 ```
-[Tabs] Accueil | Recherche | Favoris | Communauté | Compte
-         ↓ stack          ↓ stack        ↓ stack      ↓ stack
-      /activity/:id    /map (modal)   /settings    /profile/:id
+[Tabs] Accueil | Recherche | **Parcours** (centre) | Communauté | Compte
+         ↓ stack          ↓ stack        ↓ stack         ↓ stack      ↓ stack
+      /activity/:id    /map (modal)   /parcours/:id   /profile/:id  /settings
 ```
 
 - **Jakob :** 4–5 onglets max, icône + label court, état actif visible (couleur `blue.action` ou accent thème).
-- **ODOS :** ne pas imbriquer une deuxième barre d’onglets sans titre de section clair (ex. Communauté : Forum | Amis | Messages | Groupes — OK si l’utilisateur comprend qu’il est dans « Communauté »).
+- **ODOS :** onglet **Parcours** central proéminent (CTA orange) ; **Favoris** accessibles via Compte (href masqué dans la tab bar). Ne pas imbriquer une deuxième barre d’onglets sans titre de section clair (ex. Communauté : Forum | Amis | Messages | Groupes — OK si l’utilisateur comprend qu’il est dans « Communauté »).
 
 ### 4.2 Liste → détail → action
 
@@ -199,7 +199,7 @@ Copier ce bloc dans une PR, une fiche `docs/fonctionnalites/`, ou un ticket desi
 | Forum → Thread détail | Reddit | ✅ | Header + retour, composer de réponse (clavier), like optimiste, empty state réponses, fil verrouillé géré |
 | Profil public | Instagram | ✅ | Modal avec header/fermer + actions contextuelles (Ajouter / Accepter / Message selon la relation) |
 | Partage activité | Maps share | ✅ | Modal amis + groupes (boîte « Partages reçus ») **+ carte riche directement dans le fil de chat** (bouton « + » du composer) |
-| Parcours (itinéraire) | Google Maps trajets | ✅ | Modèle « playlist » : « Ajouter à un parcours » sur chaque activité ; écran `parcours/[id]` (carte + tracé + réordonner) ; partage en chat → **édition collaborative** |
+| Parcours (itinéraire) | Google Maps trajets | ✅ | Onglet **Parcours** central ; « Ajouter à un parcours » ; `parcours/[id]` ; partage multi-cibles ; co-édition **sur invitation explicite** |
 | Paramètres compte | iOS Settings | ✅ | Section Confidentialité (toggle profil visible) ajoutée |
 | Badges débloqués | jeux mobile | ✅ | Modal célébration + fermer |
 
@@ -247,6 +247,8 @@ Audit ciblé de l’onglet **Communauté** (Forum / Amis / Messages / Groupes + 
 
 ## 7.2 Partage en chat & Parcours — juin 2026 (itération 3)
 
+> **Note :** l’itération 4 (§7.3) complète et corrige certains points ci-dessous (onglet Parcours, pochette, visibilité, partage sans co-édition automatique, blocage).
+
 Réponse à deux besoins utilisateur : *« dans les chats on peut partager une activité (carte + bouton) et constituer des parcours »* et *« comme WhatsApp, voir les photos de profil dans le chat »*. Pondération motion **Jakub primaire · Emil secondaire** (optimiste partout, pas d'attente).
 
 ### ✅ Livré
@@ -271,7 +273,46 @@ Réponse à deux besoins utilisateur : *« dans les chats on peut partager une a
 |------|-------|-------|
 | 🟢 P3 | Parcours | Note par étape (champ `note` existant côté API, pas encore éditable en UI) ; `coverImageUrl` non calculé dans la carte de chat (icône `Route` à la place). |
 | 🟢 P3 | Parcours | Drag-to-reorder (actuellement ↑/↓) ; suppression d'un parcours (API `DELETE` prête, pas de bouton UI). |
-| 🟡 — | Backend | **3 migrations à appliquer** (`Version20260616120000/130000/140000`) ; tests unitaires `ChatService`/`ParcoursService` à ajouter. |
+| 🟡 — | Backend | Tests unitaires `ChatService`/`ParcoursService`/`FriendshipService` à compléter. |
+
+---
+
+## 7.3 Parcours onglet, social & blocage — juin 2026 (itération 4)
+
+Réponse aux besoins : *« bibliothèque de parcours visible »*, *« partager vers amis / groupes / forum »*, *« bloquer un utilisateur »*, *« pièces jointes dans le chat de groupe »*.
+
+### ✅ Livré
+
+| Domaine | Modèle de référence | Livré |
+|---------|---------------------|-------|
+| **Onglet Parcours** | Spotify playlists / Google Maps listes | Tab central proéminent ; `app/(tabs)/parcours.tsx` ; accès rapide depuis fiche activité |
+| **Pochette & visibilité** | Spotify cover / playlist privée | Upload `POST …/cover` ; `visibility` public/private ; migration `Version20260620120000` |
+| **Partage multi-cibles** | WhatsApp forward | `ParcoursShareTargetSheet` : ami, groupe, forum ; cartes riches chat privé **et** groupe |
+| **Collaboration explicite** | Google Docs invite | Partage chat **n’ajoute plus** le destinataire en collaborateur ; invitation via `POST …/collaborators` |
+| **Blocage utilisateur** | Instagram / Discord block | `POST/DELETE /api/users/{id}/block` ; masque profil ; supprime conversation ; révoque co-édition parcours mutuelle |
+| **Profil public** | Instagram discoverability | Interrupteur `profilePublic` en Paramètres ; recherche amis filtrée |
+| **Avatars unifiés** | WhatsApp | `UserAvatar` + `UserLink` partagés (chat, forum, profils) |
+| **Group chat attachments** | WhatsApp | `group_message.activity_id` / `parcours_id` ; `MessageAttachmentCards` |
+
+### ✅ Backlog traité (itération 5 — 2026-06-20)
+
+| Domaine | Livré |
+|---------|-------|
+| **Modération UGC** | Signalement étendu hors forum (`ContentReport`) : messages privés / de groupe / commentaires / profils, + EasyAdmin dédié |
+| **A11y & confiance** | Fix persistance variant thème, `InputField` labels SR, consent « Plus tard », `+not-found` FR, empty states + CTA, erreur + retry, tab 44 pt, `HapticTab` + haptics |
+| **DA / système** | `#E0245E` cœur favori → `colors.danger` ; suppression `styles.ts` legacy ; fond pop `messages.tsx` ; `useMotionConfig` reduced-motion |
+| **Navigation** | Routage des taps de notification (`useNotificationResponse`) |
+
+### 🔧 Reste à faire
+
+| Prio | Écran | Reste |
+|------|-------|-------|
+| 🟢 P3 | Parcours | Note par étape (API prête) ; drag-to-reorder ; bouton suppression parcours |
+| 🟢 P3 | Chat | Séparateurs de date ; indicateur « en train d'écrire » |
+| 🟢 P3 | Forum | Suppression de son propre sujet / réponse (API `DELETE` prête) |
+| 🟡 P2 | DA | Migrer le reste des CTAs custom → `CTAButton` ; extraire `ThemedScreen` (voir [AUDIT_UI_UX_FRONT.md](AUDIT_UI_UX_FRONT.md) §14) |
+
+Fiches détaillées : [fonctionnalites/parcours.md](fonctionnalites/parcours.md) · [fonctionnalites/communaute-sociale.md](fonctionnalites/communaute-sociale.md).
 
 ---
 
@@ -292,8 +333,12 @@ Réponse à deux besoins utilisateur : *« dans les chats on peut partager une a
 | Document | Rôle |
 |----------|------|
 | [DESIGN_DIRECTION.md](DESIGN_DIRECTION.md) | Tokens, typo, composants DA |
+| [AUDIT_UI_UX_FRONT.md](AUDIT_UI_UX_FRONT.md) | Audit UI/UX fusionné (Pro Max × Jakob, thèmes, engagement) |
+| [AUDIT_UI_UX_FRONT.md](AUDIT_UI_UX_FRONT.md) | Audit V1 (revue code détaillée) |
 | [DA_APP_GAP.md](DA_APP_GAP.md) | Conformité visuelle écran par écran |
 | [fonctionnalites/README.md](fonctionnalites/README.md) | Fiches produit par domaine |
+| [fonctionnalites/parcours.md](fonctionnalites/parcours.md) | Itinéraires collaboratifs |
+| [fonctionnalites/communaute-sociale.md](fonctionnalites/communaute-sociale.md) | Forum, amis, chat, blocage |
 | [IDEES_POTENTIELLES.md](IDEES_POTENTIELLES.md) | Backlog idées (hors scope Jakob) |
 
 ---

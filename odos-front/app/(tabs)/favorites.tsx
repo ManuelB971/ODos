@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo } from 'react';
 import {
   FlatList,
-  Pressable,
   StyleSheet,
   Text,
   View,
@@ -12,7 +11,7 @@ import { Compass, Heart } from 'lucide-react-native';
 
 import { useFavorites } from '@/hooks/useFavorites';
 import { useAuth } from '@/context/AuthContext';
-import { Fonts, Spacing } from '@/constants/theme';
+import { Fonts, FontFamily, Spacing } from '@/constants/theme';
 import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
 import { toAppError } from '@/utils/errorHandling';
 import { toggleFavoriteActivity } from '@/scripts/api';
@@ -37,7 +36,7 @@ export default function FavoritesScreen() {
   const queryClient = useQueryClient();
   const { isAuthenticated } = useAuth();
   const { cardStyle } = useTheme();
-  const { favorites, isLoading, error } = useFavorites();
+  const { favorites, isLoading, error, refetch } = useFavorites();
 
   const errorMessage = error
     ? toAppError(error, 'Impossible de charger vos favoris.').userMessage
@@ -124,6 +123,7 @@ export default function FavoritesScreen() {
         <View style={styles.emptyState}>
           <Text style={styles.emptyTitle}>Une erreur est survenue</Text>
           <Text style={styles.emptySubtitle}>{errorMessage}</Text>
+          <CTAButton label="Réessayer" variant="secondary" onPress={() => refetch()} style={styles.retryBtn} />
         </View>
       </View>
     );
@@ -138,15 +138,17 @@ export default function FavoritesScreen() {
           <View style={styles.emptyIconWrap}>
             <Heart size={28} color={colors.muted} />
           </View>
-          <Text style={styles.emptyTitle}>Votre première étape commence ici</Text>
+          <Text style={[styles.emptyTitle, styles.emptyTitleWarm]}>Votre première étape commence ici</Text>
           <Text style={styles.emptySubtitle}>
             Aucun favori pour l&apos;instant. Explorez les activités et tapez
             le cœur pour les retrouver sur cette page.
           </Text>
-          <Pressable style={styles.exploreBtn} onPress={() => router.push('/')}>
-            <Compass size={16} color="#fff" />
-            <Text style={styles.exploreBtnText}>Explorer les activités</Text>
-          </Pressable>
+          <CTAButton
+            label="Explorer les activités"
+            onPress={() => router.push('/')}
+            leftIcon={<Compass size={16} color={colors.onAccent} />}
+            style={styles.retryBtn}
+          />
         </View>
       </View>
     );
@@ -266,6 +268,10 @@ function createStyles(colors: OdosColorPalette) {
     textAlign: 'center',
     fontFamily: Fonts?.serif,
   },
+  emptyTitleWarm: {
+    fontFamily: FontFamily.accent,
+    fontWeight: '400',
+  },
   emptySubtitle: {
     fontSize: 14,
     color: colors.muted,
@@ -273,20 +279,9 @@ function createStyles(colors: OdosColorPalette) {
     lineHeight: 20,
     maxWidth: 320,
   },
-  exploreBtn: {
+  retryBtn: {
     marginTop: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: colors.accent,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-  },
-  exploreBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
+    minWidth: 200,
   },
 });
 }

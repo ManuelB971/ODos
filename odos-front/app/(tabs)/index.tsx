@@ -26,6 +26,7 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 import { lngDeltaToZoom } from '@/utils/mapViewport';
 import { MapPin as MapPinMarker } from '@/components/map/MapPin';
 import { SkeletonActivityRow, SkeletonRecommendationCard } from '@/components/ui/Skeleton';
+import { CTAButton } from '@/components/ui/CTAButton';
 import { MosaicPopCard, MosaicPopRow } from '@/components/cards/MosaicPopCard';
 import { MosaicPopMap } from '@/components/cards/MosaicPopMap';
 import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
@@ -145,7 +146,7 @@ export default function HomeScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { sprayOpacity, cardStyle, colorScheme } = useTheme();
   const { interests } = useInterests();
-  const { recommendations, loading, error } = useRecommendations(interests);
+  const { recommendations, loading, error, refresh } = useRecommendations(interests);
   const activitiesQuery = useActivities();
   const rawActivities = useMemo(() => activitiesQuery.data ?? [], [activitiesQuery.data]);
   const activitiesError = activitiesQuery.error
@@ -174,6 +175,16 @@ export default function HomeScreen() {
     [activities],
   );
   const hasMoreActivities = activities.length > HOME_ACTIVITIES_LIMIT;
+
+  /** Activités les mieux notées : triées par note décroissante, top 10. */
+  const topRated = useMemo(
+    () =>
+      activities
+        .filter((a) => typeof a.ratingAverage === 'number' && a.ratingAverage > 0)
+        .sort((a, b) => (b.ratingAverage ?? 0) - (a.ratingAverage ?? 0))
+        .slice(0, 10),
+    [activities],
+  );
 
   const initialRegion = useMemo(() => {
     if (geoActivities.length === 0) {
@@ -317,12 +328,20 @@ export default function HomeScreen() {
                   <SkeletonRecommendationCard />
                 </ScrollView>
               )}
-              {error && <Text style={styles.errorText}>{error}</Text>}
+              {error && (
+                <View style={styles.recoState}>
+                  <Text style={styles.errorText}>{error}</Text>
+                  <CTAButton label="Réessayer" size="sm" variant="secondary" onPress={() => refresh()} />
+                </View>
+              )}
               {!loading && !error && recommendations.length === 0 && interests.length > 0 && (
                 <Text style={styles.emptyText}>Aucune recommandation pour le moment.</Text>
               )}
               {!loading && !error && recommendations.length === 0 && interests.length === 0 && (
-                <Text style={styles.emptyText}>Sélectionnez vos centres d&apos;intérêt pour obtenir des recommandations.</Text>
+                <View style={styles.recoState}>
+                  <Text style={[styles.emptyText, styles.emptyWarm]}>Dites-nous ce que vous aimez, on s&apos;occupe du reste.</Text>
+                  <CTAButton label="Choisir mes intérêts" size="sm" onPress={() => router.push('/interests')} />
+                </View>
               )}
               {!loading && !error && recommendations.length > 0 && (
                 <ScrollView
@@ -340,6 +359,31 @@ export default function HomeScreen() {
                 </ScrollView>
               )}
             </View>
+
+            {/* ── Activités les mieux notées (carrousel horizontal) ── */}
+            {topRated.length > 0 ? (
+              <View style={styles.recommendationsContainer}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>Activités les mieux notées</Text>
+                  <Pressable onPress={() => router.push('/search')}>
+                    <Text style={styles.seeAllText}>VOIR TOUT</Text>
+                  </Pressable>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.recoScroller}
+                >
+                  {topRated.map((item) =>
+                    cardStyle === 'mosaicPop' ? (
+                      <MosaicPopCard key={`top-${item.id}`} item={item} />
+                    ) : (
+                      <RecommendationCard key={`top-${item.id}`} item={item} />
+                    )
+                  )}
+                </ScrollView>
+              </View>
+            ) : null}
 
             <View style={[styles.sectionHeaderRow, styles.sectionTitleSpaced]}>
               <Text style={styles.sectionTitle}>Toutes les activités</Text>
@@ -441,6 +485,15 @@ function createStyles(colors: OdosColorPalette) {
   skeletonListWrap: {
     gap: 4,
     marginBottom: 20,
+  },
+  recoState: {
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+  },
+  emptyWarm: {
+    fontFamily: FontFamily.accent,
+    fontSize: 16,
   },
   errorText: {
     color: colors.danger,

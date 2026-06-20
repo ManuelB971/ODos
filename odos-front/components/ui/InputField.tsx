@@ -82,6 +82,9 @@ export const InputField = forwardRef<TextInput, InputFieldProps>(function InputF
           placeholderTextColor={colors.muted}
           secureTextEntry={secureTextEntry && !showPassword}
           editable={editable}
+          accessibilityLabel={label}
+          accessibilityHint={hint}
+          aria-invalid={hasError}
           onFocus={(e) => {
             setIsFocused(true);
             focus.value = withTiming(1, { duration: 180 });
@@ -118,7 +121,13 @@ export const InputField = forwardRef<TextInput, InputFieldProps>(function InputF
       </Animated.View>
 
       {helperText ? (
-        <Text style={[styles.helper, hasError && styles.helperError]}>{helperText}</Text>
+        <Text
+          style={[styles.helper, hasError && styles.helperError]}
+          accessibilityLiveRegion={hasError ? 'polite' : 'none'}
+          accessibilityRole={hasError ? 'alert' : undefined}
+        >
+          {helperText}
+        </Text>
       ) : null}
     </View>
   );

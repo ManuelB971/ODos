@@ -289,7 +289,17 @@ export function MapExperience({ activities, loading = false, error = null }: Map
                 anchor="bottom"
                 onPress={() => handlePinPress(activity)}
               >
-                <MapPin active={isActive} label={isActive ? activity.name : undefined} />
+                <MapPin
+                  active={isActive}
+                  label={isActive ? activity.name : undefined}
+                  accessibilityLabel={`${activity.name}${
+                    typeof activity.category === 'string'
+                      ? `, ${activity.category}`
+                      : activity.category?.name
+                        ? `, ${activity.category.name}`
+                        : ''
+                  }`}
+                />
               </Marker>
             );
           })}

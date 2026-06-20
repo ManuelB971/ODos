@@ -20,6 +20,7 @@ Documents liés : [audit RGPD](RGPD_AUDIT_2026.md) · [rétention logs](LOG_RETE
 | T8 | Recommandations (filtrage collaboratif + LLM) | Classement activités personnalisé | Consentement / intérêt légitime | Intérêts, IDs favoris, IDs visites, métadonnées activités (jamais d'email) | Cache Redis : `LLM_CACHE_TTL_SECONDS` — données source jusqu'à suppression compte | LLM self-hosted (Ollama) — pas de transfert à des tiers |
 | T9 | Gamification (badges) | Récompenses exploration, vitrine profil | Contrat / intérêt légitime | Badges obtenus, préférences affichage, compteurs vues fiches | Tant que compte actif | — |
 | T10 | Exploration carte (GPS) | Progression % zones visitées, badges carte | Consentement explicite | Cellules geohash visitées, horodatage consentement (pas de trace GPS fine) | Tant que compte actif | Révocable (ne plus ouvrir carte avec GPS / demande effacement) |
+| T11 | Communauté & modération sociale | Forum, amis, messages, groupes, parcours partagés, blocage | Consentement explicite (`socialConsentedAt`) + contrat | Alias, avatar, bio, messages, statuts amitié, blocages, pièces jointes activité/parcours | Tant que compte actif ; blocages conservés jusqu'à déblocage ou suppression compte | Contabo |
 
 ---
 

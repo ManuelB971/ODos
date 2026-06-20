@@ -25,6 +25,7 @@ import {
   Map,
   Scale,
   Shield,
+  ShieldOff,
   Download,
   Trash2,
   User as UserIcon,
@@ -314,7 +315,7 @@ export default function SettingsScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.headerBtn} onPress={() => router.back()} hitSlop={8}>
+        <Pressable style={styles.headerBtn} onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Retour">
           <ArrowLeft color={colors.text} size={22} />
         </Pressable>
         <Text style={styles.headerTitle}>Paramètres</Text>
@@ -473,6 +474,12 @@ export default function SettingsScreen() {
                   accessibilityLabel="Rendre mon profil visible par les autres utilisateurs"
                 />
               </View>
+              <View style={styles.divider} />
+              <MenuRow
+                icon={<ShieldOff size={18} color={colors.muted} />}
+                label="Utilisateurs bloqués"
+                onPress={() => router.push('/blocked-users')}
+              />
             </View>
 
             {/* ── Carte ── */}

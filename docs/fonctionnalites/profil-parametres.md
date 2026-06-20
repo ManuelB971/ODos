@@ -2,7 +2,7 @@
 
 Gestion du profil utilisateur : avatar, alias, bio, exploration carte, liens légaux.
 
-**Voir aussi :** [authentification-compte.md](authentification-compte.md) · [rgpd-compte.md](rgpd-compte.md) · [exploration-carte.md](exploration-carte.md)
+**Voir aussi :** [authentification-compte.md](authentification-compte.md) · [rgpd-compte.md](rgpd-compte.md) · [exploration-carte.md](exploration-carte.md) · [communaute-sociale.md](communaute-sociale.md)
 
 ---
 
@@ -19,10 +19,12 @@ Gestion du profil utilisateur : avatar, alias, bio, exploration carte, liens lé
 | Méthode | Chemin | Rôle |
 |---------|--------|------|------|
 | GET | `/api/me` | Lecture profil |
-| PATCH | `/api/users/{id}` | Alias, bio, intérêts, `hideBadgesOnProfile`, `mapExplorationEnabled` |
+| PATCH | `/api/users/{id}` | Alias, bio, intérêts, `hideBadgesOnProfile`, `mapExplorationEnabled`, **`profilePublic`** |
 | POST | `/api/me/avatar` | Upload multipart (`file`, JPG/PNG/WEBP, 2 Mo max) |
 | DELETE | `/api/me/avatar` | Suppression avatar |
 | PATCH | `/api/me/exploration/settings` | `{ enabled: true \| false }` — exploration carte |
+| GET | `/api/users/blocked` | Liste utilisateurs bloqués (paginée) |
+| POST / DELETE | `/api/users/{id}/block` | Bloquer / débloquer — voir [communaute-sociale.md](communaute-sociale.md) |
 
 ---
 
@@ -31,8 +33,10 @@ Gestion du profil utilisateur : avatar, alias, bio, exploration carte, liens lé
 | Fichier | Rôle |
 |---------|------|
 | `app/(tabs)/account.tsx` | Hero profil, menu, logout |
-| `app/settings.tsx` | Édition complète + RGPD |
-| `scripts/api.ts` | `updateProfile`, `uploadAvatar`, `deleteAvatar`, etc. |
+| `app/settings.tsx` | Édition complète + RGPD + **visibilité profil** + lien utilisateurs bloqués |
+| `app/blocked-users.tsx` | Gestion liste blocages |
+| `app/profile/[id].tsx` | Profil public d’un autre utilisateur |
+| `scripts/api.ts` | `updateProfile`, `uploadAvatar`, `blockUser`, `fetchBlockedUsers`, etc. |
 
 **Champs profil :**
 
@@ -40,6 +44,7 @@ Gestion du profil utilisateur : avatar, alias, bio, exploration carte, liens lé
 |-------|-------------|
 | Alias (`alias`) | 2–60 car., lettres/chiffres/espaces/`-_'.` |
 | Bio | 500 car. max, strip `<`/`>` côté client et serveur |
+| **Profil visible** (`profilePublic`) | Interrupteur Paramètres → contrôle apparition dans la recherche Communauté |
 | Avatar | `expo-image-picker`, throttle **10 s** entre uploads |
 
 **Affichage nom :** `displayName` API (alias ou local-part email).
@@ -64,4 +69,4 @@ Gestion du profil utilisateur : avatar, alias, bio, exploration carte, liens lé
 
 ---
 
-*Dernière mise à jour : mai 2026.*
+*Dernière mise à jour : juin 2026.*

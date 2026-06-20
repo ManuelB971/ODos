@@ -58,7 +58,13 @@ export function FriendCard({ friendship }: FriendCardProps) {
           {avatarNode}
           <Text style={[styles.name, { color: pop.ink }]}>{other?.displayName ?? 'Ami'}</Text>
         </Pressable>
-        <Pressable onPress={openChat} style={[styles.msgBtnPop, { backgroundColor: pop.orange, borderColor: pop.ink }]}>
+        <Pressable
+          onPress={openChat}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Envoyer un message à ${other?.displayName ?? 'cet ami'}`}
+          style={[styles.msgBtnPop, { backgroundColor: pop.orange, borderColor: pop.ink }]}
+        >
           <Text style={[styles.msgTextPop, { color: pop.ink }]}>Message</Text>
         </Pressable>
       </PopSurface>
@@ -74,7 +80,13 @@ export function FriendCard({ friendship }: FriendCardProps) {
         {avatarNode}
         <Text style={styles.name}>{other?.displayName ?? 'Ami'}</Text>
       </Pressable>
-      <Pressable onPress={openChat} style={styles.msgBtn}>
+      <Pressable
+        onPress={openChat}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={`Envoyer un message à ${other?.displayName ?? 'cet ami'}`}
+        style={styles.msgBtn}
+      >
         <Text style={styles.msgText}>Message</Text>
       </Pressable>
     </View>

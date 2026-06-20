@@ -13,6 +13,8 @@ parameters:
     app.uploads.avatars.public_prefix: '/uploads/avatars'
     app.uploads.badges.dir: '%kernel.project_dir%/public/uploads/badges'
     app.uploads.badges.public_prefix: '/uploads/badges'
+    app.uploads.parcours.dir: '%kernel.project_dir%/public/uploads/parcours'
+    app.uploads.parcours.public_prefix: '/uploads/parcours'
     app.llm.base_url: '%env(LLM_BASE_URL)%'
     app.llm.model: '%env(LLM_MODEL)%'
     app.llm.timeout: '%env(int:LLM_TIMEOUT)%'
@@ -121,6 +123,16 @@ services:
         arguments:
             $uploadDir: '%app.uploads.avatars.dir%'
             $publicPrefix: '%app.uploads.avatars.public_prefix%'
+
+    App\Service\ParcoursCoverUploader:
+        arguments:
+            $uploadDir: '%app.uploads.parcours.dir%'
+            $publicPathPrefix: '%app.uploads.parcours.public_prefix%'
+
+    App\Controller\ParcoursController:
+        arguments:
+            $uploadDir: '%app.uploads.parcours.dir%'
+            $publicPrefix: '%app.uploads.parcours.public_prefix%'
 
     App\EventSubscriber\AdminMfaSubscriber:
         arguments:

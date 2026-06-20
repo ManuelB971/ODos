@@ -7,6 +7,8 @@ import { FontFamily } from '@/constants/theme';
 import { PopSurface } from '@/components/pop/PopSurface';
 import { PopBadge } from '@/components/pop/PopPill';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
+import { UserAvatar } from '@/components/social/UserAvatar';
+import { UserLink } from '@/components/social/UserLink';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 
 export default function MessagesScreen() {
@@ -19,7 +21,7 @@ export default function MessagesScreen() {
 
   return (
     <FlatList
-      style={{ backgroundColor: colors.background }}
+      style={{ backgroundColor: isMosaicPop ? pop.paper : colors.background }}
       data={conversations}
       keyExtractor={(item) => String(item.id)}
       refreshing={isRefetching}
@@ -33,6 +35,8 @@ export default function MessagesScreen() {
             icon={<MessageCircle size={28} color={isMosaicPop ? pop.ink : colors.onAccent} />}
             title="Aucune conversation"
             subtitle="Ajoutez un ami depuis l’onglet Amis, puis démarrez une conversation."
+            ctaLabel="Trouver des amis"
+            onPressCta={() => router.push('/community/friends')}
           />
         )
       }
@@ -47,6 +51,9 @@ export default function MessagesScreen() {
               style={({ pressed }) => (pressed ? styles.popPressed : undefined)}
             >
               <PopSurface shadow={4} radius={12} contentStyle={styles.popRow}>
+                <UserLink userId={item.otherUser?.id} name={name}>
+                  <UserAvatar name={name} avatarUrl={item.otherUser?.avatarUrl} size={44} />
+                </UserLink>
                 <View style={styles.info}>
                   <Text style={[styles.name, { color: pop.ink, fontFamily: FontFamily.uiBold }]} numberOfLines={1}>
                     {name}
@@ -66,6 +73,9 @@ export default function MessagesScreen() {
             onPress={() => router.push(`/chat/${item.id}`)}
             style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
           >
+            <UserLink userId={item.otherUser?.id} name={name}>
+              <UserAvatar name={name} avatarUrl={item.otherUser?.avatarUrl} size={44} />
+            </UserLink>
             <View style={styles.info}>
               <Text style={[styles.name, { color: colors.text, fontFamily: FontFamily.uiMedium }]}>{name}</Text>
               <Text style={[styles.meta, { color: colors.muted, fontFamily: FontFamily.ui }]}>{sub}</Text>

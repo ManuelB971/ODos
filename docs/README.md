@@ -1,6 +1,6 @@
 # Documentation ODOS
 
-Index des docs du dépôt. Dernière passe : **mai 2026**.
+Index des docs du dépôt. Dernière passe : **juin 2026**.
 
 ## Par où commencer
 
@@ -10,6 +10,8 @@ Index des docs du dépôt. Dernière passe : **mai 2026**.
 | **Cartographie architecture & données** | **[ARCHITECTURE.md](ARCHITECTURE.md)** |
 | **TODO badges, exploration, UX commentaires** | **[TODO_GAMIFICATION_BADGES.md](TODO_GAMIFICATION_BADGES.md)** · **[GAMIFICATION.md](GAMIFICATION.md)** |
 | **Fiches fonctionnalités (index complet)** | **[fonctionnalites/README.md](fonctionnalites/README.md)** |
+| **Audit UI/UX front (Pro Max × Jakob, fusionné)** | **[AUDIT_UI_UX_FRONT.md](AUDIT_UI_UX_FRONT.md)** |
+| **Flows UX (loi de Jakob)** | **[DESIGN_JAKOB_FLOWS.md](DESIGN_JAKOB_FLOWS.md)** |
 | Déployer sur Contabo (IP sans domaine) | [PROD_SANS_DOMAINE.md](PROD_SANS_DOMAINE.md) |
 | API prod `api.odos-api.com` (HTTPS) | [PROD_API_DOMAINE.md](PROD_API_DOMAINE.md) |
 | Comprendre la CI/CD | [CI_CD_V2_2026.md](CI_CD_V2_2026.md) |
@@ -54,7 +56,9 @@ Docker : `docker-compose.yml`, `docker-compose.prod.yml`, `docker-compose.wazuh.
 |-------|---------|
 | Plan couverture 70 % | [deliverables/PLAN-COUVERTURE-70.md](../deliverables/PLAN-COUVERTURE-70.md) |
 | TODO badges & exploration | [TODO_GAMIFICATION_BADGES.md](TODO_GAMIFICATION_BADGES.md) |
-| Fiches fonctionnalités | [fonctionnalites/](fonctionnalites/) |
+| Fiches fonctionnalités | [fonctionnalites/](fonctionnalites/) (parcours, communauté, profil…) |
+| Audit UI/UX (fusionné) | [AUDIT_UI_UX_FRONT.md](AUDIT_UI_UX_FRONT.md) |
+| Flows Jakob | [DESIGN_JAKOB_FLOWS.md](DESIGN_JAKOB_FLOWS.md) |
 | Soutenance jury RNCP | [JURY_RNCP.md](JURY_RNCP.md) |
 | Idées LLM, trajets, forum (à juger) | [IDEES_POTENTIELLES.md](IDEES_POTENTIELLES.md) |
 
@@ -76,6 +80,8 @@ Docs historiques — ne pas suivre pour l'exploitation courante.
 docs/
 ├── README.md
 ├── ARCHITECTURE.md
+├── AUDIT_UI_UX_FRONT.md
+├── DESIGN_JAKOB_FLOWS.md
 ├── RGPD_AUDIT_2026.md
 ├── RGPD_registre.md
 ├── LOG_RETENTION.md
@@ -83,7 +89,7 @@ docs/
 ├── PROD_SANS_DOMAINE.md
 ├── CI_CD_V2_2026.md
 ├── TODO_GAMIFICATION_BADGES.md
-├── fonctionnalites/          # 14 fiches produit (voir README du dossier)
+├── fonctionnalites/          # 16 fiches produit (voir README du dossier)
 ├── IDEES_POTENTIELLES.md
 └── archive/
     └── CI_CD_V1.md

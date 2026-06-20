@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Image,
   Pressable,
@@ -9,12 +9,14 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Link } from 'expo-router';
-import { Heart, MapPin } from 'lucide-react-native';
+import { Heart, MapPin, Plus } from 'lucide-react-native';
 
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { ApiActivity } from '@/types';
 import { resolveImageUrl } from '@/utils/imageUrl';
+import { useFavoriteToggle } from '@/hooks/useFavoriteToggle';
+import { ParcoursPickerSheet } from '@/components/social/ParcoursPickerSheet';
 import { Meander, TesseraGrid } from './GreekMotifs';
 
 /**
@@ -61,6 +63,7 @@ type MosaicTokens = {
   surface: string;
   terra: string;
   muted: string;
+  danger: string;
 };
 
 function useMosaicTokens(): MosaicTokens {
@@ -72,6 +75,7 @@ function useMosaicTokens(): MosaicTokens {
       surface: colors.surface,
       terra: colors.accentHover,
       muted: colors.muted,
+      danger: colors.danger,
     }),
     [colors],
   );
@@ -117,8 +121,12 @@ export function MosaicPopCard({
   onToggleFavorite,
 }: {
   item: ApiActivity;
-  /** `carousel` : largeur fixe (scroll horizontal). `grid` : flex 1 (colonne). */
-  variant?: 'carousel' | 'grid';
+  /**
+   * `carousel` : largeur fixe (scroll horizontal).
+   * `grid` : flex 1, photo carrée (colonne 2 cols, compacte).
+   * `featured` : pleine largeur (hero « incontournable »).
+   */
+  variant?: 'carousel' | 'grid' | 'featured';
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
 }) {
@@ -129,11 +137,28 @@ export function MosaicPopCard({
   const rating = item.ratingAverage;
   // Variante grille (favoris, 2 colonnes) : plus compacte que le carrousel.
   const isGrid = variant === 'grid';
+  const isFeatured = variant === 'featured';
   const shadow = isGrid ? 4 : CARD_SHADOW;
+
+  // Favori + ajout à un parcours, accessibles depuis n'importe quelle liste
+  // (audit : multi-accès). Si l'écran pilote déjà le favori (ex. favoris,
+  // état optimiste local), on respecte ses props ; sinon on bascule via le hook
+  // centralisé partagé avec la fiche activité.
+  const fav = useFavoriteToggle();
+  const controlled = onToggleFavorite !== undefined;
+  const showHeart = controlled || fav.canFavorite;
+  const favorite = controlled ? !!isFavorite : fav.isFavorite(item.id);
+  const onHeartPress = controlled ? onToggleFavorite : () => fav.toggleFavorite(item.id);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   return (
     <Link href={`/activity/${item.id}`} asChild>
-      <Pressable style={[styles.cardWrap, isGrid ? styles.cardWrapGrid : styles.cardWrapCarousel]}>
+      <Pressable
+        style={[
+          styles.cardWrap,
+          isGrid ? styles.cardWrapGrid : isFeatured ? styles.cardWrapFeatured : styles.cardWrapCarousel,
+        ]}
+      >
         {/* Ombre dure décalée (rendu net cross-platform via un calque encre) */}
         <View
           pointerEvents="none"
@@ -147,7 +172,13 @@ export function MosaicPopCard({
           {/* Photo sertie de tesselles */}
           <View style={[styles.frame, isGrid && styles.frameGrid, { backgroundColor: accent, borderBottomColor: t.ink }]}>
             <TesseraGrid color={t.paper} />
-            <View style={[styles.photoWrap, isGrid ? styles.photoWrapGrid : styles.photoWrapCarousel, { borderColor: t.ink }]}>
+            <View
+              style={[
+                styles.photoWrap,
+                isGrid ? styles.photoWrapGrid : isFeatured ? styles.photoWrapFeatured : styles.photoWrapCarousel,
+                { borderColor: t.ink },
+              ]}
+            >
               {img ? (
                 <Image source={{ uri: img }} style={styles.photo} resizeMode="cover" />
               ) : (
@@ -157,20 +188,33 @@ export function MosaicPopCard({
             {rating != null && rating > 0 ? (
               <Tessera value={rating} t={t} accent={accent} small={isGrid} style={styles.cardTessera} />
             ) : null}
-            {onToggleFavorite ? (
-              <Pressable
-                onPress={onToggleFavorite}
-                hitSlop={8}
-                style={[styles.heartBtn, { backgroundColor: t.paper, borderColor: t.ink }]}
-                accessibilityRole="button"
-                accessibilityLabel={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
-              >
-                <Heart
-                  size={15}
-                  color={isFavorite ? '#E0245E' : t.muted}
-                  fill={isFavorite ? '#E0245E' : 'transparent'}
-                />
-              </Pressable>
+            {showHeart ? (
+              <View style={styles.cardActions} pointerEvents="box-none">
+                <Pressable
+                  onPress={onHeartPress}
+                  hitSlop={8}
+                  style={[styles.actionBtn, { backgroundColor: t.paper, borderColor: t.ink }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={favorite ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+                >
+                  <Heart
+                    size={15}
+                    color={favorite ? t.danger : t.muted}
+                    fill={favorite ? t.danger : 'transparent'}
+                  />
+                </Pressable>
+                {fav.canFavorite ? (
+                  <Pressable
+                    onPress={() => setPickerOpen(true)}
+                    hitSlop={8}
+                    style={[styles.actionBtn, { backgroundColor: t.paper, borderColor: t.ink }]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Ajouter à un parcours"
+                  >
+                    <Plus size={15} color={t.ink} />
+                  </Pressable>
+                ) : null}
+              </View>
             ) : null}
           </View>
 
@@ -203,6 +247,12 @@ export function MosaicPopCard({
             ) : null}
           </View>
         </View>
+
+        <ParcoursPickerSheet
+          visible={pickerOpen}
+          onClose={() => setPickerOpen(false)}
+          activity={{ id: item.id, name: item.name }}
+        />
       </Pressable>
     </Link>
   );
@@ -294,11 +344,18 @@ const styles = StyleSheet.create({
     marginRight: 4,
     marginBottom: 8,
   },
-  heartBtn: {
+  // Hero pleine largeur : la carte s'étire au parent, marge droite réservée à l'ombre dure.
+  cardWrapFeatured: {
+    marginRight: CARD_SHADOW,
+  },
+  cardActions: {
     position: 'absolute',
     top: 9,
     right: 9,
     zIndex: 5,
+    gap: 7,
+  },
+  actionBtn: {
     width: 30,
     height: 30,
     borderRadius: 15,
@@ -332,9 +389,14 @@ const styles = StyleSheet.create({
   photoWrapCarousel: {
     height: PHOTO_H,
   },
-  // Grille favoris : même proportion portrait que la FavoriteCard classique (4/5).
+  // Grille favoris / recherche : photo carrée → cartes plus compactes (la photo
+  // ne fait plus gonfler la carte en hauteur comme l'ancien portrait 4/5).
   photoWrapGrid: {
-    aspectRatio: 4 / 5,
+    aspectRatio: 1,
+  },
+  // Hero « incontournable » : pleine largeur, proportion paysage proche du hero classique.
+  photoWrapFeatured: {
+    aspectRatio: 16 / 10,
   },
   // Image en absolu : elle ne participe pas au calcul de taille du parent, sinon
   // `height: '100%'` + `aspectRatio` entrent en conflit sous Fabric et la carte

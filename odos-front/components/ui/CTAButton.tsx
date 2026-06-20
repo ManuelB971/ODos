@@ -16,7 +16,9 @@ import Animated, {
 
 import type { OdosColorPalette } from '@/constants/themes/types';
 import { FontFamily, Radius } from '@/constants/theme';
+import { useMotionConfig } from '@/constants/motion';
 import { useTheme } from '@/context/ThemeContext';
+import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 
 export type CTAButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type CTAButtonSize = 'sm' | 'md' | 'lg';
@@ -49,14 +51,20 @@ export function CTAButton({
   accessibilityLabel,
 }: CTAButtonProps) {
   const { colors } = useTheme();
-  const variantStyles = useMemo(() => buildVariantStyles(colors), [colors]);
+  const motion = useMotionConfig();
+  const isMosaicPop = useIsMosaicPop();
+  const pop = usePopTokens();
+  const variantStyles = useMemo(
+    () => (isMosaicPop ? buildPopVariantStyles(pop, colors) : buildVariantStyles(colors)),
+    [isMosaicPop, pop, colors],
+  );
   const pressProgress = useSharedValue(0);
   const isDisabled = disabled || loading;
 
   const labelOpacity = useSharedValue(1);
   useEffect(() => {
-    labelOpacity.value = withTiming(loading ? 0 : 1, { duration: 160 });
-  }, [loading, labelOpacity]);
+    labelOpacity.value = withTiming(loading ? 0 : 1, { duration: motion.duration(160) });
+  }, [loading, labelOpacity, motion]);
 
   const animatedPressStyle = useAnimatedStyle(() => ({
     transform: [{ scale: 1 - pressProgress.value * 0.03 }],
@@ -75,10 +83,10 @@ export function CTAButton({
         onPress={onPress}
         disabled={isDisabled}
         onPressIn={() => {
-          pressProgress.value = withTiming(1, { duration: 120, easing: Easing.out(Easing.ease) });
+          pressProgress.value = withTiming(1, { duration: motion.duration(120), easing: Easing.out(Easing.ease) });
         }}
         onPressOut={() => {
-          pressProgress.value = withTiming(0, { duration: 180, easing: Easing.out(Easing.ease) });
+          pressProgress.value = withTiming(0, { duration: motion.duration(180), easing: Easing.out(Easing.ease) });
         }}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? label}
@@ -88,7 +96,7 @@ export function CTAButton({
           {
             backgroundColor: activeVariant.bg,
             borderColor: activeVariant.border ?? 'transparent',
-            borderWidth: activeVariant.border ? 1 : 0,
+            borderWidth: activeVariant.border ? (isMosaicPop ? 2.5 : 1) : 0,
           },
           {
             paddingVertical: sizeStyles.paddingV,
@@ -143,6 +151,22 @@ function buildVariantStyles(
       text: colors.danger,
       border: `${colors.danger}55`,
     },
+  };
+}
+
+/**
+ * Variantes « Mosaïque pop » : contour encre épais + aplats pop (orange/papier),
+ * pour que le CTA reste dans la DA pop sans dupliquer le composant.
+ */
+function buildPopVariantStyles(
+  pop: ReturnType<typeof usePopTokens>,
+  colors: OdosColorPalette,
+): Record<CTAButtonVariant, { bg: string; text: string; border?: string }> {
+  return {
+    primary: { bg: pop.orange, text: pop.ink, border: pop.ink },
+    secondary: { bg: pop.paper, text: pop.ink, border: pop.ink },
+    ghost: { bg: 'transparent', text: pop.ink, border: pop.ink },
+    danger: { bg: pop.paper, text: colors.danger, border: pop.ink },
   };
 }
 

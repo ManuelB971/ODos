@@ -549,6 +549,19 @@ export async function deleteFriendship(id: number): Promise<void> {
     await api.delete(`/api/friendships/${id}`);
 }
 
+export async function blockUser(userId: number): Promise<void> {
+    await api.post(`/api/users/${userId}/block`);
+}
+
+export async function unblockUser(userId: number): Promise<void> {
+    await api.delete(`/api/users/${userId}/block`);
+}
+
+export async function fetchBlockedUsers(page = 1): Promise<import('@/types').PaginatedMember<import('@/types').SocialUserSnippet>> {
+    const response = await api.get('/api/users/blocked', { params: { page } });
+    return response.data;
+}
+
 export async function fetchForumThreads(params: { page?: number; activity?: number; category?: number; group?: number } = {}): Promise<import('@/types').PaginatedMember<import('@/types').ForumThreadItem>> {
     const response = await api.get('/api/forum/threads', { params });
     return response.data;
@@ -666,8 +679,10 @@ export async function fetchGroupMessages(
 export async function sendGroupMessage(
     groupId: number,
     content: string,
+    activityId?: number,
+    parcoursId?: number,
 ): Promise<{ message: import('@/types').GroupMessageItem }> {
-    const response = await api.post(`/api/groups/${groupId}/messages`, { content });
+    const response = await api.post(`/api/groups/${groupId}/messages`, { content, activityId, parcoursId });
     return response.data;
 }
 
@@ -721,6 +736,24 @@ export async function reportForumThread(id: number, reason: import('@/types').Fo
 
 export async function reportForumReply(id: number, reason: import('@/types').ForumReportReason, details?: string): Promise<void> {
     await api.post(`/api/forum/replies/${id}/report`, { reason, details });
+}
+
+// --- Signalement de contenu hors forum (modération UGC) ---
+
+export async function reportChatMessage(id: number, reason: import('@/types').ForumReportReason, details?: string): Promise<void> {
+    await api.post(`/api/chat-messages/${id}/report`, { reason, details });
+}
+
+export async function reportGroupMessage(id: number, reason: import('@/types').ForumReportReason, details?: string): Promise<void> {
+    await api.post(`/api/group-messages/${id}/report`, { reason, details });
+}
+
+export async function reportComment(id: number, reason: import('@/types').ForumReportReason, details?: string): Promise<void> {
+    await api.post(`/api/comments/${id}/report`, { reason, details });
+}
+
+export async function reportUser(id: number, reason: import('@/types').ForumReportReason, details?: string): Promise<void> {
+    await api.post(`/api/users/${id}/report`, { reason, details });
 }
 
 export async function registerPushToken(token: string, platform: string): Promise<void> {
@@ -787,9 +820,27 @@ export async function createParcours(payload: {
 
 export async function updateParcours(
     id: number,
-    payload: { title?: string; description?: string },
+    payload: { title?: string; description?: string; visibility?: import('@/types').ParcoursVisibility },
 ): Promise<{ parcours: import('@/types').ParcoursDetail }> {
     const response = await api.patch(`/api/parcours/${id}`, payload);
+    return response.data;
+}
+
+export async function uploadParcoursCover(
+    id: number,
+    file: { uri: string; name: string; mimeType: string },
+): Promise<{ parcours: import('@/types').ParcoursDetail }> {
+    const form = new FormData();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    form.append('file', { uri: file.uri, name: file.name, type: file.mimeType } as any);
+    const response = await api.post(`/api/parcours/${id}/cover`, form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+}
+
+export async function deleteParcoursCover(id: number): Promise<{ parcours: import('@/types').ParcoursDetail }> {
+    const response = await api.delete(`/api/parcours/${id}/cover`);
     return response.data;
 }
 
@@ -820,6 +871,22 @@ export async function removeParcoursItem(
 
 export async function deleteParcours(id: number): Promise<void> {
     await api.delete(`/api/parcours/${id}`);
+}
+
+export async function addParcoursCollaborator(
+    id: number,
+    userId: number,
+): Promise<{ parcours: import('@/types').ParcoursDetail }> {
+    const response = await api.post(`/api/parcours/${id}/collaborators`, { userId });
+    return response.data;
+}
+
+export async function removeParcoursCollaborator(
+    id: number,
+    userId: number,
+): Promise<{ parcours: import('@/types').ParcoursDetail }> {
+    const response = await api.delete(`/api/parcours/${id}/collaborators/${userId}`);
+    return response.data;
 }
 
 export default api;

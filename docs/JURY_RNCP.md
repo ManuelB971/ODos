@@ -34,7 +34,9 @@ Dernière mise à jour : juin 2026.
 | 6 | **Favori** | Cœur + compte → Mes favoris |
 | 7 | **Compte / Badges** | Profil, vitrine badges, paramètres |
 | 8 | *(optionnel)* **Export RGPD** | Paramètres → partage JSON |
-| 9 | *(navigateur)* **Admin** | MFA, CRUD activité ou badge, import CSV |
+| 9 | *(optionnel)* **Communauté** | Consentement → message privé ou fil forum |
+| 10 | *(optionnel)* **Parcours** | Ajouter activité → onglet Parcours → partager |
+| 11 | *(navigateur)* **Admin** | MFA, CRUD activité ou badge, import CSV |
 
 **Durée buffer :** 2 min pour questions / rechargement réseau.
 
@@ -47,7 +49,7 @@ Dernière mise à jour : juin 2026.
 | Recommandations LLM | `LLM_ENABLED=false` en prod | Fallback métier sans cloud LLM |
 | Carte | **Build natif** requis (pas Expo Go) | MapLibre + tuiles en ligne |
 | Stores | Pas de publication | Preview interne + doc conformité en cours |
-| Tests auto | Partiels | Jest + PHPUnit ciblés, CI sur `main` |
+| Tests auto | Partiels | Jest + PHPUnit ciblés, CI sur `main`, **PHPStan L8** |
 
 ### Points forts à mettre en avant (grille RNCP)
 
@@ -125,28 +127,38 @@ Cocher **OK** / **KO** / **N/A**. Tester sur **APK preview** + API prod sauf men
 | E4 | CGU / confidentialité (`/legal`) | ☐ | ☐ | |
 | E5 | Export données JSON (RGPD) | ☐ | ☐ | Optionnel jury |
 
-### F. Carte avancée (optionnel)
+### F. Social & parcours (optionnel)
 
 | # | Test | OK | KO | Notes |
 |---|------|:--:|:--:|-------|
-| F1 | Consentement exploration GPS | ☐ | ☐ | |
-| F2 | Progression zone / badge explorateur | ☐ | ☐ | |
+| F1 | Onglet Communauté : consentement puis forum ou messages | ☐ | ☐ | |
+| F2 | Onglet Parcours : créer / ouvrir un parcours | ☐ | ☐ | |
+| F3 | Partager une activité en chat (carte cliquable) | ☐ | ☐ | |
+| F4 | Paramètres → utilisateurs bloqués | ☐ | ☐ | |
 
-### G. Admin (navigateur)
-
-| # | Test | OK | KO | Notes |
-|---|------|:--:|:--:|-------|
-| G1 | Login admin + MFA | ☐ | ☐ | |
-| G2 | Liste / édition activité | ☐ | ☐ | |
-| G3 | Création ou import activité | ☐ | ☐ | Optionnel |
-
-### H. Régression stabilité
+### G. Carte avancée (optionnel)
 
 | # | Test | OK | KO | Notes |
 |---|------|:--:|:--:|-------|
-| H1 | Pas de crash après login (home avec carte) | ☐ | ☐ | |
-| H2 | 5 min d’usage (navigation tabs + carte) | ☐ | ☐ | |
-| H3 | Mode avion → message erreur réseau clair | ☐ | ☐ | |
+| G1 | Consentement exploration GPS | ☐ | ☐ | |
+| G2 | Progression zone / badge explorateur | ☐ | ☐ | |
+
+### H. Admin (navigateur)
+
+| # | Test | OK | KO | Notes |
+|---|------|:--:|:--:|-------|
+| H1 | Login admin + MFA | ☐ | ☐ | |
+| H2 | Liste / édition activité | ☐ | ☐ | |
+| H3 | Création ou import activité | ☐ | ☐ | Optionnel |
+
+### I. Régression stabilité
+
+| # | Test | OK | KO | Notes |
+|---|------|:--:|:--:|-------|
+| I1 | Pas de crash après login (home avec carte) | ☐ | ☐ | |
+| I2 | 5 min d’usage (navigation tabs + carte) | ☐ | ☐ | |
+| I3 | Mode avion → message erreur réseau clair | ☐ | ☐ | |
+| I4 | Recherche mosaïque pop : scroll sans crash | ☐ | ☐ | Fix FlatList juin 2026 |
 
 ---
 

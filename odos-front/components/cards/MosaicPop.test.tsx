@@ -22,6 +22,22 @@ jest.mock('expo-router', () => ({
   Link: ({ children }: { children: React.ReactNode }) => children,
 }));
 
+// La carte branche désormais le favori + l'ajout à un parcours (audit multi-accès).
+// On les neutralise ici pour garder un test de rendu pur, sans providers réseau.
+jest.mock('@/hooks/useFavoriteToggle', () => ({
+  useFavoriteToggle: () => ({
+    favoriteIds: [],
+    isFavorite: () => false,
+    toggleFavorite: jest.fn(),
+    canFavorite: true,
+    isPending: false,
+  }),
+}));
+
+jest.mock('@/components/social/ParcoursPickerSheet', () => ({
+  ParcoursPickerSheet: () => null,
+}));
+
 describe('Mosaïque pop', () => {
   it('renders the list row', () => {
     expect(() => render(<MosaicPopRow item={item} />)).not.toThrow();
@@ -29,6 +45,14 @@ describe('Mosaïque pop', () => {
 
   it('renders the carousel card', () => {
     expect(() => render(<MosaicPopCard item={item} />)).not.toThrow();
+  });
+
+  it('renders the compact grid card', () => {
+    expect(() => render(<MosaicPopCard item={item} variant="grid" />)).not.toThrow();
+  });
+
+  it('renders the full-width featured card', () => {
+    expect(() => render(<MosaicPopCard item={item} variant="featured" />)).not.toThrow();
   });
 
   // Régression : sur l'accueil en style « Mosaïque pop », la zone carte est

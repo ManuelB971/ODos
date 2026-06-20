@@ -8,8 +8,10 @@ import { FontFamily } from '@/constants/theme';
 import { FriendCard } from '@/components/social/FriendCard';
 import { FriendRequest } from '@/components/social/FriendRequest';
 import { UserSearchBar } from '@/components/social/UserSearchBar';
+import { UserLink } from '@/components/social/UserLink';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
+import { tapHaptic } from '@/utils/haptics';
 
 export default function FriendsScreen() {
   const colors = useOdosColors();
@@ -80,7 +82,10 @@ export default function FriendsScreen() {
             <FriendRequest
               key={req.id}
               request={req}
-              onAccept={() => acceptRequest.mutate(req.id)}
+              onAccept={() => {
+                tapHaptic();
+                acceptRequest.mutate(req.id);
+              }}
               onDecline={() => declineRequest.mutate(req.id)}
               loading={acceptRequest.isPending || declineRequest.isPending}
             />
@@ -102,9 +107,17 @@ export default function FriendsScreen() {
                 isMosaicPop && { borderWidth: 2.5, borderColor: pop.ink, backgroundColor: pop.paper },
               ]}
             >
-              <Text style={{ color: colors.text, fontFamily: FontFamily.uiMedium }}>
-                {share.sender?.displayName} → {share.activity?.name}
-              </Text>
+              <View style={styles.shareTitleRow}>
+                <UserLink userId={share.sender?.id} name={share.sender?.displayName}>
+                  <Text style={{ color: isMosaicPop ? pop.terra : colors.accent, fontFamily: FontFamily.uiBold }}>
+                    {share.sender?.displayName ?? 'Quelqu’un'}
+                  </Text>
+                </UserLink>
+                <Text style={{ color: colors.text, fontFamily: FontFamily.uiMedium, flexShrink: 1 }} numberOfLines={1}>
+                  {' → '}
+                  {share.activity?.name}
+                </Text>
+              </View>
               {share.message ? (
                 <Text style={{ color: colors.muted, fontFamily: FontFamily.ui }}>{share.message}</Text>
               ) : null}
@@ -148,6 +161,7 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: 16, paddingTop: 16, gap: 4 },
   sectionTitle: { fontSize: 15, marginBottom: 8 },
   shareCard: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 4, marginBottom: 8 },
+  shareTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
   empty: { textAlign: 'center', marginTop: 24, fontSize: 14 },
   list: { padding: 16, gap: 10, flexGrow: 1 },
   privacyBanner: {

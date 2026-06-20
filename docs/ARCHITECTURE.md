@@ -1,7 +1,7 @@
 # Architecture ODOS — carte du projet & gestion des données
 
 Document de référence pour comprendre la structure du dépôt, les flux applicatifs et le cycle de vie des données.  
-Dernière mise à jour : **mai 2026**.
+Dernière mise à jour : **juin 2026**.
 
 ---
 
@@ -122,6 +122,17 @@ La configuration des firewalls et `access_control` est dans `config/packages/sec
 | `UserAvatarController` | `POST/DELETE /api/me/avatar` (multipart) |
 | `MeAccountController` | `GET /api/me/export`, `DELETE /api/me` (RGPD) |
 | `ApiLogoutController` | `POST /api/logout` |
+| `SocialConsentController` | `POST /api/social/consent` |
+| `FriendshipController` | Amis : demandes, acceptation, refus |
+| `UserSearchController` | `GET /api/users/search` (profils publics) |
+| `UserBlockController` | `GET /api/users/blocked`, `POST/DELETE /api/users/{id}/block` |
+| `UserProfileController` | `GET /api/users/{id}` (profil public) |
+| `ChatController` | Conversations 1-to-1, messages (+ `activityId` / `parcoursId`) |
+| `GroupController` | Groupes, membres, messages groupe |
+| `GroupInvitationController` | Invitations groupe |
+| `ForumThreadController` / `ForumReplyController` | Forum, likes |
+| `ParcoursController` | CRUD parcours, étapes, cover, collaborateurs |
+| `SocialUnreadCountController` | Compteurs non-lus social |
 
 Formats API : JSON et JSON-LD (Hydra). Le mobile consomme surtout du JSON (`Accept: application/json`) et gère `hydra:member` pour les collections.
 
@@ -135,6 +146,10 @@ Formats API : JSON et JSON-LD (Hydra). Le mobile consomme surtout du JSON (`Acce
 | `UserDeletionService` | Effacement compte art. 17 (anonymisation commentaires, purge tokens) |
 | `ActivityImportService` | Import CSV admin |
 | `ActivityPhotoUploader` / avatar | Fichiers sur disque sous `public/uploads/` |
+| `FriendshipService` | Amis, blocage, révocation collaborations parcours |
+| `ChatService` | Messages privés, pièces jointes activité/parcours |
+| `ParcoursService` | CRUD parcours, accès, cover, collaborateurs |
+| `GroupChatService` | Messages groupe (+ attachments) |
 
 ### 3.4 State API Platform (`src/State/`)
 
@@ -158,9 +173,15 @@ app/
 ├── (tabs)/
 │   ├── index.tsx        # Accueil (recommandations)
 │   ├── search.tsx       # Recherche + carte
-│   ├── favorites.tsx    # Favoris
-│   └── account.tsx      # Compte
-├── activity/[id].tsx    # Détail (note, commentaires, favori)
+│   ├── parcours.tsx     # Bibliothèque parcours (onglet central)
+│   ├── community/       # Forum | Amis | Messages | Groupes
+│   └── account.tsx      # Compte (lien Favoris)
+├── activity/[id].tsx    # Détail (note, commentaires, favori, parcours)
+├── parcours/[id].tsx    # Détail parcours (carte, étapes, partage)
+├── chat/[id].tsx        # Chat privé
+├── group-chat/[id].tsx  # Chat de groupe
+├── profile/[id].tsx     # Profil public, blocage
+├── blocked-users.tsx    # Liste utilisateurs bloqués
 ├── map.tsx              # Expérience carte plein écran
 ├── login.tsx, settings.tsx, interests.tsx, legal.tsx
 ```
@@ -194,7 +215,7 @@ flowchart LR
 | Couche | Fichiers | Responsabilité |
 |--------|----------|----------------|
 | **Session** | `context/AuthContext.tsx`, `services/AuthService.ts` | Login, `/api/me`, logout, purge cache au changement de compte |
-| **Cache API** | `hooks/useActivities.ts`, `useFavorites.ts`, `useRecommendations.ts`, `useSearchActivities.ts` | `queryKey` + `staleTime` par domaine |
+| **Cache API** | `hooks/useActivities.ts`, `useFavorites.ts`, `useRecommendations.ts`, `useSearchActivities.ts`, `useParcours.ts`, `useChat.ts`, `useFriendships.ts`, `useBlocks.ts` | `queryKey` + `staleTime` par domaine |
 | **HTTP** | `scripts/api.ts` | Base URL `EXPO_PUBLIC_API_URL`, refresh automatique sur 401 |
 | **Erreurs** | `utils/errorHandling.ts` | Mapping HTTP → messages utilisateur (dont 429) |
 
@@ -260,7 +281,7 @@ erDiagram
 
 | Entité | Table | Rôle |
 |--------|-------|------|
-| `User` | `user` | Compte mobile (email, alias, bio, avatar, rôles, consentement CGU) |
+| `User` | `user` | Compte mobile (email, alias, bio, avatar, rôles, consentement CGU, `profilePublic`, consentement social) |
 | `Category` | `category` | Taxonomie activités + centres d’intérêt |
 | `Activity` | `activity` | Lieu, coords, prix, publication, agrégats `ratingAverage` / `ratingCount` |
 | `Comment` | `comments` | Avis utilisateur ; soft hide (`isHidden`), édition (`isEdited`) |
@@ -268,6 +289,11 @@ erDiagram
 | `RefreshToken` | (bundle Gesdinet) | Refresh JWT |
 | `AdminAuditLog` | `admin_audit_log` | Traçabilité actions admin |
 | `AdminWebauthnCredential` | — | Clés WebAuthn MFA admin |
+| `Friendship` | `friendship` | Demandes d’amis, statut (`Pending`, `Accepted`, `Blocked`, …) |
+| `ChatConversation` / `ChatMessage` | `chat_*` | Messages privés (+ FK activité / parcours) |
+| `ActivityGroup` / `GroupMessage` | `activity_group`, `group_message` | Groupes et fil (+ FK activité / parcours) |
+| `ForumThread` / `ForumReply` | `forum_*` | Forum communautaire |
+| `Parcours` / `ParcoursItem` / `ParcoursCollaborator` | `parcours*` | Itinéraires collaboratifs, visibilité, cover |
 
 Tables de jointure implicites Doctrine :
 
@@ -286,6 +312,7 @@ Sur `Activity` :
 |-------------|---------|--------------|
 | `public/uploads/avatars/` | Avatars utilisateurs | Supprimé à l’effacement compte |
 | `public/uploads/activities/` | Photos activités (import admin) | Lié à l’entité `Activity.imageUrl` |
+| `public/uploads/parcours/` | Pochettes parcours | Lié à `Parcours.coverImageUrl` |
 | Logs Nginx / Monolog | Accès, erreurs, audit | Voir `docs/LOG_RETENTION.md` |
 | Cache Redis | Clés `llm_recommendations` | TTL `LLM_CACHE_TTL_SECONDS` (défaut 1800 s) |
 
@@ -351,7 +378,7 @@ Détails juridiques et durées : **`docs/RGPD_registre.md`**, **`docs/LOG_RETENT
 
 ### 8.2 CI/CD
 
-- **`/.github/workflows/ci.yml`** — PHPUnit, PHPStan, lint/tests front, image Docker prod
+- **`/.github/workflows/ci.yml`** — PHPUnit, **PHPStan niveau 8**, lint/tests front, image Docker prod
 - **`/.github/workflows/deploy-prod.yml`** — Déploiement Contabo (après CI sur `main`, si activé)
 
 Voir **`docs/CI_CD_V2_2026.md`** et **`docs/PROD_SANS_DOMAINE.md`**.
@@ -382,6 +409,14 @@ Voir **`docs/CI_CD_V2_2026.md`** et **`docs/PROD_SANS_DOMAINE.md`**.
 | GET/POST | `/api/activities/{id}/comments` | GET public / POST User | `Comment` |
 | PATCH/DELETE | `/api/comments/{id}` | User (auteur) | `Comment` |
 | POST/DELETE | `/api/me/avatar` | User | fichier + `User.avatarUrl` |
+| POST | `/api/social/consent` | User | `User.socialConsentedAt` |
+| GET/POST/PATCH | `/api/friendships` | User | `Friendship` |
+| GET | `/api/users/search` | User | recherche profils publics |
+| POST/DELETE | `/api/users/{id}/block` | User | blocage + effets sociaux |
+| GET/POST | `/api/chat/conversations/*` | User | `ChatConversation`, `ChatMessage` |
+| GET/POST | `/api/groups/*` | User | groupes, messages |
+| GET/POST | `/api/forum/*` | User | forum |
+| GET/POST/PATCH/DELETE | `/api/parcours/*` | User | `Parcours`, items, cover, collaborateurs |
 
 Admin : CRUD EasyAdmin sur les mêmes entités + import CSV + export logs.
 

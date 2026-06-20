@@ -1,6 +1,6 @@
 # Audit DA app mobile — checklist §10
 
-Référence : [`DESIGN_DIRECTION.md`](DESIGN_DIRECTION.md) · Mai 2026
+Référence : [`DESIGN_DIRECTION.md`](DESIGN_DIRECTION.md) · [`AUDIT_UI_UX_FRONT.md`](AUDIT_UI_UX_FRONT.md) · Juin 2026
 
 Ce document suit l’état **écran par écran** avant release. Mettre à jour à chaque itération DA.
 
@@ -32,6 +32,11 @@ Critères §10 : fond `#FDF8F2` (clair), orange réservé aux accents/CTA, 3 pol
 | **Activity [id]** | ✅ | ✅ titres | ❌ | 🟡 | 🟡 |
 | **Badges** | ✅ | ✅ | ❌ | ✅ blobs | ✅ |
 | **Legal** | 🟡 | 🟡 | ❌ | — | 🟡 |
+| **Parcours (tabs/parcours)** | ✅ | ✅ | 🟡 | ✅ CTA central | 🟡 |
+| **Parcours détail** | ✅ | ✅ | ❌ | ✅ | 🟡 |
+| **Communauté (forum/amis/messages/groupes)** | ✅ | ✅ | 🟡 | 🟡 | 🟡 |
+| **Chat / group-chat** | ✅ | 🟡 | ❌ | — | 🟡 |
+| **Profil public / blocked-users** | ✅ | ✅ | ❌ | 🟡 | 🟡 |
 
 ---
 
@@ -45,6 +50,9 @@ Critères §10 : fond `#FDF8F2` (clair), orange réservé aux accents/CTA, 3 pol
 | `SocialSignInButton` | ✅ | Guidelines Google/Apple |
 | `InputField` | 🟡 | Vérifier focus bleu action vs orange |
 | Mode sombre | 🟡 | ThemeProvider + picker Paramètres ; cartes settings partielles |
+| `MosaicPopCard` | 🟡 | Cœur favori `#E0245E` — à mapper `colors.danger` |
+| `UserAvatar` / `UserLink` | ✅ | Composants sociaux unifiés |
+| `ParcoursCard` / `ThreadCard` / `FriendCard` | 🟡 | Tokens mosaicPop ; polish juin 2026 |
 | Icônes blob (§4) | 🟡 | Badges + vitrine profil via `BlobFrame` |
 | Header blur (§6) | ❌ | Pas de barre verre native |
 
@@ -71,7 +79,8 @@ Critères §10 : fond `#FDF8F2` (clair), orange réservé aux accents/CTA, 3 pol
 3. **Mode sombre** — hook thème + écrans principaux.
 4. **Formes blob** — étapes onboarding, tuiles badges.
 5. **Search** — option spray léger en header (facultatif).
-6. **Motion** — `AccessibilityInfo` + reduced motion sur listes.
+6. **Parcours / Communauté** — CTAs custom → `CTAButton` où pertinent ; spray headers optionnel.
+7. **Motion** — `AccessibilityInfo` + reduced motion sur listes.
 
 ---
 
@@ -83,4 +92,4 @@ Critères §10 : fond `#FDF8F2` (clair), orange réservé aux accents/CTA, 3 pol
 
 ---
 
-*Dernière mise à jour : mai 2026 — après sprint splash / onboarding / home / OAuth.*
+*Dernière mise à jour : juin 2026 — après sprint parcours, communauté, blocage.*

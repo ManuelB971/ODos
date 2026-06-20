@@ -26,6 +26,7 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 import { FontFamily } from '@/constants/theme';
 import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
 import { MosaicPopCard, MosaicPopRow } from '@/components/cards/MosaicPopCard';
+import { CTAButton } from '@/components/ui/CTAButton';
 
 const serif = FontFamily.display;
 const sans = FontFamily.ui;
@@ -197,7 +198,18 @@ export default function SearchScreen() {
           <View style={styles.searchResultsBlock}>
             <Text style={styles.sectionLabel}>Résultats</Text>
             {filtered.length === 0 ? (
-              <Text style={styles.emptyText}>Aucun résultat trouvé</Text>
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>Aucun résultat trouvé</Text>
+                <CTAButton
+                  label="Effacer la recherche"
+                  size="sm"
+                  variant="secondary"
+                  onPress={() => {
+                    setSearchQuery('');
+                    setActiveChip('Tout');
+                  }}
+                />
+              </View>
             ) : (
               filtered.map((item) => (
                 <SearchResultRow key={item.id} item={item} onPress={() => navigateToActivity(item.id)} />
@@ -292,7 +304,7 @@ function MosaicPopBrowseSection({
           <View style={styles.badge}>
             <Text style={styles.badgeText}>INCONTOURNABLE</Text>
           </View>
-          <MosaicPopCard item={featured} variant="carousel" />
+          <MosaicPopCard item={featured} variant="featured" />
         </View>
       ) : null}
 
@@ -745,6 +757,11 @@ function createStyles(colors: OdosColorPalette) {
     fontSize: 12,
     color: colors.muted,
     marginTop: 2,
+  },
+  emptyState: {
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 24,
   },
   emptyText: {
     textAlign: 'center',

@@ -8,6 +8,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { useMotionConfig } from '@/constants/motion';
 
 export type SkeletonProps = {
   width?: number | `${number}%`;
@@ -23,15 +24,20 @@ export type SkeletonProps = {
 export function Skeleton({ width = '100%', height = 16, radius = 8, style }: SkeletonProps) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const motion = useMotionConfig();
   const shimmer = useSharedValue(0);
 
   useEffect(() => {
+    if (motion.reduced) {
+      shimmer.value = 1;
+      return;
+    }
     shimmer.value = withRepeat(
       withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
       -1,
       true
     );
-  }, [shimmer]);
+  }, [shimmer, motion.reduced]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: 0.55 + shimmer.value * 0.35,

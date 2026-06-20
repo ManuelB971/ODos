@@ -9,6 +9,7 @@ use App\Entity\Parcours;
 use App\Entity\ParcoursCollaborator;
 use App\Entity\ParcoursItem;
 use App\Entity\User;
+use App\Enum\ParcoursVisibility;
 use App\Repository\ParcoursCollaboratorRepository;
 use App\Repository\ParcoursItemRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,6 +32,7 @@ final class ParcoursService
         private readonly ParcoursItemRepository $itemRepository,
         private readonly ParcoursCollaboratorRepository $collaboratorRepository,
         private readonly CommentContentSanitizer $sanitizer,
+        private readonly FriendshipService $friendshipService,
         private readonly EntityManagerInterface $em,
     ) {
     }
@@ -40,9 +42,22 @@ final class ParcoursService
         return $parcours->getOwner()?->getId() === $user->getId();
     }
 
+    /**
+     * Droit d'édition (= ancien « accès ») : propriétaire ou collaborateur.
+     */
     public function canAccess(Parcours $parcours, User $user): bool
     {
         return $this->isOwner($parcours, $user) || $this->collaboratorRepository->exists($parcours, $user);
+    }
+
+    /**
+     * Droit de consultation : un parcours public est lisible par tout utilisateur
+     * connecté (lien partagé façon Spotify) ; un parcours privé reste réservé au
+     * propriétaire et aux collaborateurs.
+     */
+    public function canView(Parcours $parcours, User $user): bool
+    {
+        return ParcoursVisibility::Public === $parcours->getVisibility() || $this->canAccess($parcours, $user);
     }
 
     public function assertAccess(Parcours $parcours, User $user): void
@@ -52,7 +67,7 @@ final class ParcoursService
         }
     }
 
-    public function create(User $owner, string $title, ?string $description = null): Parcours
+    public function create(User $owner, string $title, ?string $description = null, ?ParcoursVisibility $visibility = null): Parcours
     {
         $title = $this->sanitizer->sanitize(trim($title));
         if (mb_strlen($title) < 2 || mb_strlen($title) > self::TITLE_MAX) {
@@ -63,6 +78,9 @@ final class ParcoursService
         $parcours->setOwner($owner);
         $parcours->setTitle($title);
         $parcours->setDescription($this->cleanDescription($description));
+        if (null !== $visibility) {
+            $parcours->setVisibility($visibility);
+        }
 
         $this->em->persist($parcours);
         $this->em->flush();
@@ -70,7 +88,7 @@ final class ParcoursService
         return $parcours;
     }
 
-    public function rename(Parcours $parcours, ?string $title, ?string $description): void
+    public function rename(Parcours $parcours, ?string $title, ?string $description, ?ParcoursVisibility $visibility = null): void
     {
         if (null !== $title) {
             $title = $this->sanitizer->sanitize(trim($title));
@@ -81,6 +99,9 @@ final class ParcoursService
         }
         if (null !== $description) {
             $parcours->setDescription($this->cleanDescription($description));
+        }
+        if (null !== $visibility) {
+            $parcours->setVisibility($visibility);
         }
 
         $parcours->touch();
@@ -156,13 +177,19 @@ final class ParcoursService
     }
 
     /**
-     * Ajoute un collaborateur (idempotent). Utilisé au partage d'un parcours dans
-     * une conversation : le destinataire gagne l'accès en édition.
+     * Ajoute un collaborateur (idempotent). La co-édition est réservée aux **amis**
+     * du propriétaire : on ne peut inviter en collaboration que quelqu'un avec qui
+     * on est ami (cf. invitation explicite, découplée du simple partage de carte).
      */
     public function addCollaborator(Parcours $parcours, User $user): void
     {
         if ($this->isOwner($parcours, $user) || $this->collaboratorRepository->exists($parcours, $user)) {
             return;
+        }
+
+        $owner = $parcours->getOwner();
+        if (!$owner instanceof User || !$this->friendshipService->areFriends($owner, $user)) {
+            throw new \InvalidArgumentException('La co-édition est réservée à vos amis.');
         }
 
         $collaborator = new ParcoursCollaborator();
@@ -171,6 +198,19 @@ final class ParcoursService
 
         $this->em->persist($collaborator);
         $this->em->flush();
+    }
+
+    /**
+     * Retire un collaborateur (sans effet s'il n'en est pas un). Les étapes qu'il a
+     * ajoutées restent dans le parcours.
+     */
+    public function removeCollaborator(Parcours $parcours, User $user): void
+    {
+        $collaborator = $this->collaboratorRepository->findCollaborator($parcours, $user);
+        if (null !== $collaborator) {
+            $this->em->remove($collaborator);
+            $this->em->flush();
+        }
     }
 
     public function delete(Parcours $parcours, User $user): void

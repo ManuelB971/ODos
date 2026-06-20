@@ -17,6 +17,8 @@ Chaque fiche décrit le principe, les routes API, les fichiers mobile et les lie
 | [carte-interactive.md](carte-interactive.md) | MapLibre plein écran, pins, bottom sheet |
 | [exploration-carte.md](exploration-carte.md) | GPS, cellules geohash, % zone, badge Explorateur |
 | [favoris.md](favoris.md) | Ajout / retrait, écran Mes favoris |
+| [parcours.md](parcours.md) | Itinéraires collaboratifs, carte, partage |
+| [communaute-sociale.md](communaute-sociale.md) | Forum, amis, chat, groupes, blocage |
 | [notes-activites.md](notes-activites.md) | Notation 1–5 étoiles |
 | [commentaires.md](commentaires.md) | Fil d’avis, édition auteur |
 | [badges-gamification.md](badges-gamification.md) | Badges, déblocage, vitrine profil |
@@ -39,6 +41,7 @@ Chaque fiche décrit le principe, les routes API, les fichiers mobile et les lie
 |----------|--------|
 | [../DESIGN_JAKOB_FLOWS.md](../DESIGN_JAKOB_FLOWS.md) | Flows UX — loi de Jakob, audit parcours, grille réutilisable |
 | [../DESIGN_DIRECTION.md](../DESIGN_DIRECTION.md) | DA mobile : tokens, typo, composants |
+| [../AUDIT_UI_UX_FRONT.md](../AUDIT_UI_UX_FRONT.md) | **Audit UI/UX fusionné** (Pro Max × Jakob : revue code, thèmes, engagement) |
 | [../DA_APP_GAP.md](../DA_APP_GAP.md) | Audit conformité DA écran par écran |
 | [../GAMIFICATION.md](../GAMIFICATION.md) | Implémentation badges (modèle, tests, admin) |
 | [../TODO_GAMIFICATION_BADGES.md](../TODO_GAMIFICATION_BADGES.md) | Plan de livraison gamification |
@@ -60,6 +63,8 @@ docs/fonctionnalites/
 ├── carte-interactive.md
 ├── exploration-carte.md
 ├── favoris.md
+├── parcours.md
+├── communaute-sociale.md
 ├── notes-activites.md
 ├── commentaires.md
 ├── badges-gamification.md

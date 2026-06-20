@@ -1,18 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import {
+  addParcoursCollaborator,
   addParcoursItem,
   createParcours,
   deleteParcours,
+  deleteParcoursCover,
   fetchParcours,
   fetchParcoursDetail,
+  removeParcoursCollaborator,
   removeParcoursItem,
   reorderParcoursItems,
   updateParcours,
+  uploadParcoursCover,
 } from '@/scripts/api';
 import { useAuth } from '@/context/AuthContext';
 import { logError } from '@/utils/errorHandling';
-import type { ParcoursDetail } from '@/types';
+import type { ParcoursDetail, ParcoursVisibility } from '@/types';
 
 export const PARCOURS_LIST_KEY = ['parcours'] as const;
 
@@ -66,10 +70,32 @@ export function useParcoursMutations(id?: number) {
   });
 
   const rename = useMutation({
-    mutationFn: ({ parcoursId, title, description }: { parcoursId: number; title?: string; description?: string }) =>
-      updateParcours(parcoursId, { title, description }),
+    mutationFn: ({
+      parcoursId,
+      title,
+      description,
+      visibility,
+    }: {
+      parcoursId: number;
+      title?: string;
+      description?: string;
+      visibility?: ParcoursVisibility;
+    }) => updateParcours(parcoursId, { title, description, visibility }),
     onSuccess: ({ parcours }) => writeDetail(parcours),
     onError: (err) => logError('useParcours.rename', err),
+  });
+
+  const uploadCover = useMutation({
+    mutationFn: ({ parcoursId, file }: { parcoursId: number; file: { uri: string; name: string; mimeType: string } }) =>
+      uploadParcoursCover(parcoursId, file),
+    onSuccess: ({ parcours }) => writeDetail(parcours),
+    onError: (err) => logError('useParcours.uploadCover', err),
+  });
+
+  const removeCover = useMutation({
+    mutationFn: (parcoursId: number) => deleteParcoursCover(parcoursId),
+    onSuccess: ({ parcours }) => writeDetail(parcours),
+    onError: (err) => logError('useParcours.removeCover', err),
   });
 
   const addItem = useMutation({
@@ -122,5 +148,32 @@ export function useParcoursMutations(id?: number) {
     onError: (err) => logError('useParcours.remove', err),
   });
 
-  return { create, rename, addItem, removeItem, reorder, remove, parcoursId: id };
+  // Invitation explicite à co-éditer : réservée aux amis (vérifié côté API).
+  const addCollaborator = useMutation({
+    mutationFn: ({ parcoursId, userId }: { parcoursId: number; userId: number }) =>
+      addParcoursCollaborator(parcoursId, userId),
+    onSuccess: ({ parcours }) => writeDetail(parcours),
+    onError: (err) => logError('useParcours.addCollaborator', err),
+  });
+
+  const removeCollaborator = useMutation({
+    mutationFn: ({ parcoursId, userId }: { parcoursId: number; userId: number }) =>
+      removeParcoursCollaborator(parcoursId, userId),
+    onSuccess: ({ parcours }) => writeDetail(parcours),
+    onError: (err) => logError('useParcours.removeCollaborator', err),
+  });
+
+  return {
+    create,
+    rename,
+    uploadCover,
+    removeCover,
+    addItem,
+    removeItem,
+    reorder,
+    remove,
+    addCollaborator,
+    removeCollaborator,
+    parcoursId: id,
+  };
 }

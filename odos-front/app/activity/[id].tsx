@@ -11,7 +11,7 @@ import {
   Linking,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { MapPin, ArrowLeft, Heart, Navigation, CircleCheck, Share2, Route } from 'lucide-react-native';
+import { MapPin, ArrowLeft, Heart, Navigation, CircleCheck, MoreHorizontal } from 'lucide-react-native';
 import { DaIcon } from '@/components/ui/DaIcon';
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { CTAButton } from '@/components/ui/CTAButton';
@@ -406,7 +406,7 @@ export default function ActivityDetails() {
         <View style={styles.heroWrap}>
           <Skeleton width="100%" height="100%" radius={0} />
           <View style={styles.heroOverlay}>
-            <Pressable style={styles.heroButton} onPress={() => router.back()} hitSlop={8}>
+            <Pressable style={styles.heroButton} onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Retour">
               <ArrowLeft color={colors.text} size={22} />
             </Pressable>
           </View>
@@ -432,7 +432,7 @@ export default function ActivityDetails() {
   if (error || !activity) {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <Pressable style={styles.backButtonStandalone} onPress={() => router.back()}>
+        <Pressable style={styles.backButtonStandalone} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Retour">
           <ArrowLeft color={colors.text} size={24} />
         </Pressable>
         <Text style={styles.errorText}>{error ?? 'Activité introuvable'}</Text>
@@ -461,6 +461,19 @@ export default function ActivityDetails() {
     }
     if (!canToggleFavorite) return;
     toggleFavoriteMutation.mutate({ targetActivityId: activityId, currentlyFavorite: isFavorite });
+  };
+
+  // Actions secondaires regroupées sous « … » pour ne pas concurrencer le cœur
+  // ni le sticky « Y aller » (un seul primaire par zone).
+  const openHeroMenu = () => {
+    const options: { text: string; onPress?: () => void; style?: 'cancel' }[] = [
+      { text: 'Ajouter à un parcours', onPress: () => setParcoursVisible(true) },
+    ];
+    if (user?.socialConsentedAt) {
+      options.push({ text: 'Partager', onPress: () => setShareVisible(true) });
+    }
+    options.push({ text: 'Annuler', style: 'cancel' });
+    Alert.alert(activity?.name ?? 'Activité', undefined, options);
   };
 
   const onVisitedPress = () => {
@@ -508,32 +521,10 @@ export default function ActivityDetails() {
             <View style={[styles.heroImage, styles.heroPlaceholder]} />
           )}
           <View style={styles.heroOverlay}>
-            <Pressable style={styles.heroButton} onPress={() => router.back()} hitSlop={8}>
+            <Pressable style={styles.heroButton} onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Retour">
               <ArrowLeft color={colors.text} size={22} />
             </Pressable>
             <View style={styles.heroActions}>
-              {isAuthenticated ? (
-                <Pressable
-                  style={({ pressed }) => [styles.heroButton, pressed && styles.favoriteButtonPressed]}
-                  onPress={() => setParcoursVisible(true)}
-                  hitSlop={12}
-                  accessibilityRole="button"
-                  accessibilityLabel="Ajouter à un parcours"
-                >
-                  <Route color={colors.primary} size={22} />
-                </Pressable>
-              ) : null}
-              {isAuthenticated && user?.socialConsentedAt ? (
-                <Pressable
-                  style={({ pressed }) => [styles.heroButton, pressed && styles.favoriteButtonPressed]}
-                  onPress={() => setShareVisible(true)}
-                  hitSlop={12}
-                  accessibilityRole="button"
-                  accessibilityLabel="Partager cette activité"
-                >
-                  <Share2 color={colors.primary} size={22} />
-                </Pressable>
-              ) : null}
               <Pressable
                 style={({ pressed }) => [styles.heroButton, pressed && styles.favoriteButtonPressed]}
                 onPress={onFavoritePress}
@@ -548,6 +539,17 @@ export default function ActivityDetails() {
                   size={22}
                 />
               </Pressable>
+              {isAuthenticated ? (
+                <Pressable
+                  style={({ pressed }) => [styles.heroButton, pressed && styles.favoriteButtonPressed]}
+                  onPress={openHeroMenu}
+                  hitSlop={12}
+                  accessibilityRole="button"
+                  accessibilityLabel="Plus d'actions"
+                >
+                  <MoreHorizontal color={colors.primary} size={22} />
+                </Pressable>
+              ) : null}
             </View>
           </View>
         </View>
