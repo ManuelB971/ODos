@@ -18,6 +18,8 @@ import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { UserAvatar } from '@/components/social/UserAvatar';
 import { UserLink } from '@/components/social/UserLink';
+import { CTAButton } from '@/components/ui/CTAButton';
+import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import type { GroupMemberItem, GroupRole } from '@/types';
 
 const ROLE_LABEL: Record<GroupRole, string> = {
@@ -30,6 +32,8 @@ export default function GroupDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = Number(id);
   const colors = useOdosColors();
+  const isMosaicPop = useIsMosaicPop();
+  const pop = usePopTokens();
   const router = useRouter();
   const { user } = useAuth();
   const { data, isLoading } = useGroupDetail(groupId);
@@ -138,29 +142,23 @@ export default function GroupDetailScreen() {
 
             {/* Actions principales */}
             {isMember ? (
-              <Pressable
+              <CTAButton
+                label="Ouvrir la discussion"
                 onPress={() => router.push(`/group-chat/${groupId}`)}
-                style={[styles.primary, { backgroundColor: colors.accent }]}
-              >
-                <MessageCircle size={18} color={colors.onAccent} />
-                <Text style={[styles.primaryText, { color: colors.onAccent, fontFamily: FontFamily.uiBold }]}>
-                  Ouvrir la discussion
-                </Text>
-              </Pressable>
+                fullWidth
+                leftIcon={<MessageCircle size={18} color={isMosaicPop ? pop.ink : colors.onAccent} />}
+              />
             ) : group.isPrivate ? (
               <Text style={[styles.note, { color: colors.muted, fontFamily: FontFamily.ui }]}>
                 Groupe privé — vous devez être invité pour le rejoindre.
               </Text>
             ) : (
-              <Pressable
+              <CTAButton
+                label="Rejoindre le groupe"
                 onPress={() => join.mutate(groupId)}
-                disabled={join.isPending}
-                style={[styles.primary, { backgroundColor: colors.accent }]}
-              >
-                <Text style={[styles.primaryText, { color: colors.onAccent, fontFamily: FontFamily.uiBold }]}>
-                  {join.isPending ? '…' : 'Rejoindre le groupe'}
-                </Text>
-              </Pressable>
+                loading={join.isPending}
+                fullWidth
+              />
             )}
 
             {/* Boutons secondaires */}
@@ -320,8 +318,6 @@ const styles = StyleSheet.create({
   title: { fontSize: 24 },
   desc: { fontSize: 14, lineHeight: 20 },
   meta: { fontSize: 13 },
-  primary: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 12, paddingVertical: 14 },
-  primaryText: { fontSize: 15 },
   note: { fontSize: 13, fontStyle: 'italic', paddingVertical: 8 },
   actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   secondary: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9 },

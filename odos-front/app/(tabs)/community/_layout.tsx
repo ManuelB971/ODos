@@ -58,8 +58,16 @@ function SocialConsentGate({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      <Modal visible={visible} transparent animationType="fade">
-        <View style={[styles.backdrop, { backgroundColor: 'rgba(0,0,0,0.5)' }]}>
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setVisible(false)}
+      >
+        <View
+          style={[styles.backdrop, { backgroundColor: 'rgba(0,0,0,0.5)' }]}
+          accessibilityViewIsModal
+        >
           <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
             <Text style={[styles.title, { color: colors.text, fontFamily: FontFamily.display }]}>
               Communauté ODOS
@@ -74,6 +82,8 @@ function SocialConsentGate({ children }: { children: React.ReactNode }) {
               onPress={accept}
               disabled={loading}
               style={[styles.cta, { backgroundColor: colors.accent }]}
+              accessibilityRole="button"
+              accessibilityLabel="J'accepte et rejoins la communaut\u00e9"
             >
               {loading ? (
                 <ActivityIndicator color={colors.onAccent} />
@@ -82,6 +92,17 @@ function SocialConsentGate({ children }: { children: React.ReactNode }) {
                   {"J\u2019accepte"}
                 </Text>
               )}
+            </Pressable>
+            <Pressable
+              onPress={() => setVisible(false)}
+              disabled={loading}
+              style={styles.laterBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Plus tard, parcourir sans rejoindre la communaut\u00e9"
+            >
+              <Text style={[styles.laterText, { color: colors.muted, fontFamily: FontFamily.uiMedium }]}>
+                Plus tard
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -134,4 +155,6 @@ const styles = StyleSheet.create({
   body: { fontSize: 14, lineHeight: 20 },
   cta: { marginTop: 8, borderRadius: 12, paddingVertical: 14, alignItems: 'center' },
   ctaText: { fontSize: 15 },
+  laterBtn: { paddingVertical: 12, alignItems: 'center' },
+  laterText: { fontSize: 14 },
 });

@@ -315,7 +315,7 @@ export default function SettingsScreen() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <Pressable style={styles.headerBtn} onPress={() => router.back()} hitSlop={8}>
+        <Pressable style={styles.headerBtn} onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Retour">
           <ArrowLeft color={colors.text} size={22} />
         </Pressable>
         <Text style={styles.headerTitle}>Paramètres</Text>

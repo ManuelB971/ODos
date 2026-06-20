@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
+import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { Map, Camera as MapCamera, Marker } from '@maplibre/maplibre-react-native';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { Camera, ChevronDown, ChevronUp, Globe, Lock, Pencil, Plus, Route, Share2, Trash2, UserPlus, X } from 'lucide-react-native';
@@ -49,7 +50,7 @@ export default function ParcoursDetailScreen() {
 
   const { user } = useAuth();
   const { data, isLoading } = useParcoursDetail(parcoursId);
-  const { addItem, removeItem, reorder, rename, uploadCover, addCollaborator, removeCollaborator } =
+  const { addItem, removeItem, reorder, rename, uploadCover, addCollaborator, removeCollaborator, remove } =
     useParcoursMutations(parcoursId);
   const { startConversation, sendMessage } = useChatMutations();
 
@@ -207,6 +208,26 @@ export default function ParcoursDetailScreen() {
   const toggleVisibility = () => {
     if (!isOwner) return;
     rename.mutate({ parcoursId, visibility: isPublic ? 'private' : 'public' });
+  };
+
+  const confirmDelete = () => {
+    if (!isOwner) return;
+    Alert.alert(
+      'Supprimer le parcours',
+      `Supprimer « ${parcours?.title ?? 'ce parcours'} » ? Cette action est définitive.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: () =>
+            remove.mutate(parcoursId, {
+              onSuccess: () => router.back(),
+              onError: (err) => Alert.alert('Parcours', toAppError(err, 'Suppression impossible.').userMessage),
+            }),
+        },
+      ],
+    );
   };
 
   const canShare = !!user?.socialConsentedAt;
@@ -393,7 +414,8 @@ export default function ParcoursDetailScreen() {
             onPressCta={canEdit ? () => setPickerOpen(true) : undefined}
           />
         }
-        renderItem={({ item, index }) => (
+        renderItem={({ item, index }) => {
+          const row = (
           <View style={styles.itemRow}>
             <View style={styles.itemNumber}>
               <Text style={styles.itemNumberText}>{index + 1}</Text>
@@ -409,19 +431,72 @@ export default function ParcoursDetailScreen() {
             </Pressable>
             {canEdit ? (
               <View style={styles.itemActions}>
-                <Pressable onPress={() => move(index, -1)} disabled={index === 0} hitSlop={6} style={{ opacity: index === 0 ? 0.3 : 1 }}>
+                <Pressable
+                  onPress={() => move(index, -1)}
+                  disabled={index === 0}
+                  hitSlop={6}
+                  style={{ opacity: index === 0 ? 0.3 : 1 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Monter cette étape"
+                >
                   <ChevronUp size={20} color={colors.text} />
                 </Pressable>
-                <Pressable onPress={() => move(index, 1)} disabled={index === items.length - 1} hitSlop={6} style={{ opacity: index === items.length - 1 ? 0.3 : 1 }}>
+                <Pressable
+                  onPress={() => move(index, 1)}
+                  disabled={index === items.length - 1}
+                  hitSlop={6}
+                  style={{ opacity: index === items.length - 1 ? 0.3 : 1 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Descendre cette étape"
+                >
                   <ChevronDown size={20} color={colors.text} />
                 </Pressable>
-                <Pressable onPress={() => confirmRemove(item)} hitSlop={6}>
+                <Pressable
+                  onPress={() => confirmRemove(item)}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Retirer ${item.activity?.name ?? 'cette étape'} du parcours`}
+                >
                   <Trash2 size={18} color={colors.danger} />
                 </Pressable>
               </View>
             ) : null}
           </View>
-        )}
+          );
+
+          if (!canEdit) return row;
+          return (
+            <ReanimatedSwipeable
+              friction={2}
+              rightThreshold={40}
+              renderRightActions={() => (
+                <Pressable
+                  onPress={() => confirmRemove(item)}
+                  style={styles.swipeDelete}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Retirer ${item.activity?.name ?? 'cette étape'} du parcours`}
+                >
+                  <Trash2 size={20} color={colors.onAccent} />
+                </Pressable>
+              )}
+            >
+              {row}
+            </ReanimatedSwipeable>
+          );
+        }}
+        ListFooterComponent={
+          isOwner ? (
+            <Pressable
+              onPress={confirmDelete}
+              style={styles.deleteRow}
+              accessibilityRole="button"
+              accessibilityLabel="Supprimer le parcours"
+            >
+              <Trash2 size={16} color={colors.danger} />
+              <Text style={styles.deleteText}>Supprimer le parcours</Text>
+            </Pressable>
+          ) : null
+        }
       />
 
       <ActivityPickerSheet
@@ -575,5 +650,22 @@ function createStyles(colors: OdosColorPalette) {
     itemName: { fontFamily: FontFamily.uiMedium, fontSize: 15, color: colors.text },
     itemCity: { fontFamily: FontFamily.ui, fontSize: 13, color: colors.muted, marginTop: 2 },
     itemActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    deleteRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      marginTop: 28,
+      paddingVertical: 12,
+    },
+    deleteText: { fontFamily: FontFamily.uiMedium, fontSize: 14, color: colors.danger },
+    swipeDelete: {
+      backgroundColor: colors.danger,
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: 72,
+      marginVertical: 1,
+      borderRadius: 12,
+    },
   });
 }

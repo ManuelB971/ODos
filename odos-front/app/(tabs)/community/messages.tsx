@@ -21,7 +21,7 @@ export default function MessagesScreen() {
 
   return (
     <FlatList
-      style={{ backgroundColor: colors.background }}
+      style={{ backgroundColor: isMosaicPop ? pop.paper : colors.background }}
       data={conversations}
       keyExtractor={(item) => String(item.id)}
       refreshing={isRefetching}
@@ -35,6 +35,8 @@ export default function MessagesScreen() {
             icon={<MessageCircle size={28} color={isMosaicPop ? pop.ink : colors.onAccent} />}
             title="Aucune conversation"
             subtitle="Ajoutez un ami depuis l’onglet Amis, puis démarrez une conversation."
+            ctaLabel="Trouver des amis"
+            onPressCta={() => router.push('/community/friends')}
           />
         )
       }

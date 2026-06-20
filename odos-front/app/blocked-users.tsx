@@ -7,6 +7,7 @@ import { FontFamily } from '@/constants/theme';
 import { UserAvatar } from '@/components/social/UserAvatar';
 import { UserLink } from '@/components/social/UserLink';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
+import { ThemedScreen } from '@/components/ui/ThemedScreen';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 
 export default function BlockedUsersScreen() {
@@ -20,10 +21,9 @@ export default function BlockedUsersScreen() {
   const ink = isMosaicPop ? pop.ink : colors.text;
 
   return (
-    <>
+    <ThemedScreen noSafeArea>
       <Stack.Screen options={{ title: 'Utilisateurs bloqués', headerShown: true }} />
       <FlatList
-        style={{ backgroundColor: isMosaicPop ? pop.paper : colors.background }}
         data={blocked}
         keyExtractor={(item) => String(item.id)}
         refreshing={isRefetching}
@@ -78,7 +78,7 @@ export default function BlockedUsersScreen() {
           </View>
         )}
       />
-    </>
+    </ThemedScreen>
   );
 }
 

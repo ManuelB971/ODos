@@ -26,6 +26,7 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 import { lngDeltaToZoom } from '@/utils/mapViewport';
 import { MapPin as MapPinMarker } from '@/components/map/MapPin';
 import { SkeletonActivityRow, SkeletonRecommendationCard } from '@/components/ui/Skeleton';
+import { CTAButton } from '@/components/ui/CTAButton';
 import { MosaicPopCard, MosaicPopRow } from '@/components/cards/MosaicPopCard';
 import { MosaicPopMap } from '@/components/cards/MosaicPopMap';
 import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
@@ -145,7 +146,7 @@ export default function HomeScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { sprayOpacity, cardStyle, colorScheme } = useTheme();
   const { interests } = useInterests();
-  const { recommendations, loading, error } = useRecommendations(interests);
+  const { recommendations, loading, error, refresh } = useRecommendations(interests);
   const activitiesQuery = useActivities();
   const rawActivities = useMemo(() => activitiesQuery.data ?? [], [activitiesQuery.data]);
   const activitiesError = activitiesQuery.error
@@ -327,12 +328,20 @@ export default function HomeScreen() {
                   <SkeletonRecommendationCard />
                 </ScrollView>
               )}
-              {error && <Text style={styles.errorText}>{error}</Text>}
+              {error && (
+                <View style={styles.recoState}>
+                  <Text style={styles.errorText}>{error}</Text>
+                  <CTAButton label="Réessayer" size="sm" variant="secondary" onPress={() => refresh()} />
+                </View>
+              )}
               {!loading && !error && recommendations.length === 0 && interests.length > 0 && (
                 <Text style={styles.emptyText}>Aucune recommandation pour le moment.</Text>
               )}
               {!loading && !error && recommendations.length === 0 && interests.length === 0 && (
-                <Text style={styles.emptyText}>Sélectionnez vos centres d&apos;intérêt pour obtenir des recommandations.</Text>
+                <View style={styles.recoState}>
+                  <Text style={[styles.emptyText, styles.emptyWarm]}>Dites-nous ce que vous aimez, on s&apos;occupe du reste.</Text>
+                  <CTAButton label="Choisir mes intérêts" size="sm" onPress={() => router.push('/interests')} />
+                </View>
               )}
               {!loading && !error && recommendations.length > 0 && (
                 <ScrollView
@@ -476,6 +485,15 @@ function createStyles(colors: OdosColorPalette) {
   skeletonListWrap: {
     gap: 4,
     marginBottom: 20,
+  },
+  recoState: {
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+  },
+  emptyWarm: {
+    fontFamily: FontFamily.accent,
+    fontSize: 16,
   },
   errorText: {
     color: colors.danger,

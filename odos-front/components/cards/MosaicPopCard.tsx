@@ -63,6 +63,7 @@ type MosaicTokens = {
   surface: string;
   terra: string;
   muted: string;
+  danger: string;
 };
 
 function useMosaicTokens(): MosaicTokens {
@@ -74,6 +75,7 @@ function useMosaicTokens(): MosaicTokens {
       surface: colors.surface,
       terra: colors.accentHover,
       muted: colors.muted,
+      danger: colors.danger,
     }),
     [colors],
   );
@@ -197,8 +199,8 @@ export function MosaicPopCard({
                 >
                   <Heart
                     size={15}
-                    color={favorite ? '#E0245E' : t.muted}
-                    fill={favorite ? '#E0245E' : 'transparent'}
+                    color={favorite ? t.danger : t.muted}
+                    fill={favorite ? t.danger : 'transparent'}
                   />
                 </Pressable>
                 {fav.canFavorite ? (

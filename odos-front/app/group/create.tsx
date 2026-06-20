@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import {
-  ActivityIndicator,
-  Pressable,
   ScrollView,
   StyleSheet,
   Switch,
@@ -12,6 +10,7 @@ import {
 import { Stack, useRouter } from 'expo-router';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
+import { CTAButton } from '@/components/ui/CTAButton';
 import { useGroupMutations } from '@/hooks/useGroups';
 
 const NAME_MAX = 100;
@@ -91,17 +90,14 @@ export default function CreateGroupScreen() {
 
         {error ? <Text style={[styles.error, { color: colors.danger, fontFamily: FontFamily.ui }]}>{error}</Text> : null}
 
-        <Pressable
+        <CTAButton
+          label="Créer le groupe"
           onPress={onSubmit}
           disabled={!canSubmit}
-          style={[styles.cta, { backgroundColor: colors.accent, opacity: canSubmit ? 1 : 0.5 }]}
-        >
-          {create.isPending ? (
-            <ActivityIndicator color={colors.onAccent} />
-          ) : (
-            <Text style={[styles.ctaText, { color: colors.onAccent, fontFamily: FontFamily.uiBold }]}>Créer le groupe</Text>
-          )}
-        </Pressable>
+          loading={create.isPending}
+          fullWidth
+          style={styles.cta}
+        />
       </ScrollView>
     </>
   );
@@ -116,6 +112,5 @@ const styles = StyleSheet.create({
   switchTitle: { fontSize: 15 },
   switchSub: { fontSize: 12, marginTop: 2 },
   error: { fontSize: 13, marginTop: 12 },
-  cta: { marginTop: 24, borderRadius: 12, paddingVertical: 15, alignItems: 'center' },
-  ctaText: { fontSize: 16 },
+  cta: { marginTop: 24 },
 });

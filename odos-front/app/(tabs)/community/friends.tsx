@@ -11,6 +11,7 @@ import { UserSearchBar } from '@/components/social/UserSearchBar';
 import { UserLink } from '@/components/social/UserLink';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
+import { tapHaptic } from '@/utils/haptics';
 
 export default function FriendsScreen() {
   const colors = useOdosColors();
@@ -81,7 +82,10 @@ export default function FriendsScreen() {
             <FriendRequest
               key={req.id}
               request={req}
-              onAccept={() => acceptRequest.mutate(req.id)}
+              onAccept={() => {
+                tapHaptic();
+                acceptRequest.mutate(req.id);
+              }}
               onDecline={() => declineRequest.mutate(req.id)}
               loading={acceptRequest.isPending || declineRequest.isPending}
             />
