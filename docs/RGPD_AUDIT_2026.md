@@ -1,6 +1,8 @@
 # Audit RGPD — ODOS
 
-État des lieux mai 2026, après les sprints 1–3. Complète le [registre](RGPD_registre.md).
+État des lieux **juin 2026**, après les sprints social / parcours. Complète le [registre](RGPD_registre.md).
+
+> **Juin 2026 :** traitement **T11 — Communauté & modération sociale** ajouté au registre (messages, amis, blocages, pièces jointes). Consentement explicite via `POST /api/social/consent`.
 
 En bref : le code tient la route côté droits, sécurité de base et admin. Ce qui manque surtout, c'est l'exploitation prod (cron, HTTPS, CORS vérifié) et le contenu juridique complet (SIRET, mentions légales).
 

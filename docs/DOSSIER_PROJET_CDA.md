@@ -64,7 +64,7 @@ Le projet ODOS mobilise l'ensemble des compétences du référentiel CDA (arrêt
 |-----------|------------------------|
 | Préparer le déploiement | `docker-compose.yml`, `docker-compose.override.yml`, scripts de migration, `.env.example` documenté |
 | Sécurité applicative | JWT (Lexik, 15 min), refresh tokens (Gesdinet, 30 j), rate limiting (Symfony RateLimiter), argon2id mots de passe, CORS restreint, HTTPS |
-| Analyse de vulnérabilités | PHPStan niveau 7, audit OWASP OTOS-10 intégré à la conception |
+| Analyse de vulnérabilités | PHPStan niveau 8, audit OWASP OTOS-10 intégré à la conception |
 
 ---
 
@@ -127,7 +127,7 @@ Le projet a été développé en solo (développeur full-stack) avec :
 
 - **Outils de suivi :** Git (branches par fonctionnalité, commits conventionnels), GitHub Issues
 - **Méthodologie :** Kanban — colonnes Backlog / In Progress / Review / Done
-- **Revue de code :** auto-revue assistée par analyse statique (PHPStan L7, ESLint)
+- **Revue de code :** auto-revue assistée par analyse statique (PHPStan L8, ESLint)
 - **CI/CD :** GitHub Actions — tests + lint à chaque PR, build APK EAS à chaque tag
 
 ### 3.2 Planning synthétique
@@ -147,7 +147,7 @@ Le projet a été développé en solo (développeur full-stack) avec :
 
 ### 3.3 Objectifs de qualité
 
-- **Tests backend :** PHPUnit, tous les tests unitaires sans DB (repository mocké), PHPStan niveau 7 (0 erreur)
+- **Tests backend :** PHPUnit, tous les tests unitaires sans DB (repository mocké), PHPStan niveau 8 (0 erreur)
 - **Tests frontend :** Jest + Testing Library, couverture cible 70 %
 - **Qualité de code :** ESLint Expo, `failOnDeprecation` et `failOnWarning` PHPUnit activés
 - **Sécurité :** aucune donnée sensible commitée, `.env.example` systématiquement maintenu
@@ -1488,7 +1488,7 @@ Le service orchestre la suppression complète du compte :
 | A05 - Security Misconfiguration | `.env.local` hors Git, CORS restreint, headers sécurité Nginx |
 | A06 - Vulnerable Components | Dépendances pinées (`pnpm overrides`, `composer.lock`), audit Dependabot |
 | A07 - Auth Failures | JWT 15 min + refresh 30 j + rotation, throttle login 5/min, MFA admin |
-| A08 - Data Integrity | Validation Symfony, sanitization setters entités, PHPStan L7 |
+| A08 - Data Integrity | Validation Symfony, sanitization setters entités, PHPStan L8 |
 | A09 - Logging Failures | `SensitiveDataProcessor` Monolog, audit admin pseudonymisé |
 | A10 - SSRF | LLM self-hosted (Ollama sur réseau Docker interne, pas d'URL externe) |
 
@@ -1566,7 +1566,7 @@ jobs:
     steps:
       - composer install
       - php vendor/bin/phpunit          # Tests unitaires
-      - php vendor/bin/phpstan analyse  # Analyse statique L7
+      - php vendor/bin/phpstan analyse  # Analyse statique L8
 
   frontend:
     steps:
