@@ -223,6 +223,9 @@ export interface ParcoursItemDetail {
     activity: ParcoursActivitySnippet | null;
 }
 
+/** Visibilité d'un parcours (façon playlist). */
+export type ParcoursVisibility = 'public' | 'private';
+
 /** Résumé d'un parcours (listes, picker, carte de chat). */
 export interface ParcoursSummary {
     id: number;
@@ -230,8 +233,11 @@ export interface ParcoursSummary {
     description: string | null;
     itemCount: number;
     coverImageUrl: string | null;
+    visibility: ParcoursVisibility;
     owner: SocialUserSnippet | null;
     isOwner: boolean;
+    /** L'utilisateur courant peut-il éditer (propriétaire ou collaborateur) ? */
+    canEdit: boolean;
     collaboratorCount: number;
     updatedAt: string;
     createdAt: string;
@@ -274,6 +280,10 @@ export interface GroupMessageItem {
     author: SocialUserSnippet | null;
     groupId: number;
     isMine: boolean;
+    /** Activité partagée dans le fil de groupe, `null` pour un message texte simple. */
+    activity?: ChatActivitySnippet | null;
+    /** Parcours partagé dans le fil de groupe, `null` sinon. */
+    parcours?: ChatParcoursSnippet | null;
     createdAt: string;
 }
 

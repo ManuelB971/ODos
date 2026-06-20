@@ -3,7 +3,17 @@ import { fetchGroupMessages, markGroupMessagesRead, sendGroupMessage } from '@/s
 import { useAuth } from '@/context/AuthContext';
 import { SOCIAL_UNREAD_QUERY_KEY } from '@/hooks/useSocialUnreadCount';
 import { GROUPS_QUERY_KEY } from '@/hooks/useGroups';
-import type { GroupMessageItem, PaginatedMember } from '@/types';
+import type { ChatActivitySnippet, ChatParcoursSnippet, GroupMessageItem, PaginatedMember } from '@/types';
+
+type SendGroupMessageArgs = {
+  content: string;
+  activityId?: number;
+  parcoursId?: number;
+  /** Activité jointe — affichage optimiste de la carte. */
+  activity?: ChatActivitySnippet | null;
+  /** Parcours joint — affichage optimiste de la carte parcours. */
+  parcours?: ChatParcoursSnippet | null;
+};
 
 export function groupMessagesKey(groupId: number) {
   return ['groupMessages', groupId] as const;
@@ -26,8 +36,9 @@ export function useGroupChatMutations(groupId: number) {
   const { user } = useAuth();
 
   const send = useMutation({
-    mutationFn: (content: string) => sendGroupMessage(groupId, content),
-    onMutate: async (content: string) => {
+    mutationFn: ({ content, activityId, parcoursId }: SendGroupMessageArgs) =>
+      sendGroupMessage(groupId, content, activityId, parcoursId),
+    onMutate: async ({ content, activity, parcours }: SendGroupMessageArgs) => {
       const key = groupMessagesKey(groupId);
       await queryClient.cancelQueries({ queryKey: key });
       const previous = queryClient.getQueryData<PaginatedMember<GroupMessageItem>>(key);
@@ -39,6 +50,8 @@ export function useGroupChatMutations(groupId: number) {
           : null,
         groupId,
         isMine: true,
+        activity: activity ?? null,
+        parcours: parcours ?? null,
         createdAt: new Date().toISOString(),
       };
       queryClient.setQueryData<PaginatedMember<GroupMessageItem>>(key, (old) =>
