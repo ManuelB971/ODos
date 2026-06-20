@@ -17,6 +17,7 @@ import {
   Heart,
   LogOut,
   Palette,
+  Route,
   Settings,
 } from 'lucide-react-native';
 
@@ -260,6 +261,12 @@ export default function AccountScreen() {
             label: 'Mes favoris',
             helper: `${favorites.length} lieu${favorites.length > 1 ? 'x' : ''} sauvegardé${favorites.length > 1 ? 's' : ''}`,
             onPress: () => router.push('/(tabs)/favorites'),
+          },
+          {
+            icon: <Route size={18} color={iconColor} />,
+            label: 'Mes parcours',
+            helper: 'Vos itinéraires d’activités',
+            onPress: () => router.push('/parcours'),
           },
           {
             icon: <Edit3 size={18} color={iconColor} />,

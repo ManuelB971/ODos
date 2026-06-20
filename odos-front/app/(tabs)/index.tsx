@@ -175,6 +175,16 @@ export default function HomeScreen() {
   );
   const hasMoreActivities = activities.length > HOME_ACTIVITIES_LIMIT;
 
+  /** Activités les mieux notées : triées par note décroissante, top 10. */
+  const topRated = useMemo(
+    () =>
+      activities
+        .filter((a) => typeof a.ratingAverage === 'number' && a.ratingAverage > 0)
+        .sort((a, b) => (b.ratingAverage ?? 0) - (a.ratingAverage ?? 0))
+        .slice(0, 10),
+    [activities],
+  );
+
   const initialRegion = useMemo(() => {
     if (geoActivities.length === 0) {
       return { latitude: 46.603354, longitude: 1.888334, latitudeDelta: 6, longitudeDelta: 6 };
@@ -340,6 +350,31 @@ export default function HomeScreen() {
                 </ScrollView>
               )}
             </View>
+
+            {/* ── Activités les mieux notées (carrousel horizontal) ── */}
+            {topRated.length > 0 ? (
+              <View style={styles.recommendationsContainer}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>Activités les mieux notées</Text>
+                  <Pressable onPress={() => router.push('/search')}>
+                    <Text style={styles.seeAllText}>VOIR TOUT</Text>
+                  </Pressable>
+                </View>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.recoScroller}
+                >
+                  {topRated.map((item) =>
+                    cardStyle === 'mosaicPop' ? (
+                      <MosaicPopCard key={`top-${item.id}`} item={item} />
+                    ) : (
+                      <RecommendationCard key={`top-${item.id}`} item={item} />
+                    )
+                  )}
+                </ScrollView>
+              </View>
+            ) : null}
 
             <View style={[styles.sectionHeaderRow, styles.sectionTitleSpaced]}>
               <Text style={styles.sectionTitle}>Toutes les activités</Text>
