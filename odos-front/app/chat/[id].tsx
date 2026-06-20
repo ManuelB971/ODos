@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -13,11 +14,14 @@ import { Image } from 'expo-image';
 import { MessageCircle, Plus, Send } from 'lucide-react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useChatMessages, useChatMutations, useConversations } from '@/hooks/useChat';
+import { useContentReport } from '@/hooks/useContentReport';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { resolveImageUrl } from '@/utils/imageUrl';
+import { tapHaptic } from '@/utils/haptics';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { ActivityPickerSheet } from '@/components/social/ActivityPickerSheet';
+import { ReportContentModal } from '@/components/social/ReportContentModal';
 import { MessageActivityCard, MessageParcoursCard } from '@/components/social/MessageAttachmentCards';
 import { UserLink } from '@/components/social/UserLink';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
@@ -35,6 +39,8 @@ export default function ChatScreen() {
   const markConversationRead = markRead.mutate;
   const [draft, setDraft] = useState('');
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [reportMessageId, setReportMessageId] = useState<number | null>(null);
+  const { report } = useContentReport();
   const listRef = useRef<FlatList>(null);
 
   const messages = data?.member ?? [];
@@ -53,11 +59,25 @@ export default function ChatScreen() {
     }
   }, [conversationId, messages.length, markConversationRead]);
 
+  const submitMessage = (content: string) => {
+    sendMessage.mutate(
+      { conversationId, content },
+      {
+        onError: () =>
+          Alert.alert('Message non envoyé', 'Vérifiez votre connexion.', [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Réessayer', onPress: () => submitMessage(content) },
+          ]),
+      },
+    );
+  };
+
   const onSend = () => {
     const content = draft.trim();
     if (!content || !Number.isFinite(conversationId)) return;
     setDraft('');
-    sendMessage.mutate({ conversationId, content });
+    tapHaptic();
+    submitMessage(content);
   };
 
   const onShareActivity = (activity: { id: number; name: string; city: string | null; imageUrl: string | null }) => {
@@ -151,10 +171,28 @@ export default function ChatScreen() {
                       </Text>
                     ) : null}
                   </View>
-                  <Text style={[styles.metaLine, { color: colors.muted }]}>
-                    {time}
-                    {item.isMine ? (item.readAt ? ' · Lu' : ' · Envoyé') : ''}
-                  </Text>
+                  <View style={styles.metaRow}>
+                    <Text style={[styles.metaLine, { color: colors.muted }]}>
+                      {time}
+                      {item.isMine
+                        ? item.id < 0
+                          ? ' · Envoi…'
+                          : item.readAt
+                            ? ' · Lu'
+                            : ' · Envoyé'
+                        : ''}
+                    </Text>
+                    {!item.isMine && typeof item.id === 'number' ? (
+                      <Pressable
+                        onPress={() => setReportMessageId(item.id)}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel="Signaler ce message"
+                      >
+                        <Text style={[styles.reportLink, { color: colors.muted }]}>Signaler</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                 </View>
               </View>
             );
@@ -212,6 +250,28 @@ export default function ChatScreen() {
         onClose={() => setPickerOpen(false)}
         onSelect={onShareActivity}
         title="Partager une activité"
+      />
+
+      <ReportContentModal
+        visible={reportMessageId !== null}
+        onClose={() => setReportMessageId(null)}
+        loading={report.isPending}
+        onSubmit={(reason, details) => {
+          if (reportMessageId === null) return;
+          report.mutate(
+            { target: { kind: 'chat', id: reportMessageId }, reason, details },
+            {
+              onSuccess: () => {
+                setReportMessageId(null);
+                Alert.alert('Merci', 'Votre signalement a été transmis à notre équipe.');
+              },
+              onError: () => {
+                setReportMessageId(null);
+                Alert.alert('Signalement', 'Impossible d’envoyer le signalement pour le moment.');
+              },
+            },
+          );
+        }}
       />
     </>
   );
@@ -272,6 +332,8 @@ const styles = StyleSheet.create({
   alignStart: { alignItems: 'flex-start' },
   bubble: { borderRadius: 12, borderWidth: 1, padding: 12 },
   metaLine: { fontSize: 10.5, fontFamily: FontFamily.ui, marginTop: 3, marginHorizontal: 4 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  reportLink: { fontSize: 10.5, fontFamily: FontFamily.uiMedium, marginTop: 3, textDecorationLine: 'underline' },
   composer: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, alignItems: 'flex-end' },
   attach: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   input: { flex: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, maxHeight: 120 },

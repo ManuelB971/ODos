@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -14,6 +15,8 @@ import { MapPin, MessageCircle, Plus, Route, Send, X } from 'lucide-react-native
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useGroupChatMutations, useGroupMessages } from '@/hooks/useGroupChat';
 import { useGroupDetail } from '@/hooks/useGroups';
+import { useContentReport } from '@/hooks/useContentReport';
+import { ReportContentModal } from '@/components/social/ReportContentModal';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
@@ -23,6 +26,7 @@ import { ActivityPickerSheet } from '@/components/social/ActivityPickerSheet';
 import { ParcoursSharePickerSheet } from '@/components/social/ParcoursSharePickerSheet';
 import { MessageActivityCard, MessageParcoursCard } from '@/components/social/MessageAttachmentCards';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
+import { tapHaptic } from '@/utils/haptics';
 import type { ApiActivity, ParcoursSummary } from '@/types';
 
 const AVATAR_SIZE = 28;
@@ -40,6 +44,8 @@ export default function GroupChatScreen() {
   const [chooserOpen, setChooserOpen] = useState(false);
   const [activityPickerOpen, setActivityPickerOpen] = useState(false);
   const [parcoursPickerOpen, setParcoursPickerOpen] = useState(false);
+  const [reportMessageId, setReportMessageId] = useState<number | null>(null);
+  const { report } = useContentReport();
   const listRef = useRef<FlatList>(null);
 
   const messages = data?.member ?? [];
@@ -51,11 +57,25 @@ export default function GroupChatScreen() {
     }
   }, [groupId, messages.length, markReadMutate]);
 
+  const submitMessage = (content: string) => {
+    send.mutate(
+      { content },
+      {
+        onError: () =>
+          Alert.alert('Message non envoyé', 'Vérifiez votre connexion.', [
+            { text: 'Annuler', style: 'cancel' },
+            { text: 'Réessayer', onPress: () => submitMessage(content) },
+          ]),
+      },
+    );
+  };
+
   const onSend = () => {
     const content = draft.trim();
     if (!content || !Number.isFinite(groupId)) return;
     setDraft('');
-    send.mutate({ content });
+    tapHaptic();
+    submitMessage(content);
   };
 
   const onShareActivity = (activity: ApiActivity) => {
@@ -165,7 +185,22 @@ export default function GroupChatScreen() {
                       </Text>
                     ) : null}
                   </View>
-                  <Text style={[styles.metaLine, { color: colors.muted }]}>{time}</Text>
+                  <View style={styles.metaRow}>
+                    <Text style={[styles.metaLine, { color: colors.muted }]}>
+                      {time}
+                      {item.isMine && item.id < 0 ? ' · Envoi…' : ''}
+                    </Text>
+                    {!item.isMine && typeof item.id === 'number' ? (
+                      <Pressable
+                        onPress={() => setReportMessageId(item.id)}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel="Signaler ce message"
+                      >
+                        <Text style={[styles.reportLink, { color: colors.muted }]}>Signaler</Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                 </View>
               </View>
             );
@@ -271,6 +306,28 @@ export default function GroupChatScreen() {
         onSelect={onShareParcours}
         title="Partager un parcours"
       />
+
+      <ReportContentModal
+        visible={reportMessageId !== null}
+        onClose={() => setReportMessageId(null)}
+        loading={report.isPending}
+        onSubmit={(reason, details) => {
+          if (reportMessageId === null) return;
+          report.mutate(
+            { target: { kind: 'group', id: reportMessageId }, reason, details },
+            {
+              onSuccess: () => {
+                setReportMessageId(null);
+                Alert.alert('Merci', 'Votre signalement a été transmis à notre équipe.');
+              },
+              onError: () => {
+                setReportMessageId(null);
+                Alert.alert('Signalement', 'Impossible d’envoyer le signalement pour le moment.');
+              },
+            },
+          );
+        }}
+      />
     </>
   );
 }
@@ -288,6 +345,8 @@ const styles = StyleSheet.create({
   author: { fontSize: 11.5, fontFamily: FontFamily.uiBold, marginBottom: 2, marginLeft: 4 },
   bubble: { borderRadius: 12, borderWidth: 1, padding: 12 },
   metaLine: { fontSize: 10.5, fontFamily: FontFamily.ui, marginTop: 3, marginHorizontal: 4 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  reportLink: { fontSize: 10.5, fontFamily: FontFamily.uiMedium, marginTop: 3, textDecorationLine: 'underline' },
   composer: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, alignItems: 'flex-end' },
   attach: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   input: { flex: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, maxHeight: 120 },

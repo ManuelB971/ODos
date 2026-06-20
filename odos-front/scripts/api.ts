@@ -738,6 +738,24 @@ export async function reportForumReply(id: number, reason: import('@/types').For
     await api.post(`/api/forum/replies/${id}/report`, { reason, details });
 }
 
+// --- Signalement de contenu hors forum (modération UGC) ---
+
+export async function reportChatMessage(id: number, reason: import('@/types').ForumReportReason, details?: string): Promise<void> {
+    await api.post(`/api/chat-messages/${id}/report`, { reason, details });
+}
+
+export async function reportGroupMessage(id: number, reason: import('@/types').ForumReportReason, details?: string): Promise<void> {
+    await api.post(`/api/group-messages/${id}/report`, { reason, details });
+}
+
+export async function reportComment(id: number, reason: import('@/types').ForumReportReason, details?: string): Promise<void> {
+    await api.post(`/api/comments/${id}/report`, { reason, details });
+}
+
+export async function reportUser(id: number, reason: import('@/types').ForumReportReason, details?: string): Promise<void> {
+    await api.post(`/api/users/${id}/report`, { reason, details });
+}
+
 export async function registerPushToken(token: string, platform: string): Promise<void> {
     await api.post('/api/me/push-token', { token, platform });
 }

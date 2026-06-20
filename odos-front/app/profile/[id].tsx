@@ -1,12 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { MessageCircle, UserPlus, Check, Clock, X, Ban } from 'lucide-react-native';
+import { MessageCircle, UserPlus, Check, Clock, X, Ban, Flag } from 'lucide-react-native';
 import api from '@/scripts/api';
 import { useAuth } from '@/context/AuthContext';
 import { useFriendshipMutations, useFriendships } from '@/hooks/useFriendships';
 import { useChatMutations } from '@/hooks/useChat';
 import { useBlockMutations } from '@/hooks/useBlocks';
+import { useContentReport } from '@/hooks/useContentReport';
+import { ReportContentModal } from '@/components/social/ReportContentModal';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { CTAButton } from '@/components/ui/CTAButton';
@@ -51,6 +54,8 @@ export default function PublicProfileScreen() {
   const { sendRequest, acceptRequest } = useFriendshipMutations();
   const { startConversation } = useChatMutations();
   const { block, unblock } = useBlockMutations();
+  const { report } = useContentReport();
+  const [reportOpen, setReportOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['publicProfile', userId],
@@ -266,6 +271,16 @@ export default function PublicProfileScreen() {
                       <Ban size={15} color={colors.danger} />
                       <Text style={[styles.blockLinkText, { color: colors.danger }]}>Bloquer cet utilisateur</Text>
                     </Pressable>
+                    <Pressable
+                      onPress={() => setReportOpen(true)}
+                      hitSlop={8}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Signaler ${data.alias ?? 'cet utilisateur'}`}
+                      style={({ pressed }) => [styles.blockLink, pressed && { opacity: 0.6 }]}
+                    >
+                      <Flag size={15} color={sub} />
+                      <Text style={[styles.blockLinkText, { color: sub }]}>Signaler cet utilisateur</Text>
+                    </Pressable>
                   </>
                 )}
               </View>
@@ -277,6 +292,27 @@ export default function PublicProfileScreen() {
           </Text>
         )}
       </ScrollView>
+
+      <ReportContentModal
+        visible={reportOpen}
+        onClose={() => setReportOpen(false)}
+        loading={report.isPending}
+        onSubmit={(reason, details) =>
+          report.mutate(
+            { target: { kind: 'user', id: userId }, reason, details },
+            {
+              onSuccess: () => {
+                setReportOpen(false);
+                Alert.alert('Merci', 'Votre signalement a été transmis à notre équipe.');
+              },
+              onError: () => {
+                setReportOpen(false);
+                Alert.alert('Signalement', 'Impossible d’envoyer le signalement pour le moment.');
+              },
+            },
+          )
+        }
+      />
     </>
   );
 }

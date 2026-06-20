@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { Pencil, Trash2, Send } from 'lucide-react-native';
+import { Pencil, Trash2, Send, Flag } from 'lucide-react-native';
 import { DaIcon } from '@/components/ui/DaIcon';
 import * as Haptics from 'expo-haptics';
 import { Spacing } from '@/constants/theme';
@@ -18,6 +18,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { InlineToast, InlineToastVariant } from '@/components/InlineToast';
 import { UserLink } from '@/components/social/UserLink';
+import { ReportContentModal } from '@/components/social/ReportContentModal';
+import { useContentReport } from '@/hooks/useContentReport';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import type { ActivityComment, User } from '@/types';
 
@@ -106,6 +108,8 @@ export function ActivityCommentsSection({
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const draftLen = commentDraft.length;
+  const { report } = useContentReport();
+  const [reportCommentId, setReportCommentId] = useState<number | null>(null);
 
   const handlePost = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -208,6 +212,18 @@ export function ActivityCommentsSection({
                       {relativeTime(c.createdAt)}
                       {c.isEdited ? ' · modifié' : ''}
                     </Text>
+                    {!isMine && isAuthenticated && (
+                      <View style={styles.actions}>
+                        <Pressable
+                          onPress={() => setReportCommentId(c.id)}
+                          style={styles.actionBtn}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Signaler le commentaire de ${authorName}`}
+                        >
+                          <Flag size={13} color={colors.muted} />
+                        </Pressable>
+                      </View>
+                    )}
                     {isMine && (
                       <View style={styles.actions}>
                         <Pressable
@@ -282,6 +298,28 @@ export function ActivityCommentsSection({
       ) : (
         <CTAButton label="Se connecter pour commenter" onPress={onLoginPress} variant="secondary" />
       )}
+
+      <ReportContentModal
+        visible={reportCommentId !== null}
+        onClose={() => setReportCommentId(null)}
+        loading={report.isPending}
+        onSubmit={(reason, details) => {
+          if (reportCommentId === null) return;
+          report.mutate(
+            { target: { kind: 'comment', id: reportCommentId }, reason, details },
+            {
+              onSuccess: () => {
+                setReportCommentId(null);
+                Alert.alert('Merci', 'Votre signalement a été transmis à notre équipe.');
+              },
+              onError: () => {
+                setReportCommentId(null);
+                Alert.alert('Signalement', 'Impossible d’envoyer le signalement pour le moment.');
+              },
+            },
+          );
+        }}
+      />
     </View>
   );
 }
