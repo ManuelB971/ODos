@@ -1,446 +1,520 @@
-# Audit UI/UX — Front mobile ODOS
+# Audit UI/UX — Front mobile ODOS (fusionné)
 
-Audit exhaustif du front Expo (`odos-front/`) croisé avec :
+Audit unique du front Expo (`odos-front/`) — **fusion de l'ancienne revue code (V1) et de l'audit UI/UX Pro Max (V2)**, statuts re-vérifiés sur le code courant.
 
+Croisé avec :
+
+- **[UI/UX Pro Max](file:///C:/Users/MANUEL/.claude/skills/ui-ux-pro-max/SKILL.md)** — grille priorités 1→10, 99 guidelines UX, anti-patterns, archétypes produit (skill global)
+- [`DESIGN_JAKOB_FLOWS.md`](DESIGN_JAKOB_FLOWS.md) — flows familiers, hiérarchie CTA, empty states (matrice §7, itérations §7.1–7.3)
 - [`DESIGN_DIRECTION.md`](DESIGN_DIRECTION.md) — direction artistique (palette, typo, formes, anti-patterns §10)
-- [`DESIGN_JAKOB_FLOWS.md`](DESIGN_JAKOB_FLOWS.md) — flows familiers, hiérarchie CTA, empty states
-- Grille **UI/UX Pro Max** — accessibilité, touch, performance, navigation (priorités 1→10)
 
-**Complète** [`DA_APP_GAP.md`](DA_APP_GAP.md) (checklist DA écran par écran, plus ancienne).  
-**Dernière révision :** juin 2026 · branche `dev` · ~33 écrans routés.
+**Complète** [`DA_APP_GAP.md`](DA_APP_GAP.md) (checklist DA écran par écran).
+**Dernière révision :** 2026-06-20 · branche `dev` · ~35 écrans routés · skill Pro Max chargé + revue code.
+
+> **Fusion** de l'ancienne revue code ligne-à-ligne (ex-V1) **et** de l'audit Pro Max (ex-`AUDIT_UI_UX_FRONT_V2.md`, supprimé). Document unique désormais ; ne plus maintenir de fichiers séparés.
 
 ---
 
-## 1. Synthèse exécutive
+## 0. Méthode
 
-### Score global par domaine
+### Skill UI/UX Pro Max
 
-| Domaine | Note | Verdict |
-|---------|------|---------|
-| Accessibilité | **5/10** | Bon sur login / CTAButton ; lacunes retour, listes, champs |
-| Touch & interaction | **6/10** | CTAButton solide ; tabs 32 px, liens texte sans zone 44 pt |
-| Performance | **6/10** | Mosaic search corrigé ; MapLibre accueil + recherche classic lourds |
-| Style & cohérence | **7/10** | Tokens bien posés ; double voie classic / mosaicPop (~22 fichiers) |
-| Layout & safe areas | **5/10** | Insets explicites sur ~21 % des écrans |
-| Typo & couleur (DA) | **7/10** | Cormorant + DM Sans OK ; Courgette jamais utilisée ; hex hardcodés |
-| Animation | **6/10** | Reanimated présent ; `useReducedMotion` quasi absent |
-| Formulaires | **7/10** | Login / settings solides ; `InputField` label non relié au champ |
-| Navigation | **7/10** | Tabs + stack familiers ; Favoris caché ; consent sans sortie |
-| Hiérarchie CTA | **6/10** | `CTAButton` sur 10 écrans seulement ; beaucoup de Pressable custom |
+- Skill global : `C:\Users\MANUEL\.claude\skills\ui-ux-pro-max\` (contenu chargé ; le `scripts/search.py` est un **pointeur cassé** — voir annexe pour réparation, mais la grille SKILL.md suffit).
+- Grille appliquée : priorités **1→10** (Accessibilité → Charts), avec les ID de règles (`#touch-target-size`, `#empty-states`, `#deep-linking`, etc.).
+- Archétypes produit ODOS : **Local Events & Discovery**, **Hyperlocal Services**, **Social Media App**.
+
+### Périmètre
+
+| Zone | Contenu |
+|------|---------|
+| Routes | `odos-front/app/**/*.tsx` (~35 écrans) |
+| Thème | `ThemeContext`, `constants/themes/`, `usePop.ts`, `appearance.tsx` |
+| Composants UX | `CTAButton`, `InputField`, `PopEmptyState`, `InlineToast`, `MosaicPopCard`, `ActivityCard`, `HapticTab`, `MapExperience` |
+| Social / parcours / modération | `(tabs)/community/*`, `parcours/*`, `chat/*`, `profile/[id]`, `blocked-users`, signalement forum |
+
+### Métriques (juin 2026, re-mesurées)
+
+| Métrique | Valeur |
+|----------|--------|
+| `accessibilityLabel` | ~55 occurrences |
+| `<Pressable` | ~150+ |
+| Couverture label / Pressable | **~44 %** |
+| `accessibilityHint` | **0** |
+| Safe areas explicites (`useSafeAreaInsets`/`SafeAreaView`) | **~21 %** des écrans |
+| `useReducedMotion` | **2** composants |
+| Branches `isMosaicPop` | **~30 fichiers** |
+| Écrans utilisant `CTAButton` | **10** |
+| `PopEmptyState` | **8** écrans |
+| `FontFamily.accent` (Courgette) en UI | **0** |
+
+---
+
+## 1. Design system Pro Max recommandé pour ODOS
+
+| Archétype Pro Max | Pattern | Style | Couleurs | Effets clés |
+|-------------------|---------|-------|----------|-------------|
+| **Local Events & Discovery** | Hero + Feature-Rich | Vibrant & Block + Motion | City vibrant + catégories + accent carte | Scroll animé, transitions |
+| **Hyperlocal Services** | Conversion + Feature-Rich | Minimalism + Vibrant Block | Marqueurs lieu + confiance | Reveals carte, fiches lieu |
+| **Social Media App** | Feature-Rich Showcase | Vibrant Block + Motion | Couleurs engagement | Badges unread, motion scroll |
+
+**Alignement DA ODOS :** chaleur éditoriale + cartes image-first + onglet Parcours central (Spotify) + social (Instagram/WhatsApp) — direction **validée** par Pro Max. L'écart restant est surtout **exécution** (tokens, touch, feedback, deep links, a11y).
+
+### Anti-patterns Pro Max (severity HIGH) — état ODOS
+
+| Archétype | À éviter | État ODOS |
+|-----------|----------|-----------|
+| Hyperlocal | Pas de carte, avis cachés | Carte ✓ · avis ✓ · raccourcis listes désormais OK (cœur + parcours sur cartes) |
+| Local Events | Couleurs ternes, faible énergie | mosaicPop OK · classic parfois gris sur empty states |
+| Social | Skeuomorphisme lourd, a11y ignorée | Risque **icon-only sans labels** persistant |
+
+---
+
+## 2. Synthèse exécutive — scores Pro Max
+
+| Prio | Catégorie | Note | Verdict |
+|------|-----------|------|---------|
+| 1 | Accessibilité | **5/10** | Auth + CTAButton OK ; listes, hints (0), reduced motion faibles |
+| 2 | Touch & interaction | **5/10** | Tabs 32 px ; **HapticTab mort** ; CTAs custom sans loading uniforme |
+| 3 | Performance | **6/10** | Mosaïque corrigée ; MapLibre home lourd ; loading hétérogène |
+| 4 | Style | **6/10** | Double skin classic/pop ; plusieurs primaires par écran |
+| 5 | Layout & safe areas | **5/10** | Insets manquants sur ~79 % des écrans |
+| 6 | Typo & couleur | **6/10** | Tokens OK ; hex hardcodés ; **bug persistance variant** |
+| 7 | Animation | **5/10** | Reanimated présent ; reduced motion quasi absent |
+| 8 | Forms & feedback | **6/10** | Login solide ; empty/error sans recovery |
+| 9 | Navigation | **7/10** | Tabs Jakob OK ; deep links / push routing absents |
+| 10 | Charts / carte | **5/10** | Pins sans label SR descriptif |
 
 ### Trois constats majeurs
 
-1. **CTA primaires inconsistants** — `CTAButton` (pill orange, loading, a11y) utilisé sur ~10 écrans ; le reste mélange `Pressable` avec `borderRadius: 8–16`, liens bleus discrets, ou icônes au même poids visuel que l’action principale.
-2. **Pratiques UX oubliées** — empty states sans action suivante (Home reco, Messages, Search), erreurs sans « Réessayer », chargement chat vide, consent communauté sans « Plus tard », `+not-found` en anglais non thémé.
-3. **DA partielle** — fonds page OK via tokens ; fuites hex (`#E2EEF8`, `#E0245E`, `#0f2340`), thèmes Ocean/Forest hors palette canonique, Courgette chargée mais inactive, rayons pill non respectés sur CTAs custom.
+1. **A11y icon-only + reduced motion** — ~44 % des Pressables labellés, `accessibilityHint` à 0, `useReducedMotion` sur 2 composants. C'est le bloc le plus critique avant release (Pro Max P1).
+2. **Modularité thème fragile** — ~30 fichiers `if (isMosaicPop)`, **bug `readVariantId`** (ocean/forest perdus au restart), hex éparpillés, `CTAButton` hors pop.
+3. **Engagement & raccourcis incomplets** — `HapticTab` mort, pas de toast généralisé, empty states sans CTA (Home reco / Messages / Search / Favoris), deep linking non configuré.
 
 ### Écrans de référence (à imiter)
 
 | Écran | Pourquoi |
 |-------|----------|
-| `login.tsx` | CTA, validation, a11y tabs, keyboard, tokens |
-| `interests.tsx` | Onboarding sticky CTA, sélection claire |
+| `login.tsx` | CTA, validation, a11y, keyboard, tokens |
+| `interests.tsx` | Onboarding sticky CTA |
 | `thread/create.tsx` | `InputField` + `CTAButton` + erreurs |
-| `activity/[id].tsx` | Sticky « Y aller », feedback rating (sauf hero icon clutter) |
-| `profile/[id].tsx` | Actions contextuelles, fermeture modal |
+| `activity/[id].tsx` | Sticky « Y aller » (réduire clutter hero) |
+| `profile/[id].tsx` | Actions contextuelles + `CTAButton` |
+| `forum.tsx` / `groups.tsx` | `PopEmptyState` + CTA (modèle à généraliser) |
 
 ---
 
-## 2. Méthode & périmètre
+## 3. Déjà livré depuis les audits V1/V2 (vérifié sur le code, 2026-06-20)
 
-### Périmètre audité
+| Domaine | Livré | Statut |
+|---------|-------|--------|
+| **Parcours « playlists »** | Onglet **central** (5 tabs), bibliothèque [`parcours.tsx`](../odos-front/app/(tabs)/parcours.tsx) + `ParcoursCard` ; pochette photo + **visibilité public/privé** (enum back + migration `Version20260620120000`) ; création **aléatoire** ; lecture seule gated `canEdit` | ✅ |
+| **Partage parcours** | [`ParcoursShareTargetSheet`](../odos-front/components/social/ParcoursShareTargetSheet.tsx) (amis + groupes → carte) en DM **et** groupe ; découplage partage / co-édition | ✅ |
+| **Co-édition parcours** | Invitation **explicite réservée aux amis** (`POST/DELETE /api/parcours/{id}/collaborators`) ; liste collaborateurs + retrait (propriétaire) | ✅ |
+| **Favoris sur cartes de listes** | Cœur + **ajout-à-un-parcours** sur [`MosaicPopCard`](../odos-front/components/cards/MosaicPopCard.tsx) (autonome via [`useFavoriteToggle`](../odos-front/hooks/useFavoriteToggle.ts), clé `['favoriteIds']` partagée avec la fiche) et [`ActivityCard`](../odos-front/components/map/ActivityCard.tsx) via [`ActivityCardQuickActions`](../odos-front/components/cards/ActivityCardQuickActions.tsx) | ✅ |
+| **Blocage utilisateur** | `POST/DELETE /api/users/{id}/block`, écran [`blocked-users.tsx`](../odos-front/app/blocked-users.tsx), `useBlocks`, bouton sur `profile/[id]` ; **appliqué partout** : chat, recherche, partage activité, forum, profil, demandes d'ami ; le blocage **révoque la co-édition parcours** (sans effacer les étapes) | ✅ |
+| **Signalement forum** | `ForumReport` + `ForumReportController` + `useForumReport` + `ReportContentModal` sur threads & réponses | ✅ |
+| **Pull-to-refresh** | Étendu : forum, amis, groupes, **messages**, parcours, blocked-users, thread, group-invitations | ✅ |
+| **Social unifié** | `UserAvatar` / `UserLink` (chat, forum, profils, recherche) | ✅ |
+| **Crash recherche mosaïque** | FlatList virtualisée | ✅ |
 
-- Toutes les routes `odos-front/app/**/*.tsx` (~33 écrans)
-- Composants transverses impactant l’UX : `CTAButton`, `InputField`, `PopEmptyState`, `InlineToast`, `MosaicPopCard`, `MapExperience`, `SprayBackground`
-- Thème : `context/ThemeContext.tsx`, `constants/themes/`, `components/pop/`
-
-### Métriques mesurées (juin 2026)
-
-| Métrique | Valeur |
-|----------|--------|
-| Occurrences `accessibilityLabel` | ~55 |
-| Occurrences `<Pressable` | ~125 |
-| Couverture label / Pressable | **~44 %** |
-| `accessibilityHint` | **0** |
-| Écrans avec `useSafeAreaInsets` / `SafeAreaView` | **7** (~21 %) |
-| Fichiers `useReducedMotion` | **2** (`PopEmptyState`, `FriendRequest`) |
-| Branches `isMosaicPop` / `cardStyle === 'mosaicPop'` | **~22 fichiers** |
-| Écrans utilisant `CTAButton` | **10** |
-| Écrans utilisant `PopEmptyState` | **8** |
-| `FontFamily.accent` (Courgette) en UI | **0** |
-
-### Grille UI/UX Pro Max appliquée
-
-Priorités auditées dans l’ordre : (1) Accessibilité → (2) Touch → (3) Performance → (4) Style → (5) Layout → (6) Typo/couleur → (7) Animation → (8) Formulaires → (9) Navigation → (10) Data/charts (N/A sauf carte).
+> ⚠️ **Signalement incomplet** : le modèle `ForumReport` ne cible que `thread`/`reply`. **Aucun chemin de signalement** pour messages privés, messages de groupe, commentaires d'activité, profils — voir §9 (modération UGC, exigence stores).
 
 ---
 
-## 3. Boutons & CTA — hiérarchie insuffisante
+## 4. P1 — Accessibilité (CRITICAL)
 
-> **Règle DA §6 + Jakob §3 :** un seul CTA primaire orange pill par zone ; secondaires en ghost bleu ou outline ; tertiaires en icônes seules.
+Règles Pro Max : `#aria-labels`, `#form-labels`, `#reduced-motion`, `#color-contrast`, `#escape-routes`, `#voiceover-sr`
 
-### 3.1 Écrans sans CTA primaire visible
+| Règle | État | Fichiers / détail |
+|-------|------|-------------------|
+| Labels icon-only | 🟡 ~44 % | Messages, search chips, parcours ↑/↓, group actions, retours hero |
+| `accessibilityHint` | ❌ **0** | Toute l'app |
+| Label SR dérivé du label visuel | ❌ | `InputField.tsx` — seul le **toggle mot de passe** est labellé ; le champ lui-même n'hérite pas de `label` |
+| Reduced motion | 🟡 2 composants | `PopEmptyState`, `FriendRequest` ; manque global (Skeleton, CTAButton, Splash, MapPin) |
+| Consent piège | ❌ | `community/_layout.tsx` — seul « J'accepte », **pas de « Plus tard »** ni `accessibilityViewIsModal` |
+| Touch ≥ 44 pt | 🟡 | Tab slot `minHeight: 32` ; CTAs forum/friends ~8 px padding vertical |
+| `+not-found` | ❌ | Anglais, fond blanc par défaut, pas de tokens ni CTA |
+| `accessibilityLiveRegion` toasts/erreurs | ❌ | `InlineToast`, bannières login |
+| Couleur seule pour info | 🟡 | Chips actifs OK visuel ; vérifier état `selected` SR |
 
-| Écran | État actuel | Attendu |
-|-------|-------------|---------|
-| **Home** `(tabs)/index.tsx` | « EXPLORER » / « VOIR TOUT » = petits liens bleus (`seeAllText` → `colors.primary`) ; pas de pill orange page-level | Un CTA « Explorer la carte » en pill orange OU renforcer le overlay carte existant comme unique primaire |
-| **Search browse** `(tabs)/search.tsx` | Cartes cliquables = affordance implicite ; pas de bouton explicite | OK si cartes suffisent ; ajouter CTA sur empty |
-| **Search vide** | Texte gris `emptyText` seul | CTA « Effacer la recherche » ou chip « Tout » |
-| **Messages** `community/messages.tsx` | `PopEmptyState` sans `ctaLabel` / `onPressCta` | CTA « Trouver des amis » → onglet Amis |
-| **Groups discover** `community/groups.tsx` | Sous-titre seul en empty | CTA « Créer un groupe » ou refresh |
-| **Home reco vide** `index.tsx` | Texte italique gris ; pas de lien intérêts | CTA « Choisir mes intérêts » → `/interests` |
-| **Badges non connecté** `badges.tsx` | Texte seul | `CTAButton` → `/login` |
-| **+not-found** | Lien anglais non stylé | `CTAButton` « Retour à l'accueil » + thème ODOS |
+### Corrections P1
 
-### 3.2 CTA custom au lieu de `CTAButton` (poids visuel faible)
+1. `InputField` : propager `accessibilityLabel={label}` sur le champ + hint si `helperText` ; `accessibilityLiveRegion` sur l'erreur.
+2. Listes sociales : label de ligne = « {alias}, message non lu » / « {activité}, {ville} ».
+3. Consent social : bouton **« Plus tard »** (ferme, garde la tab sans social) + `accessibilityViewIsModal`.
+4. Hook `useA11yAction(label, hint?)` pour les icon-only récurrents (↑/↓ parcours, actions groupe).
+5. `useReducedMotion()` global (durée 0) → Skeleton, CTAButton, Splash, MapPin.
+6. `+not-found` : FR + tokens + `CTAButton` « Retour à l'accueil ».
+
+---
+
+## 5. P2 — Touch & interaction (CRITICAL)
+
+Règles : `#touch-target-size`, `#loading-buttons`, `#haptic-feedback`, `#press-feedback`, `#primary-action`, `#gesture-alternative`
+
+### Touch targets
+
+| Zone | Problème | Fix |
+|------|----------|-----|
+| Tab bar | `minHeight: 32` (`_layout.tsx` L208) | Porter à **44 pt** |
+| Forum / Friends CTAs | Padding ~8 px vertical | `CTAButton size="sm"` ou `hitSlop` |
+| Parcours reorder/delete | Icônes seules | `hitSlop` + `accessibilityLabel` |
+
+### Haptique
+
+- [`components/HapticTab.tsx`](../odos-front/components/HapticTab.tsx) **existe, toujours pas branché** → `tabBarButton: HapticTab` dans `_layout.tsx`.
+- Ajouter haptic sur : favori (cartes), envoi message, acceptation ami.
+
+### CTA custom → `CTAButton` (poids visuel faible)
 
 | Écran | Fichier | Problème | Fix |
 |-------|---------|----------|-----|
-| Favoris empty | `favorites.tsx` L146–149 | `exploreBtn` `borderRadius: 16` | `CTAButton` pill « Explorer les activités » |
-| Group create | `group/create.tsx` L94–104 | Pressable `borderRadius: 12` | `CTAButton fullWidth` |
-| Group detail | `group/[id].tsx` L141–164 | « Rejoindre » / « Discussion » custom ; rangée Inviter/Éditer/Quitter au même niveau | Primaire = `CTAButton` ; danger séparé |
+| Favoris empty | `favorites.tsx` | `exploreBtn` `borderRadius: 16` | `CTAButton` pill « Explorer » |
+| Group create | `group/create.tsx` | Pressable `borderRadius: 12` | `CTAButton fullWidth` |
+| Group detail | `group/[id].tsx` | « Rejoindre »/« Discussion » custom ; rangée Inviter/Éditer/Quitter au même niveau | 1 primaire `CTAButton` ; danger séparé |
 | Group invitations | `group-invitations.tsx` | Accepter = petit chip | `CTAButton size="sm"` |
-| Friends privacy | `friends.tsx` L56–70 | « Rendre public » pill `borderRadius: 8` | `CTAButton size="sm"` |
-| Forum header | `forum.tsx` L23–37 | « Nouveau sujet » petit bouton `borderRadius: 10` | Promouvoir en pill ou FAB orange |
-| Chat / thread send | `chat/[id].tsx`, `thread/[id].tsx` | Send 44×44 carré `borderRadius: 12`, même poids que « + » attach | Send orange circulaire ; attach outline (pattern WhatsApp) |
-| Parcours share | `parcours/[id].tsx` | Partager = cercle outline seul | Ghost pill avec label « Partager » |
+| Friends privacy | `friends.tsx` | « Rendre public » pill `borderRadius: 8` | `CTAButton size="sm"` |
+| Forum header | `forum.tsx` | « Nouveau sujet » `borderRadius: 10` | Pill ou FAB orange |
+| Chat / thread send | `chat/[id].tsx`, `thread/[id].tsx` | Send 44×44 carré, même poids que « + » attach | Send orange circulaire ; attach outline (pattern WhatsApp) |
+| Parcours create | `parcours.tsx` | Modal créer = Pressable | `CTAButton` |
 
-### 3.3 CTA qui volent la vedette (trop de primaires)
+### Hiérarchie CTA — trop de primaires (`#primary-action`)
 
 | Écran | Problème | Fix |
 |-------|----------|-----|
-| **Activity detail** `activity/[id].tsx` L514–550 | 3–4 icônes hero (parcours, partage, favori) même taille/cercle blanc que retour | Icônes tertiaires regroupées ou menu « … » ; sticky « Y aller » reste seul orange fort |
-| **Activity detail** L576–596 | Pill « Lieu visité » orange-adjacent dans le scroll | Style secondaire outline / lien |
-| **Group detail** | 4–5 actions même rangée | Hiérarchie : 1 orange + reste outline |
-| **Home** | Bloc welcome serif + logo + baseline + carte + listes | Réduire chrome éditorial ou fusionner avec une seule accroche |
-
-### 3.4 Écrans où `CTAButton` est bien utilisé ✓
-
-`login.tsx` · `forgot-password.tsx` · `reset-password.tsx` · `interests.tsx` · `favorites.tsx` (gate auth) · `activity/[id].tsx` (sticky geo) · `profile/[id].tsx` · `account.tsx` (logout) · `settings.tsx` · `thread/create.tsx`
+| `activity/[id].tsx` | 3–4 icônes hero (parcours, partage, favori) même poids que retour | Menu « … » ; seul orange = sticky « Y aller » |
+| `group/[id].tsx` | 4–5 actions même rangée | 1 primaire + reste outline/danger |
+| Home | Bloc welcome serif + logo + baseline + carte + listes | Réduire le chrome éditorial |
 
 ---
 
-## 4. Pratiques UX oubliées
+## 6. P3 — Performance (HIGH)
 
-### 4.1 Navigation & wayfinding
+Règles : `#virtualize-lists`, `#progressive-loading`, `#image-optimization`
 
-| Pratique | Statut | Détail |
-|----------|--------|--------|
-| Tabs 4–5 racines (Jakob §4.1) | 🟡 | **Favoris masqué** (`_layout.tsx` `href: null`) — accessible via Compte seulement |
-| Retour prévisible | 🟡 | Présent mais **sans `accessibilityLabel`** sur activity, settings, appearance |
-| Deep linking | ✅ | Routes Expo file-based OK |
-| Titre de section Communauté | 🟡 | Top tabs Forum/Amis/Messages/Groupes sans en-tête « Communauté » |
-| Écran 404 localisé | ❌ | `+not-found.tsx` en anglais, fond blanc par défaut, pas de tokens |
-| État actif navigation | ✅ | Tab bar + chips (partiel) |
-
-### 4.2 Feedback (loading / succès / erreur)
-
-| Pratique | Statut | Fichiers concernés |
-|----------|--------|-------------------|
-| Skeleton > spinner long | ✅ | Home (`Skeleton`), favorites |
-| Spinner plein écran | 🟡 | Search, badges, group — OK |
-| **Liste vide pendant chargement** | ❌ | `chat/[id].tsx`, `group-chat/[id].tsx` — `ListEmptyComponent` null si `isLoading` |
-| **Erreur + Réessayer** | ❌ | `index.tsx` reco, `favorites.tsx` L119–128 |
-| Toast succès action | ❌ | `InlineToast` **uniquement** sur throttle rating (`activity/[id].tsx`) |
-| Confirmation destructive | ✅ | `group/[id].tsx` leave/delete, `settings.tsx` suppression compte |
-| Optimistic UI chat | 🟡 | Pas de bulle pending visible à l’envoi |
-
-### 4.3 Empty states (Jakob §4.5 — toujours une action suivante)
-
-| Écran | Composant | CTA manquant |
-|-------|-----------|--------------|
-| Home reco | Texte | → `/interests` |
-| Search | `emptyText` | Reset recherche / chip Tout |
-| Messages | `PopEmptyState` | → Amis |
-| Groups discover | `PopEmptyState` | Créer / refresh |
-| Group invitations | Texte brut | `PopEmptyState` + CTA |
-| Favorites | Custom empty | Utiliser `PopEmptyState` + `CTAButton` |
-| Badges (0) | Hint faible | CTA exploration |
-
-**Écrans avec empty state complet ✓ :** forum, friends (recherche), groups (mes groupes), chat, thread, parcours.
-
-### 4.4 Formulaires
-
-| Pratique | Statut | Détail |
-|----------|--------|--------|
-| Labels visibles | ✅ | `InputField`, settings |
-| Label relié au champ (SR) | ❌ | `InputField.tsx` — pas de `accessibilityLabel` dérivé du `label` |
-| Validation inline au blur | 🟡 | Login OK ; group create = TextInput brut |
-| Compteur caractères | 🟡 | Settings bio ✓ ; group create / thread content ✗ |
-| Autocomplete sémantique | 🟡 | Login email/password partiel |
-| Sheet dismiss avec changements | 🟡 | Pickers parcours — pas de confirm unsaved |
-| Focus premier champ invalide | ❌ | Non implémenté globalement |
-
-### 4.5 Accessibilité
-
-| Pratique | Statut | Détail |
-|----------|--------|--------|
-| `accessibilityLabel` icon-only | 🟡 | ~44 % des Pressables ; retours hero non labellés |
-| `accessibilityHint` | ❌ | 0 occurrence dans l’app |
-| Touch ≥ 44 pt | 🟡 | Tab icon slot `minHeight: 32` ; forum/friends boutons ~8 px padding vertical |
-| `accessibilityLiveRegion` toasts/erreurs | ❌ | `InlineToast`, bannières login |
-| Reduced motion | 🟡 | 2 composants seulement |
-| Focus visible (web) | ❌ | Pas d’outline 3 px (DA §8) |
-| Modal consent trap | 🟡 | Pas de `accessibilityViewIsModal` explicite ; **pas de bouton fermer / Plus tard** |
-| Couleur seule pour info | 🟡 | Chips actifs OK visuellement ; vérifier SR selected state |
-
-### 4.6 Consentements & sorties (RGPD / Jakob §3.7)
-
-| Flow | Problème |
-|------|----------|
-| **Consent communauté** `community/_layout.tsx` | Modal bloquante : seul « J'accepte » — **pas de « Plus tard »** ni retour arrière |
-| GPS exploration | `ExplorationConsentModal` — à vérifier séparément (composant map) |
-| Profil public | Toggle settings ✓ (récent) |
-
-### 4.7 Contenu & ton ODOS (DA §9)
-
-| Pratique | Statut |
-|----------|--------|
-| Français partout | ❌ `+not-found` anglais |
-| Pas de jargon SaaS | ✅ globalement |
-| Courgette (chaleur émotionnelle, 1 ligne max) | ❌ police chargée, **jamais utilisée** en UI |
-| Emoji comme icône structurelle | 🟡 `thread/[id].tsx` 🔒 dans texte verrouillé — acceptable ponctuel |
-
-### 4.8 Performance UX
-
-| Pratique | Statut | Détail |
-|----------|--------|--------|
-| Virtualiser longues listes | 🟡 | Mosaic search ✓ ; classic search `ScrollView` + `.map()` ✗ |
-| Lazy images | 🟡 | Mix `Image` / `expo-image` |
-| Map preview accueil | ❌ | Mode classic : MapLibre + 40 markers dans FlatList |
-| Font gate blank screen | 🟡 | `_layout.tsx` `return null` jusqu’aux fonts |
-| Debounce recherche | ✅ | `useDebounce` 250 ms |
+| Point | État | Conseil |
+|-------|------|---------|
+| Search mosaïque | ✅ FlatList | Modèle à généraliser |
+| Search **classic** | ❌ `ScrollView` + `.map()` | `FlatList` pour les résultats |
+| Home MapLibre preview (classic) | ❌ MapLibre + ~40 markers dans FlatList | Placeholder léger (`MosaicPopMap`) |
+| Chat loading | ❌ Liste vide pendant fetch (`ListEmptyComponent` null si `isLoading`) | Skeleton messages |
+| Loading patterns | 🟡 Mix skeleton / spinner / texte | Règle : skeleton > 1 s, spinner action < 1 s |
+| Favoris | 🟡 Charge tout le catalogue puis filtre | Endpoint dédié (archi) |
+| Debounce recherche | ✅ `useDebounce` 250 ms | — |
 
 ---
 
-## 5. Non-conformité DA (Direction Artistique)
+## 7. P4–P6 — Style, layout, typo & modularité thèmes
 
-Référence tokens canoniques : [`DESIGN_DIRECTION.md`](DESIGN_DIRECTION.md) §2–4, §10.
+### Style (P4)
 
-### 5.1 Anti-patterns §10 — tableau de conformité
+- Double système **classic / mosaicPop** : cohérent en intention, fragile en maintenance.
+- `messages.tsx` : fond `colors.background` (classic) alors que `isMosaicPop` est importé — **incohérence de fond** en mode pop.
+- Courgette (`FontFamily.accent`) : chargée, **0 usage** (cible : 1 ligne sur 2–3 empty states onboarding).
 
-| Critère §10 | Conformité | Exemples d’écart |
-|-------------|------------|------------------|
-| Fond page `#FDF8F2` / `#171412`, pas blanc pur partout | 🟡 | `+not-found` fond blanc ; tests mocks `#fff` |
-| Orange réservé CTA / accents, pas paragraphes | ✅ | Globalement OK |
-| 3 polices dans leur rôle | 🟡 | **Courgette inactive** ; `favorites` titre sans Cormorant |
-| Touche éditoriale (Cormorant / spray) écrans clés | 🟡 | Search ✓ ; Activity detail titre ✓ ; Home welcome ✓ ; Messages ✗ |
-| Formes blob icônes | 🟡 | Badges `BlobFrame` ✓ ; chips / tabs = rectangles |
-| Photo / carte au premier plan | ✅ | Fiches activité, map |
-| Animations courtes | ✅ | Pas de scroll-jack |
-| Pas violet / rose / bleu roi corporate | 🟡 | **`#E0245E` cœur favori** ; **`#E2EEF8` bannière search** ; thèmes Ocean `#0f2340` |
+### Layout (P5)
 
-### 5.2 Hex hardcodés dans `app/` (production)
+- Pas de `ScreenContainer` commun (safe area + spray + fond).
+- Vérifier `paddingBottom` des listes vs tab bar fixe (`#fixed-element-offset`).
+- Safe areas explicites sur ~21 % des écrans seulement.
 
-| Hex | Fichier | Usage | Token attendu |
-|-----|---------|-------|---------------|
-| `#E2EEF8` | `search.tsx` L655 | Fond bannière horizontal | `colors.surface` ou mix teal doux |
-| `#0f2340` | `search.tsx` L481+ | Ombres cartes | `colors.text` @ opacity |
-| `#b91c1c` | `search.tsx` L758 | Texte erreur | `colors.danger` |
-| `#FFF8E1`, `#FFD54F` | `index.tsx` L566–568 | Bandeau promo | `colors.accentSoft` + border token |
-| `#E07D3A` | `index.tsx` L574 | Texte accent inline | `colors.accent` (hover) |
-| `#fff` / `#ffffff` | `favorites`, `account`, `interests`, `activity` | Icônes onAccent | `colors.onAccent` |
-| `#000` | `index`, `activity`, `login` | shadowColor | shadow token thémé |
-| `#16a34a` | `reset-password`, `forgot-password` | Icône succès | `colors.success` (à créer ou teal) |
-| `#fff` stroke | `parcours/[id].tsx` L300 | Bordure pin | `colors.elevated` |
+### Modularité thème — bug P0 `readVariantId` (TOUJOURS OUVERT)
 
-### 5.3 Hex hardcodés dans `components/` (impact UI)
+```typescript
+// context/ThemeContext.tsx L82–91 — seul 'default' est relu ; ocean/forest perdus au restart
+async function readVariantId(): Promise<ThemeVariantId> {
+  try {
+    if (!(await SecureStore.isAvailableAsync())) return 'default';
+    const raw = await SecureStore.getItemAsync(VARIANT_STORAGE_KEY);
+    if (raw === 'default') return raw;   // ← ocean / forest tombent dans le fallback
+  } catch { /* fallback */ }
+  return 'default';
+}
+```
 
-| Hex | Fichier | Problème DA |
+**Fix :** valider `raw` contre les slugs du registry (comme `readCardStyle`).
+
+### Fuites hex → tokens (P6)
+
+| Hex | Fichier | Token cible |
 |-----|---------|-------------|
-| `#E0245E` | `MosaicPopCard.tsx` L170–171 | **Rose interdit** §10 — utiliser `colors.danger` |
-| `#6E7B4F` | `MosaicPopMap.tsx`, `usePop.ts` | Olive pop — documenter extension ou mapper `teal.accent` |
-| `#eef6ff`, `#1d4ed8`, etc. | `InlineToast.tsx` L115–124 | Palettes info/warning **light-only** — cassent dark mode |
-| `#FFFFFF` | `ActivityCard.tsx`, `ActivityPinsLayer.tsx` | Texte pin — OK sur fond image ; préférer token |
-| `#000` shadows | Map, FavoriteCard, MapPin, BottomSheet | Acceptable si opacity faible ; unifier token |
+| `#E0245E` | `MosaicPopCard.tsx` L200–201 (cœur favori) | `colors.danger` ou `colors.favorite` |
+| `#E2EEF8`, `#0f2340`, `#b91c1c` | `search.tsx` | `colors.surface` / shadow token / `colors.danger` |
+| `#FFF8E1`, `#FFD54F`, `#E07D3A` | `index.tsx` (bandeau promo) | `colors.accentSoft` + border token / `colors.accent` |
+| `#6E7B4F` | `MosaicPopMap.tsx`, `usePop.ts` (olive pop) | documenter extension ou `colors.olive` |
+| `#eef6ff`, `#1d4ed8` | `InlineToast.tsx` | palettes info/warning **light-only → tokens** (cassent dark) |
+| `#16a34a` | `reset-password`, `forgot-password` | `colors.success` (à créer ou teal) |
+| `#fff`/`#000` | favorites, account, interests, activity, index, login | `colors.onAccent` / shadow token thémé |
 
-### 5.4 Typographie
+### Composants à extraire (design system interne)
 
-| Règle DA | État | Action |
-|----------|------|--------|
-| **Cormorant** titres éditoriaux | 🟡 | Manque : `favorites` `pageTitle`, en-têtes faibles |
-| **DM Sans** UI / corps | ✅ | `FontFamily.ui` majoritaire |
-| **Courgette** 1 ligne chaleur | ❌ | Chargée `_layout.tsx`, **0 usage** — empty states onboarding |
-| Eyebrow uppercase 12 px | 🟡 | Account, settings partiels |
-| Orange sur eyebrows seulement | ✅ | Chips, prix OK |
+| Composant | Rôle |
+|-----------|------|
+| `ThemedScreen` | Fond + spray + safe area + variant |
+| `ScreenHeader` | Retour + titre + actions (a11y) |
+| `EmptyState` (`variant: classic | pop`) | CTA obligatoire |
+| `PopCTAButton` / `CTAButton variant="pop"` | CTA unifié pop + classic |
+| `OdosListRow` | Row standard listes sociales |
+| `useMotionConfig()` | Reduced motion centralisé |
 
-### 5.5 Formes & rayons
+### Legacy à supprimer
 
-| Élément | DA | App |
-|---------|-----|-----|
-| CTA primaire | `border-radius: 100px` pill | `CTAButton` ✓ ; custom 8–16 ✗ |
-| Cartes | 20–24 px | ~20–22 ✓ |
-| Chips | pill + bordure 1.5 px | Search ✓ |
-| Icônes blob | organique + rotation | Badges ✓ ; reste carré |
+- `app/(tabs)/styles.ts` — **toujours présent**, palette hardcodée (`#FAF0CA`, `#2A9D8F`, fond `#fff`), route masquée (`href: null`).
 
-### 5.6 Texture & atmosphère
-
-| Élément | DA | App |
-|---------|-----|-----|
-| Aérospray atténué | Header onboarding, splash | `SprayBackground` sur Account ✓ ; Home volontairement sans |
-| Blobs hero | Halos carte | Partiel map |
-| Header verre blur | Nav / modal | ❌ pas implémenté (DA_APP_GAP) |
-| Frise méandre | Optionnel discret | ❌ absent |
-
-### 5.7 Thèmes alternatifs (Appearance)
+### Thèmes alternatifs
 
 | Thème | Problème |
 |-------|----------|
-| **Default** | Aligné `#FDF8F2` / `#F4A261` ✓ |
-| **Ocean** | `#f0f6fc`, `#0f2340`, `#1a6ba5` — **hors palette canonique** |
+| **Ocean** | `#f0f6fc`, `#0f2340`, `#1a6ba5` — hors palette canonique |
 | **Forest** | Tons verts — hors landing |
-| **Mosaic Pop** | Extension DA cohérente (encre + orange + olive) |
+| → | Documenter comme « variantes utilisateur » ou recaler sur tokens §2 |
 
-→ Documenter Ocean/Forest comme « variantes utilisateur » ou les recaler sur tokens §2.
+### Matrice QA thèmes
 
-### 5.8 Fichier legacy
-
-| Fichier | Action |
-|---------|--------|
-| `app/(tabs)/styles.ts` | `#FAF0CA`, `#f5f5f5`, `#2A9D8F`, fond `#fff` — **supprimer ou migrer** |
+Tester **10 écrans clés** × `{default, ocean, forest} × {classic, mosaicPop}` en light + dark.
 
 ---
 
-## 6. Scorecard écran par écran
+## 8. P7 — Animation & engagement
 
-Échelle : **1** insuffisant · **3** acceptable · **5** prêt release  
-Colonnes : **CTA** clarté · **UX** complétude · **DA** · **Jakob** familiarité
+Règles : `#duration-timing` (150–300 ms), `#reduced-motion`, `#success-feedback`, `#haptic-feedback`
+
+### Présent ✓
+
+- Reanimated : CTAButton, PopEmptyState, FriendRequest ; like forum optimiste ; reorder parcours optimiste ; onglet Parcours central.
+
+### Manquant
+
+| Interaction | Priorité |
+|-------------|----------|
+| `HapticTab` + haptics clés | P1–P2 |
+| `useReducedMotion` global | P1 |
+| Toast succès généralisé (partage, blocage, parcours) | P2 |
+| Skeleton uniforme (pas « Chargement… ») | P2 |
+| Bulle chat pending + retry | P2 |
+| Drag-to-reorder parcours (actuellement ↑/↓) | P3 |
+| Séparateurs de date / typing indicator chat | P3 |
+| Shared element hero liste→détail | P4 |
+
+```typescript
+// constants/motion.ts (proposé)
+export const Motion = { fast: 150, normal: 250, slow: 400, scalePress: 0.97 };
+// useMotionConfig() → durée 0 si reduced motion
+```
+
+---
+
+## 9. P8 — Forms & feedback (+ modération UGC)
+
+Règles : `#empty-states`, `#error-recovery`, `#success-feedback`, `#sheet-dismiss-confirm`, `#inline-validation`
+
+### Empty states & feedback
+
+| Écran | Manque |
+|-------|--------|
+| Home reco vide | CTA → `/interests` |
+| Search 0 résultat | Reset + chip « Tout » |
+| Messages | CTA → Amis |
+| Favoris erreur | « Réessayer » |
+| Favoris empty | `PopEmptyState` + `CTAButton` |
+| Group create | `InputField` + compteur caractères |
+| Pickers parcours | Confirm dismiss si modifications non enregistrées |
+| Actions sociales | Généraliser `InlineToast` (succès) |
+
+**Modèle :** `login.tsx`, `thread/create.tsx`.
+
+### Modération UGC — signalement incomplet (HIGH, conformité stores)
+
+Le signalement n'existe que pour le **forum**. Apple/Google exigent un report **sur tout contenu généré par les utilisateurs**. Manquent (back `ReportContentModal` déjà générique, ne reste que la cible + le point d'entrée) :
+
+| Surface | État | À faire |
+|---------|------|---------|
+| Messages privés (chat) | ❌ | Cible report + entrée (appui long / menu bulle) |
+| Messages de groupe | ❌ | idem |
+| Commentaires d'activité | ❌ | Entrée report sur `ActivityCommentsSection` |
+| Profils utilisateur | ❌ | Action « Signaler » sur `profile/[id]` (à côté de Bloquer) |
+
+> Blocage = ✅ complet et appliqué partout. Signalement = ✅ forum, **à étendre** aux surfaces ci-dessus.
+
+---
+
+## 10. P9 — Navigation & raccourcis
+
+Règles : `#deep-linking`, `#bottom-nav-limit`, `#nav-state-active`, `#persistent-nav`, `#state-preservation`
+
+### OK
+
+- 5 tabs (Jakob) · Parcours central · badge unread Communauté · retour stack · pull-to-refresh étendu.
+
+### Manques
+
+| Raccourci | État | Action |
+|-----------|------|--------|
+| Deep links | 🟡 `scheme: "odosfront"` dans `app.json` mais **pas de config `linking`** | Expo Router `linking` |
+| Push → écran | ❌ Token only | Notification response listener |
+| Favoris | ❌ Tab `href: null` (caché) | Lien explicite Compte + option header Home |
+| Tap avatar chat → profil | 🟡 Partiel | `UserAvatar` navigable partout |
+| Friends shares | 🟡 Read-only | Tap → activité/parcours |
+| Share natif | 🟡 Modal custom | `Share.share()` + copier lien |
+| Swipe delete | ❌ Absent | Favoris, conversations, étapes parcours |
+| Stats Visites (Account) | ❌ Non cliquable | → carte / exploration |
+
+---
+
+## 11. P10 — Carte & données
+
+- Pins sans `accessibilityLabel` descriptif (« {nom}, {catégorie} »).
+- Callout : hint double-tap fermer.
+- Progression exploration : pas de `accessibilityLiveRegion`.
+
+---
+
+## 12. Scorecard écran par écran
+
+Échelle : **1** insuffisant · **3** acceptable · **5** prêt release · Colonnes : **CTA** · **UX** · **DA** · **Jakob**
 
 | Route | CTA | UX | DA | Jakob | Notes |
 |-------|-----|----|----|-------|-------|
-| `(tabs)/index` Home | 3 | 3 | 4 | 4 | Skeleton ✓ ; empty reco faible ; MapLibre classic lourd |
-| `(tabs)/search` | 2 | 3 | 3 | 4 | Display serif ✓ ; banner `#E2EEF8` ; mosaic FlatList ✓ |
+| `(tabs)/index` Home | 3 | 3 | 4 | 4 | Skeleton ✓ ; empty reco sans CTA ; MapLibre classic lourd |
+| `(tabs)/search` | 2 | 3 | 3 | 4 | Display serif ✓ ; banner `#E2EEF8` ; classic `ScrollView` |
+| `(tabs)/parcours` | 3 | 4 | 4 | 5 | **Nouveau** ; modal créer non-`CTAButton` ; loading texte |
 | `(tabs)/favorites` | 3 | 4 | 3 | 4 | Caché des tabs ; explore btn non pill |
 | `(tabs)/account` | 4 | 4 | 5 | 4 | Spray ✓ ; menu clair |
-| `(tabs)/community` layout | 3 | 3 | 4 | 3 | Consent sans dismiss |
-| `community/forum` | 4 | 4 | 4 | 5 | PopEmptyState + create ✓ |
-| `community/friends` | 3 | 4 | 4 | 5 | UserSearchBar ✓ ; privacy banner |
-| `community/messages` | 2 | 3 | 4 | 4 | Empty sans CTA Amis |
+| `community/_layout` | 3 | 3 | 4 | 3 | **Consent sans « Plus tard »** |
+| `community/forum` | 4 | 4 | 4 | 5 | PopEmptyState + create ✓ ; pull-refresh ✓ |
+| `community/friends` | 3 | 4 | 4 | 5 | UserSearchBar ✓ ; shares non cliquables |
+| `community/messages` | 2 | 3 | 3 | 4 | Empty sans CTA Amis ; fond classic en pop |
 | `community/groups` | 4 | 4 | 4 | 5 | Créer ✓ ; discover empty faible |
 | `activity/[id]` | 4 | 5 | 4 | 5 | Meilleur écran ; hero icons clutter |
-| `map` | 4 | 4 | 4 | 5 | MapExperience |
+| `map` | 4 | 4 | 4 | 5 | MapExperience ; pins sans label SR |
 | `login` | 5 | 5 | 5 | 5 | **Référence** |
-| `forgot-password` | 5 | 4 | 5 | 5 | — |
-| `reset-password` | 5 | 4 | 5 | 5 | — |
 | `interests` | 5 | 5 | 5 | 5 | Onboarding ✓ |
-| `settings` | 4 | 5 | 4 | 5 | Dense iOS-like ; toggle visibilité ✓ |
-| `appearance` | 3 | 4 | 4 | 4 | Expose palettes non canoniques |
-| `legal` | 3 | 3 | 4 | 4 | Long scroll |
+| `settings` | 4 | 5 | 4 | 5 | Toggle visibilité ✓ |
+| `appearance` | 3 | 4 | 4 | 4 | **Bug persistance variant** |
 | `badges` | 2 | 3 | 4 | 4 | Pas CTA login |
-| `profile/[id]` | 5 | 4 | 5 | 5 | Actions sociales ✓ |
-| `chat/[id]` | 3 | 4 | 4 | 5 | Pattern WhatsApp ; loading vide |
-| `group-chat/[id]` | 3 | 4 | 4 | 5 | Idem chat |
-| `thread/[id]` | 3 | 4 | 4 | 5 | Locked ✓ |
+| `profile/[id]` | 5 | 4 | 5 | 5 | Bloquer ✓ ; pas de « Signaler » |
+| `blocked-users` | 4 | 4 | 4 | 5 | **Nouveau** ; débloquer ✓ |
+| `chat/[id]` | 3 | 4 | 4 | 5 | WhatsApp ; loading vide |
+| `group-chat/[id]` | 3 | 4 | 4 | 5 | Idem chat ; attachments ✓ |
+| `thread/[id]` | 3 | 4 | 4 | 5 | Locked ✓ ; report ✓ |
 | `thread/create` | 5 | 5 | 5 | 5 | — |
 | `group/[id]` | 3 | 4 | 3 | 4 | Trop de boutons égaux |
 | `group/create` | 3 | 3 | 3 | 4 | CTA custom |
-| `group-invitations` | 3 | 3 | 3 | 4 | Empty plain |
-| `parcours/[id]` | 4 | 4 | 4 | 5 | Share discret |
-| `+not-found` | 1 | 1 | 1 | 2 | Non localisé |
+| `group-invitations` | 3 | 3 | 3 | 4 | Empty plain ; pull-refresh ✓ |
+| `parcours/[id]` | 4 | 4 | 4 | 5 | Partage + co-édition ✓ ; reorder sans label |
+| `+not-found` | 1 | 1 | 1 | 2 | **Non localisé** |
 
-**Moyenne pondérée (CTA+UX+DA+Jakob) :** ~3,6 / 5 — **acceptable beta**, pas encore homogène release.
-
----
-
-## 7. Inventaire composants transverses
-
-| Composant | Rôle | Conformité | Priorité fix |
-|-----------|------|------------|--------------|
-| `CTAButton` | Primaire pill | ✅ DA | Étendre usage |
-| `InputField` | Champs formulaire | 🟡 label SR | P1 |
-| `PopEmptyState` | Empty Jakob | ✅ | Ajouter CTAs manquants |
-| `InlineToast` | Feedback rate limit | 🟡 hex light | P2 thème |
-| `SprayBackground` | Texture DA | ✅ | Optionnel search header |
-| `MosaicPopCard` | Carte mosaic | 🟡 rose heart, SVG perf | P2 |
-| `MapExperience` | Carte plein écran | 🟡 pas clustering | P3 |
-| `ThemedScreen` | Wrapper écran | ❌ sous-utilisé | P3 |
-| `BlobFrame` | Icônes blob | ✅ badges | Étendre onboarding |
+**Moyenne pondérée :** ~3,7 / 5 — **beta solide**, pas encore homogène release (a11y + thème variant + empty states).
 
 ---
 
-## 8. Backlog priorisé
+## 13. Matrice croisée Jakob × DA
 
-### P0 — Bloquants UX / a11y (1–2 j)
+(Synchronisée avec [`DESIGN_JAKOB_FLOWS.md`](DESIGN_JAKOB_FLOWS.md) §7, itération §7.3.)
 
-- [ ] `accessibilityLabel="Retour"` sur tous les back buttons custom
-- [ ] Consent communauté : bouton **« Plus tard »** (ferme modal, garde tab sans social)
-- [ ] Tab icon slot `minHeight: 44` ; labels mosaic ≥ 11 sp
-- [ ] `InputField` : propager `accessibilityLabel={label}`, erreur `accessibilityLiveRegion`
-- [ ] Chat / group-chat : indicateur chargement dans liste (pas empty null)
-
-### P1 — Conversion & Jakob (2–3 j)
-
-- [ ] Empty states + CTA : Home reco → intérêts ; Messages → Amis ; Search → reset
-- [ ] Migrer CTAs custom → `CTAButton` : favorites explore, group create/detail, forum create
-- [ ] Activity hero : regrouper icônes sociales (menu ou barre secondaire)
-- [ ] Favoris : remettre onglet visible OU entrée Compte très explicite (decision produit)
-- [ ] `+not-found` : français + tokens + `CTAButton`
-
-### P2 — DA & thème (2–3 j)
-
-- [ ] Remplacer hex `search.tsx` (`#E2EEF8`, `#0f2340`, `#b91c1c`)
-- [ ] `MosaicPopCard` : `#E0245E` → `colors.danger`
-- [ ] `InlineToast` : palettes via tokens light/dark
-- [ ] Supprimer `(tabs)/styles.ts` legacy
-- [ ] `favorites` titre → `FontFamily.display` ; explore → pill
-- [ ] Courgette : 1 ligne sur 2–3 empty states clés
-- [ ] Safe area hook appliqué aux tabs racine + headers custom
-
-### P3 — Perf & polish (3–5 j)
-
-- [ ] Home classic : remplacer MapLibre preview par placeholder léger (comme `MosaicPopMap`)
-- [ ] Search classic : `FlatList` pour résultats
-- [ ] Standardiser `expo-image` URLs distantes
-- [ ] `useReducedMotion` dans `CTAButton`, animations map
-- [ ] Map marker clustering
-- [ ] Header blur natif (DA §6)
-- [ ] Recaler ou documenter thèmes Ocean / Forest
+| Flow | Modèle | Verdict | Écart principal |
+|------|--------|---------|-----------------|
+| Onboarding login / intérêts | Apps grand public | ✅ | — |
+| Accueil → fiche activité | Airbnb / TripAdvisor | ✅ | Reco empty sans CTA |
+| Recherche browse | Spotify chips | 🟡 | Empty sans action ; classic non virtualisé |
+| Favoris | e-commerce | 🟡 | **Tab caché** |
+| Communauté → Amis/Messages/Groupes/Forum | Instagram / WhatsApp / Reddit | ✅ | Messages empty sans CTA ; consent sans « Plus tard » |
+| Chat 1-to-1 | WhatsApp | ✅ | Send pas assez primaire ; loading vide |
+| Profil public | Instagram | ✅ | Pas de « Signaler » |
+| Parcours (bibliothèque + détail) | Spotify / Google Maps | ✅ | Reorder/delete sans label a11y |
+| Partage parcours / activité | Maps share | ✅ | Share natif manquant |
+| Blocage | Instagram / Discord | ✅ | — |
+| Consentement communauté | Accepter + plus tard | ❌ | **Accept seul** |
 
 ---
 
-## 9. Matrice croisée Jakob × DA
+## 14. Backlog priorisé / Checklist pre-delivery
 
-| Flow (Jakob doc) | Attendu | Écart principal |
-|------------------|---------|-----------------|
-| Accueil feed | Scroll vertical, cartes image-first | OK ; reco empty sans CTA |
-| Recherche | Champ haut + chips + résultats | OK ; empty sans action |
-| Favoris tab | Liste dédiée | **Tab caché** |
-| Compte / réglages | Sections groupées | OK settings |
-| Social amis | Recherche alias | OK friends |
-| Chat 1-to-1 | Bulles + composer | OK ; send pas assez primaire |
-| Forum | Threads + réponses | OK forum |
-| Liste → détail | Tap carte | OK activités |
-| Consentement | Accepter + refuser / plus tard | **Accept seul** communauté |
+### CRITICAL (avant release)
+
+- [ ] `InputField` : `accessibilityLabel={label}` sur le champ + `aria-live` erreur
+- [ ] `accessibilityLabel` icon-only (listes, parcours ↑/↓, groupes, retours hero)
+- [ ] `useReducedMotion` global (Skeleton, CTAButton, Splash, MapPin)
+- [ ] Touch ≥ 44 pt (tab slot, CTAs community)
+- [ ] Empty states + action (Home reco, Messages, Search, Favoris)
+- [ ] Erreur + retry (home reco, favoris)
+- [ ] **Fix `readVariantId`** (ocean/forest)
+- [ ] Consent communauté « Plus tard » + `accessibilityViewIsModal`
+- [ ] `+not-found` FR + tokens + `CTAButton`
+
+### HIGH (sprint suivant)
+
+- [ ] Brancher `HapticTab` (`tabBarButton`) + haptics favori / message / ami
+- [ ] Migrer CTAs custom → `CTAButton` / `PopCTAButton` (favorites, group create/detail, forum, parcours)
+- [ ] Hex → tokens (`#E0245E`, `search.tsx`, `InlineToast`)
+- [ ] Supprimer `app/(tabs)/styles.ts`
+- [ ] **Étendre le signalement** : chat, group-chat, commentaires, profils
+- [ ] Deep linking (`linking` config) + push routing
+- [ ] `ThemedScreen` + fond pop sur `messages.tsx`
+
+### MEDIUM (polish)
+
+- [ ] Swipe delete (favoris, conversations, étapes)
+- [ ] Optimistic chat (bulle pending + retry)
+- [ ] Drag-to-reorder parcours ; bouton suppression parcours
+- [ ] Activity hero : regrouper icônes sociales (menu « … »)
+- [ ] Courgette : 1 ligne sur 2–3 empty states
+- [ ] Pins carte : `accessibilityLabel` descriptif
 
 ---
 
-## 10. Fichiers index (audit juin 2026)
+## 15. Plan d'action — 3 sprints
 
-### Écrans
+| Sprint | Durée | Focus | Livrables |
+|--------|-------|-------|-----------|
+| **A — Confiance** | 3–5 j | P1 + P8 CRITICAL | Fix variant, empty + retry, consent « Plus tard », a11y listes/InputField, HapticTab, useReducedMotion, `+not-found` |
+| **B — Système** | 5–7 j | P4 + P6 | `ThemedScreen`, `PopCTAButton`, hex → tokens, supprimer `styles.ts`, fond pop messages, QA thèmes |
+| **C — Engagement & modération** | 5–7 j | P7 + P9 + UGC | Deep links, push routing, toasts, optimistic chat, swipe, **signalement chat/commentaires/profils** |
 
-`odos-front/app/(tabs)/index.tsx` · `search.tsx` · `favorites.tsx` · `account.tsx` · `_layout.tsx` · `community/_layout.tsx` · `community/forum.tsx` · `friends.tsx` · `messages.tsx` · `groups.tsx` · `activity/[id].tsx` · `map.tsx` · `login.tsx` · `forgot-password.tsx` · `reset-password.tsx` · `interests.tsx` · `settings.tsx` · `appearance.tsx` · `legal.tsx` · `badges.tsx` · `profile/[id].tsx` · `chat/[id].tsx` · `group-chat/[id].tsx` · `thread/[id].tsx` · `thread/create.tsx` · `group/[id].tsx` · `group/create.tsx` · `group-invitations.tsx` · `parcours/[id].tsx` · `+not-found.tsx`
+---
 
-### Composants clés
+## 16. Points forts (ne pas régresser)
 
-`components/ui/CTAButton.tsx` · `InputField.tsx` · `components/pop/PopEmptyState.tsx` · `components/cards/MosaicPopCard.tsx` · `components/InlineToast.tsx` · `components/map/MapExperience.tsx` · `constants/themes/tokens.ts` · `context/ThemeContext.tsx`
+- Tabs ≤ 5 + **Parcours central** (Spotify / engagement Pro Max)
+- Cartes image-first + MapLibre (Hyperlocal must-have map)
+- **Cœur favori + ajout-à-un-parcours sur les cartes** (`ActivityCardQuickActions`, `MosaicPopCard` autonome)
+- Blocage complet **appliqué partout** + révocation co-édition parcours
+- `PopEmptyState` forum / groupes / parcours ; pull-to-refresh étendu
+- `UserAvatar` / `UserLink` unifiés ; sticky « Y aller » fiche activité
+- Skin mosaicPop = différenciation Vibrant Block
 
-### Docs associés
+---
 
-| Document | Lien |
+## 17. Références
+
+| Document | Rôle |
 |----------|------|
-| Direction artistique | [`DESIGN_DIRECTION.md`](DESIGN_DIRECTION.md) |
-| Flows Jakob | [`DESIGN_JAKOB_FLOWS.md`](DESIGN_JAKOB_FLOWS.md) |
-| Gap DA (legacy) | [`DA_APP_GAP.md`](DA_APP_GAP.md) |
-| Fiches fonctionnelles | [`fonctionnalites/README.md`](fonctionnalites/README.md) |
+| [DESIGN_JAKOB_FLOWS.md](DESIGN_JAKOB_FLOWS.md) | Flows §7 + itérations §7.1–7.3 |
+| [DESIGN_DIRECTION.md](DESIGN_DIRECTION.md) | Tokens, typo, anti-patterns §10 |
+| [DA_APP_GAP.md](DA_APP_GAP.md) | Checklist DA écran par écran |
+| [fonctionnalites/README.md](fonctionnalites/README.md) | Fiches fonctionnelles |
+| Skill Pro Max | `~/.claude/skills/ui-ux-pro-max/SKILL.md` |
 
 ---
 
-## 11. Suivi
+## Annexe — Skill Pro Max : réparation locale
 
-Mettre à jour ce document après chaque sprint DA/UX. Cocher le backlog §8 et synchroniser les statuts dans `DA_APP_GAP.md` § « Écrans audités ».
+Le `scripts/` du skill est un **pointeur cassé** (la CLI `search.py` ne tourne pas) ; le contenu `SKILL.md` reste exploitable tel quel. Pour réparer la CLI :
 
-**Prochaine revue recommandée :** après implémentation P0 + P1, ou avant soumission dossier CDA.
+```powershell
+npx -y skills add nextlevelbuilder/ui-ux-pro-max-skill --skill ui-ux-pro-max --agent claude-code -g
+
+py "C:\Users\MANUEL\.claude\skills\ui-ux-pro-max\scripts\search.py" "local activities discovery social" --design-system -p "ODOS" -f markdown
+```
 
 ---
 
-*Audit réalisé avec la grille UI/UX Pro Max (checklist priorités 1–10) et revue code `odos-front/` — juin 2026.*
+## 18. Suivi
+
+Mettre à jour ce document après chaque sprint DA/UX ; cocher §14 et synchroniser §7 de `DESIGN_JAKOB_FLOWS.md` + `DA_APP_GAP.md`.
+
+**Prochaine revue recommandée :** après Sprint A (P1 CRITICAL) ou avant soumission dossier stores.
+
+---
+
+*Audit fusionné V1 (revue code) + V2 (UI/UX Pro Max) × Jakob — re-vérifié sur le code `odos-front/` le 2026-06-20.*
