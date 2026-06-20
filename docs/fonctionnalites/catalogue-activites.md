@@ -46,7 +46,7 @@ Chaque activité inclut : nom, description, catégorie, ville, coordonnées GPS,
 4. `GET /api/me` (si connecté — état favori)
 5. `POST /api/me/gamification/events` avec `{ type: "activity_viewed", context: { activityId } }` (badge « première découverte »)
 
-**Actions utilisateur sur la fiche :** ouvrir dans Plans / Google Maps, ajouter aux favoris, noter, commenter.
+**Actions utilisateur sur la fiche :** ouvrir dans Plans / Google Maps, ajouter aux favoris, **ajouter à un parcours** (voir [parcours.md](parcours.md)), noter, commenter.
 
 ---
 
@@ -67,4 +67,4 @@ Chaque activité inclut : nom, description, catégorie, ville, coordonnées GPS,
 
 ---
 
-*Dernière mise à jour : mai 2026.*
+*Dernière mise à jour : juin 2026.*
