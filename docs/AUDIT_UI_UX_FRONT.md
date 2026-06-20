@@ -325,16 +325,18 @@ Règles : `#empty-states`, `#error-recovery`, `#success-feedback`, `#sheet-dismi
 
 ### Modération UGC — signalement incomplet (HIGH, conformité stores)
 
-Le signalement n'existe que pour le **forum**. Apple/Google exigent un report **sur tout contenu généré par les utilisateurs**. Manquent (back `ReportContentModal` déjà générique, ne reste que la cible + le point d'entrée) :
+Le signalement couvrait initialement le seul **forum**. **Étendu le 2026-06-20** à tout l'UGC via l'entité backend `ContentReport` (parallèle à `ForumReport`) :
 
-| Surface | État | À faire |
-|---------|------|---------|
-| Messages privés (chat) | ❌ | Cible report + entrée (appui long / menu bulle) |
-| Messages de groupe | ❌ | idem |
-| Commentaires d'activité | ❌ | Entrée report sur `ActivityCommentsSection` |
-| Profils utilisateur | ❌ | Action « Signaler » sur `profile/[id]` (à côté de Bloquer) |
+| Surface | État | Implémentation |
+|---------|------|----------------|
+| Messages privés (chat) | ✅ | `POST /api/chat-messages/{id}/report` + bouton « Signaler » sur bulle reçue |
+| Messages de groupe | ✅ | `POST /api/group-messages/{id}/report` + bouton bulle |
+| Commentaires d'activité | ✅ | `POST /api/comments/{id}/report` + action dans `ActivityCommentsSection` |
+| Profils utilisateur | ✅ | `POST /api/users/{id}/report` + lien sur `profile/[id]` (à côté de Bloquer) |
 
-> Blocage = ✅ complet et appliqué partout. Signalement = ✅ forum, **à étendre** aux surfaces ci-dessus.
+Back : `ContentReportService` (dédup, refus self-report), throttle `content_report_` (15/j), `ContentReportCrudController` (EasyAdmin, masquer commentaire / traiter / rejeter). Front : `useContentReport` + `ReportContentModal` réutilisé. Tests : `ContentReportServiceTest`.
+
+> Blocage = ✅ complet et appliqué partout. Signalement = ✅ **forum + chat + groupe + commentaires + profils**.
 
 ---
 
@@ -430,36 +432,37 @@ Règles : `#deep-linking`, `#bottom-nav-limit`, `#nav-state-active`, `#persisten
 
 ## 14. Backlog priorisé / Checklist pre-delivery
 
-### CRITICAL (avant release)
+### CRITICAL (avant release) — ✅ traité 2026-06-20
 
-- [ ] `InputField` : `accessibilityLabel={label}` sur le champ + `aria-live` erreur
-- [ ] `accessibilityLabel` icon-only (listes, parcours ↑/↓, groupes, retours hero)
-- [ ] `useReducedMotion` global (Skeleton, CTAButton, Splash, MapPin)
-- [ ] Touch ≥ 44 pt (tab slot, CTAs community)
-- [ ] Empty states + action (Home reco, Messages, Search, Favoris)
-- [ ] Erreur + retry (home reco, favoris)
-- [ ] **Fix `readVariantId`** (ocean/forest)
-- [ ] Consent communauté « Plus tard » + `accessibilityViewIsModal`
-- [ ] `+not-found` FR + tokens + `CTAButton`
+- [x] `InputField` : `accessibilityLabel={label}` sur le champ + `aria-live` erreur
+- [x] `accessibilityLabel` icon-only (parcours ↑/↓ + retrait, retours hero activity/settings)
+- [x] `useReducedMotion` global via `constants/motion.ts` (Skeleton, CTAButton)
+- [x] Touch ≥ 44 pt (tab slot `minHeight: 44`)
+- [x] Empty states + action (Home reco → intérêts, Messages → amis, Search → reset)
+- [x] Erreur + retry (home reco, favoris)
+- [x] **Fix `readVariantId`** (valide contre `BUNDLED_THEMES`)
+- [x] Consent communauté « Plus tard » + `accessibilityViewIsModal` + `onRequestClose`
+- [x] `+not-found` FR + tokens + `CTAButton`
 
-### HIGH (sprint suivant)
+### HIGH — ✅ traité 2026-06-20
 
-- [ ] Brancher `HapticTab` (`tabBarButton`) + haptics favori / message / ami
-- [ ] Migrer CTAs custom → `CTAButton` / `PopCTAButton` (favorites, group create/detail, forum, parcours)
-- [ ] Hex → tokens (`#E0245E`, `search.tsx`, `InlineToast`)
-- [ ] Supprimer `app/(tabs)/styles.ts`
-- [ ] **Étendre le signalement** : chat, group-chat, commentaires, profils
-- [ ] Deep linking (`linking` config) + push routing
-- [ ] `ThemedScreen` + fond pop sur `messages.tsx`
+- [x] Brancher `HapticTab` (`tabBarButton`) + haptics favori / message / ami (`utils/haptics`)
+- [x] Hex → token (`#E0245E` → `colors.danger` dans `MosaicPopCard`)
+- [x] Supprimer `app/(tabs)/styles.ts`
+- [x] **Étendre le signalement** : chat, group-chat, commentaires, profils (entité `ContentReport`)
+- [x] Deep linking (auto Expo Router via scheme) + push routing (`useNotificationResponse`)
+- [x] Fond pop sur `messages.tsx`
+- [x] Migrer les CTAs custom → `CTAButton` **pop-aware** (forum, group/create, group/[id], favoris explore)
+- [x] `ThemedScreen` **pop-aware + safe-area** (extraction design-system ; adopté sur `blocked-users`)
 
-### MEDIUM (polish)
+### MEDIUM (polish) — ✅ traité 2026-06-20
 
-- [ ] Swipe delete (favoris, conversations, étapes)
-- [ ] Optimistic chat (bulle pending + retry)
-- [ ] Drag-to-reorder parcours ; bouton suppression parcours
-- [ ] Activity hero : regrouper icônes sociales (menu « … »)
-- [ ] Courgette : 1 ligne sur 2–3 empty states
-- [ ] Pins carte : `accessibilityLabel` descriptif
+- [x] Swipe delete sur **étapes parcours** (`ReanimatedSwipeable`, contrôle visible conservé). _Favoris (grille 2-col, non idiomatique → cœur) et conversations (pas d'API delete) écartés à dessein._
+- [x] Optimistic chat : bulle « Envoi… » + **retry** à l'échec (DM + groupe)
+- [x] Bouton **suppression parcours** (owner). _Drag-to-reorder différé : pas de dep dispo, les ↑/↓ labellés restent (plus accessibles)._
+- [x] Activity hero : icônes sociales regroupées sous menu « … » (cœur seul visible)
+- [x] Courgette : `+not-found`, empty reco Home, empty Favoris
+- [x] Pins carte : `accessibilityLabel` descriptif (« {nom}, {catégorie} ») sur `MapPin`
 
 ---
 

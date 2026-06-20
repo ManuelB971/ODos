@@ -294,6 +294,15 @@ Réponse aux besoins : *« bibliothèque de parcours visible »*, *« partager v
 | **Avatars unifiés** | WhatsApp | `UserAvatar` + `UserLink` partagés (chat, forum, profils) |
 | **Group chat attachments** | WhatsApp | `group_message.activity_id` / `parcours_id` ; `MessageAttachmentCards` |
 
+### ✅ Backlog traité (itération 5 — 2026-06-20)
+
+| Domaine | Livré |
+|---------|-------|
+| **Modération UGC** | Signalement étendu hors forum (`ContentReport`) : messages privés / de groupe / commentaires / profils, + EasyAdmin dédié |
+| **A11y & confiance** | Fix persistance variant thème, `InputField` labels SR, consent « Plus tard », `+not-found` FR, empty states + CTA, erreur + retry, tab 44 pt, `HapticTab` + haptics |
+| **DA / système** | `#E0245E` cœur favori → `colors.danger` ; suppression `styles.ts` legacy ; fond pop `messages.tsx` ; `useMotionConfig` reduced-motion |
+| **Navigation** | Routage des taps de notification (`useNotificationResponse`) |
+
 ### 🔧 Reste à faire
 
 | Prio | Écran | Reste |
@@ -301,7 +310,7 @@ Réponse aux besoins : *« bibliothèque de parcours visible »*, *« partager v
 | 🟢 P3 | Parcours | Note par étape (API prête) ; drag-to-reorder ; bouton suppression parcours |
 | 🟢 P3 | Chat | Séparateurs de date ; indicateur « en train d'écrire » |
 | 🟢 P3 | Forum | Suppression de son propre sujet / réponse (API `DELETE` prête) |
-| 🟡 P2 | DA | `#E0245E` cœur favori mosaic → `colors.danger` (voir [AUDIT_UI_UX_FRONT.md](AUDIT_UI_UX_FRONT.md)) |
+| 🟡 P2 | DA | Migrer le reste des CTAs custom → `CTAButton` ; extraire `ThemedScreen` (voir [AUDIT_UI_UX_FRONT.md](AUDIT_UI_UX_FRONT.md) §14) |
 
 Fiches détaillées : [fonctionnalites/parcours.md](fonctionnalites/parcours.md) · [fonctionnalites/communaute-sociale.md](fonctionnalites/communaute-sociale.md).
 
