@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { PopSurface } from '@/components/pop/PopSurface';
+import { UserLink } from '@/components/social/UserLink';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import type { ForumThreadItem } from '@/types';
 
@@ -18,7 +19,19 @@ export function ThreadCard({ thread }: ThreadCardProps) {
   const pop = usePopTokens();
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const meta = `${thread.author?.displayName ?? 'Anonyme'} · ${thread.replyCount} réponses`;
+  const metaColor = isMosaicPop ? pop.muted : colors.muted;
+  const authorColor = isMosaicPop ? pop.terra : colors.accent;
+
+  const metaRow = (
+    <View style={styles.metaRow}>
+      <UserLink userId={thread.author?.id} name={thread.author?.displayName}>
+        <Text style={[styles.metaAuthor, { color: authorColor }]} numberOfLines={1}>
+          {thread.author?.displayName ?? 'Anonyme'}
+        </Text>
+      </UserLink>
+      <Text style={[styles.meta, { color: metaColor }]}> · {thread.replyCount} réponses</Text>
+    </View>
+  );
 
   if (isMosaicPop) {
     return (
@@ -33,7 +46,7 @@ export function ThreadCard({ thread }: ThreadCardProps) {
           <Text style={[styles.popTitle, { color: pop.ink }]} numberOfLines={2}>
             {thread.title}
           </Text>
-          <Text style={[styles.meta, { color: pop.muted }]}>{meta}</Text>
+          {metaRow}
         </PopSurface>
       </Pressable>
     );
@@ -48,7 +61,7 @@ export function ThreadCard({ thread }: ThreadCardProps) {
       <Text style={styles.title} numberOfLines={2}>
         {thread.title}
       </Text>
-      <Text style={styles.meta}>{meta}</Text>
+      {metaRow}
     </Pressable>
   );
 }
@@ -82,6 +95,12 @@ function createStyles(colors: ReturnType<typeof useOdosColors>) {
       fontFamily: FontFamily.display,
       fontSize: 19,
       lineHeight: 22,
+    },
+    metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+    metaAuthor: {
+      fontFamily: FontFamily.uiMedium,
+      fontSize: 12,
+      color: colors.accent,
     },
     meta: {
       fontFamily: FontFamily.ui,

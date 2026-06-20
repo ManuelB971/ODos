@@ -17,6 +17,7 @@ import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { InlineToast, InlineToastVariant } from '@/components/InlineToast';
+import { UserLink } from '@/components/social/UserLink';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import type { ActivityComment, User } from '@/types';
 
@@ -168,9 +169,17 @@ export function ActivityCommentsSection({
               key={c.id}
               style={[styles.bubbleRow, isMine ? styles.bubbleRowMine : styles.bubbleRowOther]}
             >
-              {!isMine && <AuthorAvatar name={authorName} avatarUrl={c.author?.avatarUrl} />}
+              {!isMine && (
+                <UserLink userId={c.author?.id} name={authorName}>
+                  <AuthorAvatar name={authorName} avatarUrl={c.author?.avatarUrl} />
+                </UserLink>
+              )}
               <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleOther]}>
-                {!isMine && <Text style={styles.authorName}>{authorName}</Text>}
+                {!isMine && (
+                  <UserLink userId={c.author?.id} name={authorName}>
+                    <Text style={styles.authorName}>{authorName}</Text>
+                  </UserLink>
+                )}
                 {c.isHidden && (
                   <Text style={styles.hiddenTag}>Masqué (admin)</Text>
                 )}

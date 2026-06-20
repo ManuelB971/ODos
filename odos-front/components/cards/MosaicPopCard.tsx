@@ -117,8 +117,12 @@ export function MosaicPopCard({
   onToggleFavorite,
 }: {
   item: ApiActivity;
-  /** `carousel` : largeur fixe (scroll horizontal). `grid` : flex 1 (colonne). */
-  variant?: 'carousel' | 'grid';
+  /**
+   * `carousel` : largeur fixe (scroll horizontal).
+   * `grid` : flex 1, photo carrée (colonne 2 cols, compacte).
+   * `featured` : pleine largeur (hero « incontournable »).
+   */
+  variant?: 'carousel' | 'grid' | 'featured';
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
 }) {
@@ -129,11 +133,17 @@ export function MosaicPopCard({
   const rating = item.ratingAverage;
   // Variante grille (favoris, 2 colonnes) : plus compacte que le carrousel.
   const isGrid = variant === 'grid';
+  const isFeatured = variant === 'featured';
   const shadow = isGrid ? 4 : CARD_SHADOW;
 
   return (
     <Link href={`/activity/${item.id}`} asChild>
-      <Pressable style={[styles.cardWrap, isGrid ? styles.cardWrapGrid : styles.cardWrapCarousel]}>
+      <Pressable
+        style={[
+          styles.cardWrap,
+          isGrid ? styles.cardWrapGrid : isFeatured ? styles.cardWrapFeatured : styles.cardWrapCarousel,
+        ]}
+      >
         {/* Ombre dure décalée (rendu net cross-platform via un calque encre) */}
         <View
           pointerEvents="none"
@@ -147,7 +157,13 @@ export function MosaicPopCard({
           {/* Photo sertie de tesselles */}
           <View style={[styles.frame, isGrid && styles.frameGrid, { backgroundColor: accent, borderBottomColor: t.ink }]}>
             <TesseraGrid color={t.paper} />
-            <View style={[styles.photoWrap, isGrid ? styles.photoWrapGrid : styles.photoWrapCarousel, { borderColor: t.ink }]}>
+            <View
+              style={[
+                styles.photoWrap,
+                isGrid ? styles.photoWrapGrid : isFeatured ? styles.photoWrapFeatured : styles.photoWrapCarousel,
+                { borderColor: t.ink },
+              ]}
+            >
               {img ? (
                 <Image source={{ uri: img }} style={styles.photo} resizeMode="cover" />
               ) : (
@@ -294,6 +310,10 @@ const styles = StyleSheet.create({
     marginRight: 4,
     marginBottom: 8,
   },
+  // Hero pleine largeur : la carte s'étire au parent, marge droite réservée à l'ombre dure.
+  cardWrapFeatured: {
+    marginRight: CARD_SHADOW,
+  },
   heartBtn: {
     position: 'absolute',
     top: 9,
@@ -332,9 +352,14 @@ const styles = StyleSheet.create({
   photoWrapCarousel: {
     height: PHOTO_H,
   },
-  // Grille favoris : même proportion portrait que la FavoriteCard classique (4/5).
+  // Grille favoris / recherche : photo carrée → cartes plus compactes (la photo
+  // ne fait plus gonfler la carte en hauteur comme l'ancien portrait 4/5).
   photoWrapGrid: {
-    aspectRatio: 4 / 5,
+    aspectRatio: 1,
+  },
+  // Hero « incontournable » : pleine largeur, proportion paysage proche du hero classique.
+  photoWrapFeatured: {
+    aspectRatio: 16 / 10,
   },
   // Image en absolu : elle ne participe pas au calcul de taille du parent, sinon
   // `height: '100%'` + `aspectRatio` entrent en conflit sous Fabric et la carte

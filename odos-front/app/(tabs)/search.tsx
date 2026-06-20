@@ -292,7 +292,7 @@ function MosaicPopBrowseSection({
           <View style={styles.badge}>
             <Text style={styles.badgeText}>INCONTOURNABLE</Text>
           </View>
-          <MosaicPopCard item={featured} variant="carousel" />
+          <MosaicPopCard item={featured} variant="featured" />
         </View>
       ) : null}
 

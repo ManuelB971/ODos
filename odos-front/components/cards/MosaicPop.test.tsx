@@ -31,6 +31,14 @@ describe('Mosaïque pop', () => {
     expect(() => render(<MosaicPopCard item={item} />)).not.toThrow();
   });
 
+  it('renders the compact grid card', () => {
+    expect(() => render(<MosaicPopCard item={item} variant="grid" />)).not.toThrow();
+  });
+
+  it('renders the full-width featured card', () => {
+    expect(() => render(<MosaicPopCard item={item} variant="featured" />)).not.toThrow();
+  });
+
   // Régression : sur l'accueil en style « Mosaïque pop », la zone carte est
   // ce visuel statique (et non MapLibre, qui faisait planter la home).
   it('renders the stylised map preview without crashing', () => {
