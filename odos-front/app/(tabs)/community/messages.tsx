@@ -7,6 +7,8 @@ import { FontFamily } from '@/constants/theme';
 import { PopSurface } from '@/components/pop/PopSurface';
 import { PopBadge } from '@/components/pop/PopPill';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
+import { UserAvatar } from '@/components/social/UserAvatar';
+import { UserLink } from '@/components/social/UserLink';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 
 export default function MessagesScreen() {
@@ -47,6 +49,9 @@ export default function MessagesScreen() {
               style={({ pressed }) => (pressed ? styles.popPressed : undefined)}
             >
               <PopSurface shadow={4} radius={12} contentStyle={styles.popRow}>
+                <UserLink userId={item.otherUser?.id} name={name}>
+                  <UserAvatar name={name} avatarUrl={item.otherUser?.avatarUrl} size={44} />
+                </UserLink>
                 <View style={styles.info}>
                   <Text style={[styles.name, { color: pop.ink, fontFamily: FontFamily.uiBold }]} numberOfLines={1}>
                     {name}
@@ -66,6 +71,9 @@ export default function MessagesScreen() {
             onPress={() => router.push(`/chat/${item.id}`)}
             style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}
           >
+            <UserLink userId={item.otherUser?.id} name={name}>
+              <UserAvatar name={name} avatarUrl={item.otherUser?.avatarUrl} size={44} />
+            </UserLink>
             <View style={styles.info}>
               <Text style={[styles.name, { color: colors.text, fontFamily: FontFamily.uiMedium }]}>{name}</Text>
               <Text style={[styles.meta, { color: colors.muted, fontFamily: FontFamily.ui }]}>{sub}</Text>
