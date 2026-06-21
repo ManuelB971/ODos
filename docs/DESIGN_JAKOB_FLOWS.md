@@ -186,7 +186,7 @@ Copier ce bloc dans une PR, une fiche `docs/fonctionnalites/`, ou un ticket desi
 
 | Flow | Modèle de référence | Verdict | Note Jakob |
 |------|---------------------|---------|------------|
-| Onboarding login / intérêts | Apps grand public | ✅ | Classique email + chips intérêts |
+| Onboarding login / intérêts / ville | Apps grand public | ✅ | Email → chips intérêts → choix ville (`homeCity`) |
 | Accueil → fiche activité | Airbnb / TripAdvisor | ✅ | Carte → liste → détail |
 | Recherche browse | Spotify chips | ✅ | Chips + grille |
 | Carte plein écran `/map` | Google Maps | ✅ | Pins, callout, recentrer |
