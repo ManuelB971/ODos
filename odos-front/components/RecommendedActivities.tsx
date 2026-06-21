@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, FlatList, TouchableOpacity, Image, ActivityIndicator, StyleSheet } from 'react-native';
 import { Link } from 'expo-router';
 import { useInterests } from '@/context/InterestContext';
+import { useCity } from '@/context/CityContext';
 import { useRecommendations } from '@/hooks/useRecommendations';
 import { ApiActivity } from '@/types';
 import { resolveImageUrl } from '@/utils/imageUrl';
@@ -19,7 +20,8 @@ const getCategoryName = (cat: ApiActivity['category']): string => {
 
 export const RecommendedActivities = ({ title = 'Recommandé pour vous' }: RecommendedActivitiesProps) => {
   const { interests } = useInterests();
-  const { recommendations, loading, error } = useRecommendations(interests);
+  const { selectedCity } = useCity();
+  const { recommendations, loading, error } = useRecommendations(interests, selectedCity);
 
   if (loading) {
     return (

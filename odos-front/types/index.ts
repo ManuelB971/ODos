@@ -21,6 +21,8 @@ export type User = {
     socialConsentedAt?: string | null;
     profilePublic?: boolean;
     interests?: Category[];
+    /** Ville de référence (onboarding). */
+    homeCity?: string | null;
 } | null;
 
 /** Badge gamification (API /api/me/badges) */
@@ -84,6 +86,26 @@ export type InterestContextType = {
 };
 
 export type InterestProviderProps = {
+    children: ReactNode;
+};
+
+export interface CityCatalogEntry {
+    name: string;
+    activityCount: number;
+    latitude: number;
+    longitude: number;
+}
+
+export type CityContextType = {
+    cities: CityCatalogEntry[];
+    citiesLoading: boolean;
+    citiesError: string | null;
+    selectedCity: string | null;
+    setSelectedCity: Dispatch<SetStateAction<string | null>>;
+    cityCentroid: (name: string) => { latitude: number; longitude: number } | null;
+};
+
+export type CityProviderProps = {
     children: ReactNode;
 };
 

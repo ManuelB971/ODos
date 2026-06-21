@@ -17,6 +17,7 @@ import { useFonts } from 'expo-font';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { useNotificationResponse } from '@/hooks/useNotificationResponse';
 import { InterestProvider } from '@/context/InterestContext';
+import { CityProvider } from '@/context/CityContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ThemedStatusBar } from '@/components/ThemedStatusBar';
@@ -68,12 +69,14 @@ export default function RootLayout() {
           <AuthProvider>
             <BadgeUnlockProvider>
               <InterestProvider>
+              <CityProvider>
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="login" options={{ headerShown: false }} />
                   <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
                   <Stack.Screen name="reset-password" options={{ headerShown: false }} />
                   <Stack.Screen name="interests" options={{ headerShown: false }} />
+                  <Stack.Screen name="onboarding-city" options={{ headerShown: false }} />
                   <Stack.Screen name="settings" options={{ headerShown: false }} />
                   <Stack.Screen name="badges" options={{ headerShown: false }} />
                   <Stack.Screen name="legal" options={{ headerShown: false }} />
@@ -86,6 +89,7 @@ export default function RootLayout() {
                 {!splashDone && (
                   <SplashScreen onFinish={() => setSplashDone(true)} />
                 )}
+              </CityProvider>
               </InterestProvider>
             </BadgeUnlockProvider>
           </AuthProvider>

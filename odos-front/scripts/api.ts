@@ -296,9 +296,21 @@ export async function fetchActivities(): Promise<ApiActivity[]> {
 }
 
 /** Fetch personalized recommendations (requires auth) */
-export async function fetchRecommendations(): Promise<ApiActivity[]> {
-    const response = await api.get('/api/recommendations');
+export async function fetchRecommendations(city?: string | null): Promise<ApiActivity[]> {
+    const params: Record<string, string> = {};
+    const trimmed = city?.trim();
+    if (trimmed) params.city = trimmed;
+    const response = await api.get('/api/recommendations', { params });
     return response.data['hydra:member'] ?? response.data;
+}
+
+import type { CityCatalogEntry } from '@/types';
+
+/** Catalogue des villes (activités publiées). */
+export async function fetchCities(): Promise<CityCatalogEntry[]> {
+    const response = await api.get('/api/cities');
+    const cities = response.data?.cities;
+    return Array.isArray(cities) ? cities : [];
 }
 
 /** Update the current user's interests */
@@ -368,7 +380,7 @@ export async function fetchVisitedIds(): Promise<number[]> {
  */
 export async function updateProfile(
     userId: number,
-    data: { alias?: string | null; bio?: string | null; mapExplorationEnabled?: boolean; profilePublic?: boolean }
+    data: { alias?: string | null; bio?: string | null; mapExplorationEnabled?: boolean; profilePublic?: boolean; homeCity?: string | null }
 ): Promise<void> {
     await api.patch(`/api/users/${userId}`, data, {
         headers: { 'Content-Type': 'application/merge-patch+json' },

@@ -13,6 +13,7 @@ import { DaIcon } from '@/components/ui/DaIcon';
 import { Link, useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { useInterests } from '@/context/InterestContext';
+import { useCity } from '@/context/CityContext';
 import { useRecommendations } from '@/hooks/useRecommendations';
 import { useActivities } from '@/hooks/useActivities';
 import { ApiActivity } from '@/types';
@@ -27,6 +28,7 @@ import { lngDeltaToZoom } from '@/utils/mapViewport';
 import { MapPin as MapPinMarker } from '@/components/map/MapPin';
 import { SkeletonActivityRow, SkeletonRecommendationCard } from '@/components/ui/Skeleton';
 import { CTAButton } from '@/components/ui/CTAButton';
+import { CityFilter } from '@/components/CityFilter';
 import { MosaicPopCard, MosaicPopRow } from '@/components/cards/MosaicPopCard';
 import { MosaicPopMap } from '@/components/cards/MosaicPopMap';
 import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
@@ -146,7 +148,8 @@ export default function HomeScreen() {
   const styles = useMemo(() => createStyles(colors), [colors]);
   const { sprayOpacity, cardStyle, colorScheme } = useTheme();
   const { interests } = useInterests();
-  const { recommendations, loading, error, refresh } = useRecommendations(interests);
+  const { selectedCity } = useCity();
+  const { recommendations, loading, error, refresh } = useRecommendations(interests, selectedCity);
   const activitiesQuery = useActivities();
   const rawActivities = useMemo(() => activitiesQuery.data ?? [], [activitiesQuery.data]);
   const activitiesError = activitiesQuery.error
@@ -160,8 +163,12 @@ export default function HomeScreen() {
    * voient pas non plus les brouillons sur le feed public (home + map).
    */
   const activities = useMemo(
-    () => rawActivities.filter((a) => a.isPublished !== false),
-    [rawActivities],
+    () => {
+      const pub = rawActivities.filter((a) => a.isPublished !== false);
+      if (!selectedCity) return pub;
+      return pub.filter((a) => (a.city ?? '') === selectedCity);
+    },
+    [rawActivities, selectedCity],
   );
 
   const geoActivities = useMemo(
@@ -240,6 +247,10 @@ export default function HomeScreen() {
             <BrandBaseline variant="short" style={styles.heroBaseline} />
             <Text style={styles.welcomeText}>Bienvenue sur ODOS</Text>
             <Text style={styles.welcomeSubtitle}>{BRAND_TAGLINE.toUpperCase()}</Text>
+
+            <View style={styles.cityFilterWrap}>
+              <CityFilter accessibilityLabel="Filtrer le contenu par ville" />
+            </View>
 
             {/* ── Carte des activités (preview + CTA vers /map) ── */}
             <View style={styles.mapSection}>
@@ -436,7 +447,10 @@ function createStyles(colors: OdosColorPalette) {
     letterSpacing: 1.5,
     color: colors.muted,
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  cityFilterWrap: {
+    marginBottom: 16,
   },
   logoWrap: {
     alignItems: 'center',

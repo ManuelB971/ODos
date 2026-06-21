@@ -22,6 +22,7 @@ import { CTAButton } from '@/components/ui/CTAButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { SprayBackground } from '@/components/ui/SprayBackground';
 import { logError, toAppError } from '@/utils/errorHandling';
+import { ONBOARDING_CITY_HREF } from '@/utils/onboardingRoute';
 
 /**
  * Écran de sélection des centres d'intérêt.
@@ -111,7 +112,7 @@ const InterestsScreen = () => {
       }
     }
 
-    router.replace('/');
+    router.replace(ONBOARDING_CITY_HREF);
   };
 
   return (
