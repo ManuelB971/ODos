@@ -19,6 +19,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
+use App\Validator\Constraints\ValidHomeCity;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 #[ORM\Table(name: '`user`')]
@@ -123,6 +124,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         message: 'La bio ne peut pas contenir de balises HTML.'
     )]
     private ?string $bio = null;
+
+    /** Ville de référence (doit exister dans le catalogue activités publiées). */
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(['user:read', 'user:write'])]
+    #[Assert\Length(max: 255)]
+    #[ValidHomeCity]
+    private ?string $homeCity = null;
 
     /**
      * @var list<string> The user roles
@@ -352,6 +360,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $clean = str_replace(["\r\n", "\r"], "\n", $clean);
         $clean = trim($clean);
         $this->bio = '' === $clean ? null : $clean;
+
+        return $this;
+    }
+
+    public function getHomeCity(): ?string
+    {
+        return $this->homeCity;
+    }
+
+    public function setHomeCity(?string $homeCity): static
+    {
+        if (null === $homeCity) {
+            $this->homeCity = null;
+
+            return $this;
+        }
+
+        $clean = trim($homeCity);
+        $this->homeCity = '' === $clean ? null : $clean;
 
         return $this;
     }

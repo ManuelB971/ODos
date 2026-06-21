@@ -63,6 +63,7 @@ final class UserDataExportService
                 'hideBadgesOnProfile' => $user->isHideBadgesOnProfile(),
                 'mapExplorationConsentAt' => $user->getMapExplorationConsentAt()?->format(\DateTimeInterface::ATOM),
                 'mapExplorationEnabled' => $user->isMapExplorationEnabled(),
+                'homeCity' => $user->getHomeCity(),
                 'interests' => array_map(
                     static fn (Category $c) => [
                         'id' => $c->getId(),

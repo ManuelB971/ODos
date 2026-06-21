@@ -50,20 +50,89 @@ class ActivityRepository extends ServiceEntityRepository
     }
 
     /**
+     * Villes distinctes des activités publiées (catalogue dynamique pour onboarding / filtre).
+     *
+     * @return list<array{name: string, activityCount: int, latitude: float, longitude: float}>
+     */
+    public function findDistinctPublishedCities(): array
+    {
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->createQueryBuilder('a')
+            ->select('a.city AS name')
+            ->addSelect('COUNT(a.id) AS activityCount')
+            ->addSelect('AVG(a.latitude) AS latitude')
+            ->addSelect('AVG(a.longitude) AS longitude')
+            ->andWhere('a.isPublished = :published')
+            ->andWhere('a.city IS NOT NULL')
+            ->andWhere("TRIM(a.city) != ''")
+            ->setParameter('published', true)
+            ->groupBy('a.city')
+            ->orderBy('a.city', 'ASC')
+            ->getQuery()
+            ->getArrayResult();
+
+        $cities = [];
+        foreach ($rows as $row) {
+            $name = isset($row['name']) ? trim((string) $row['name']) : '';
+            if ('' === $name) {
+                continue;
+            }
+            $lat = $row['latitude'] ?? null;
+            $lng = $row['longitude'] ?? null;
+            if (!is_numeric($lat) || !is_numeric($lng)) {
+                continue;
+            }
+            $cities[] = [
+                'name' => $name,
+                'activityCount' => (int) ($row['activityCount'] ?? 0),
+                'latitude' => (float) $lat,
+                'longitude' => (float) $lng,
+            ];
+        }
+
+        return $cities;
+    }
+
+    public function isPublishedCityName(string $city): bool
+    {
+        $trimmed = trim($city);
+        if ('' === $trimmed) {
+            return false;
+        }
+
+        $count = (int) $this->createQueryBuilder('a')
+            ->select('COUNT(a.id)')
+            ->andWhere('a.isPublished = :published')
+            ->andWhere('a.city = :city')
+            ->setParameter('published', true)
+            ->setParameter('city', $trimmed)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $count > 0;
+    }
+
+    /**
      * Candidats à la recommandation : activités publiées, filtrées par catégories
      * d'intérêt (si fournies), en excluant les lieux déjà connus de l'utilisateur.
      *
-     * @param array<int> $categoryIds catégories d'intérêt (vide = pas de filtre catégorie)
-     * @param array<int> $excludeIds  activités à exclure (favoris + visites)
+     * @param array<int>    $categoryIds catégories d'intérêt (vide = pas de filtre catégorie)
+     * @param array<int>    $excludeIds  activités à exclure (favoris + visites)
+     * @param string|null   $city        ville cible (exact match sur activity.city)
      *
      * @return array<Activity>
      */
-    public function findRecommendationCandidates(array $categoryIds, array $excludeIds): array
+    public function findRecommendationCandidates(array $categoryIds, array $excludeIds, ?string $city = null): array
     {
         $qb = $this->createQueryBuilder('a')
             ->where('a.isPublished = :pub')
             ->setParameter('pub', true)
             ->orderBy('a.id', 'DESC');
+
+        if (null !== $city && '' !== trim($city)) {
+            $qb->andWhere('a.city = :city')
+                ->setParameter('city', trim($city));
+        }
 
         if ([] !== $categoryIds) {
             $qb->join('a.category', 'c')

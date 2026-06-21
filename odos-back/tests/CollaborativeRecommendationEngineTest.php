@@ -105,6 +105,39 @@ class CollaborativeRecommendationEngineTest extends TestCase
         self::assertSame([], $engine->recommend($this->makeUser(10, visited: [$this->makeActivity(9)])));
     }
 
+    public function testReturnsEmptyWhenNoCityResolved(): void
+    {
+        $repo = $this->createMock(ActivityRepository::class);
+        $repo->expects(self::never())->method('findRecommendationCandidates');
+
+        $engine = new CollaborativeRecommendationEngine($repo, $this->disabledLlm());
+        $user = $this->makeUser(10, homeCity: null);
+
+        self::assertSame([], $engine->recommend($user));
+    }
+
+    public function testPassesCityToCandidateQuery(): void
+    {
+        $a1 = $this->makeActivity(1);
+
+        $repo = $this->createMock(ActivityRepository::class);
+        $repo->expects(self::once())
+            ->method('findRecommendationCandidates')
+            ->with(
+                self::anything(),
+                self::anything(),
+                'Lyon',
+            )
+            ->willReturn([$a1]);
+        $repo->method('findCoEngagedActivityIds')->willReturn([]);
+
+        $engine = new CollaborativeRecommendationEngine($repo, $this->disabledLlm());
+        $user = $this->makeUser(10);
+        $user->setHomeCity('Paris');
+
+        self::assertSame([1], $this->ids($engine->recommend($user, 'Lyon')));
+    }
+
     private function disabledLlm(): LlmRankingService
     {
         return new LlmRankingService(
@@ -135,9 +168,10 @@ class CollaborativeRecommendationEngineTest extends TestCase
      * @param array<Activity> $visited
      * @param array<Activity> $favorites
      */
-    private function makeUser(int $id, array $visited = [], array $favorites = []): User
+    private function makeUser(int $id, array $visited = [], array $favorites = [], ?string $homeCity = 'Paris'): User
     {
         $user = new User();
+        $user->setHomeCity($homeCity);
         foreach ($visited as $activity) {
             $user->addVisitedActivity($activity);
         }

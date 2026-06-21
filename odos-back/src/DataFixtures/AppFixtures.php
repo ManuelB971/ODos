@@ -77,6 +77,20 @@ class AppFixtures extends Fixture
             $manager->persist($activity);
         }
 
+        // Lyon sample for city filter / onboarding tests
+        for ($i = 0; $i < 12; $i++) {
+            $activity = new Activity();
+            $activity->setName($faker->sentence(3));
+            $activity->setDescription($faker->paragraph());
+            $activity->setLatitude($faker->latitude(45.70, 45.80));
+            $activity->setLongitude($faker->longitude(4.80, 4.90));
+            $activity->setCity('Lyon');
+            $activity->setCategory($faker->randomElement($allCategories));
+            $manager->persist($activity);
+        }
+
+        $user->setHomeCity('Paris');
+
         $manager->flush();
     }
 }
