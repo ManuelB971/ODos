@@ -19,6 +19,7 @@ import { ParcoursCard } from '@/components/social/ParcoursCard';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { toAppError } from '@/utils/errorHandling';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
+import { useCity } from '@/context/CityContext';
 
 /** Nombre d'activités tirées pour un « Parcours surprise ». */
 const RANDOM_SIZE = 6;
@@ -30,6 +31,7 @@ export default function ParcoursLibraryScreen() {
   const { data, isLoading, refetch, isRefetching } = useParcoursList();
   const { create } = useParcoursMutations();
   const { data: activities } = useActivities();
+  const { selectedCity } = useCity();
 
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
@@ -50,9 +52,17 @@ export default function ParcoursLibraryScreen() {
   // détail pour personnaliser (renommer, pochette, réordonner…).
   const onRandom = async () => {
     if (create.isPending) return;
-    const pool = (activities ?? []).filter((a) => a.isPublished !== false);
+    let pool = (activities ?? []).filter((a) => a.isPublished !== false);
+    if (selectedCity) {
+      pool = pool.filter((a) => (a.city ?? '') === selectedCity);
+    }
     if (pool.length === 0) {
-      Alert.alert('Parcours surprise', 'Aucune activité disponible pour le moment.');
+      Alert.alert(
+        'Parcours surprise',
+        selectedCity
+          ? `Aucune activité disponible à ${selectedCity} pour le moment.`
+          : 'Aucune activité disponible pour le moment.',
+      );
       return;
     }
     const activityIds = [...pool]

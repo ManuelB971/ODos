@@ -26,6 +26,7 @@ import { CTAButton } from '@/components/ui/CTAButton';
 import { InputField } from '@/components/ui/InputField';
 import { SocialAuthSection } from '@/components/login/SocialAuthSection';
 import { SprayBackground } from '@/components/ui/SprayBackground';
+import { getOnboardingRoute } from '@/utils/onboardingRoute';
 
 function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -81,8 +82,7 @@ export default function LoginScreen() {
 
       if (user) {
         setUser(user);
-        const hasInterests = Array.isArray(user.interests) && user.interests.length > 0;
-        router.replace(hasInterests ? '/' : '/interests');
+        router.replace(getOnboardingRoute(user));
       }
     } catch {
       setError(isLogin ? 'Erreur de connexion.' : 'Une erreur est survenue lors de l’inscription.');
@@ -99,8 +99,7 @@ export default function LoginScreen() {
 
   const completeSocialLogin = (user: NonNullable<Awaited<ReturnType<typeof signIn>>['user']>) => {
     setUser(user);
-    const hasInterests = Array.isArray(user.interests) && user.interests.length > 0;
-    router.replace(hasInterests ? '/' : '/interests');
+    router.replace(getOnboardingRoute(user));
   };
 
   useEffect(() => {

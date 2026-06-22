@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\State;
 
 use ApiPlatform\Metadata\Operation;
@@ -8,6 +10,7 @@ use App\Entity\Activity;
 use App\Entity\User;
 use App\Recommendation\RecommendationEngineInterface;
 use Symfony\Bundle\SecurityBundle\Security;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Adaptateur API Platform pour l'endpoint GET /api/recommendations.
@@ -24,6 +27,7 @@ final class RecommendationStateProvider implements ProviderInterface
     public function __construct(
         private readonly Security $security,
         private readonly RecommendationEngineInterface $engine,
+        private readonly RequestStack $requestStack,
     ) {}
 
     /** @return array<Activity> */
@@ -35,6 +39,10 @@ final class RecommendationStateProvider implements ProviderInterface
             return [];
         }
 
-        return $this->engine->recommend($user);
+        $request = $this->requestStack->getCurrentRequest();
+        $city = $request?->query->get('city');
+        $cityParam = \is_string($city) && '' !== trim($city) ? trim($city) : null;
+
+        return $this->engine->recommend($user, $cityParam);
     }
 }

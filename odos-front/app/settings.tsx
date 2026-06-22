@@ -23,6 +23,7 @@ import {
   EyeOff,
   FileText,
   Map,
+  MapPin,
   Scale,
   Shield,
   ShieldOff,
@@ -32,6 +33,7 @@ import {
 } from 'lucide-react-native';
 
 import { useAuth } from '@/context/AuthContext';
+import { useCity } from '@/context/CityContext';
 import { useProfileVisibility } from '@/hooks/useProfileVisibility';
 import {
   deleteAvatar,
@@ -87,6 +89,7 @@ function validateAlias(alias: string): string | null {
 
 export default function SettingsScreen() {
   const { user, setUser, logout, isAuthenticated } = useAuth();
+  const { cities, selectedCity, setSelectedCity } = useCity();
   const { isPublic, isPending: visibilityPending, setPublic } = useProfileVisibility();
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -95,8 +98,10 @@ export default function SettingsScreen() {
   const [alias, setAlias] = useState(user?.alias ?? '');
   const [bio, setBio] = useState(user?.bio ?? '');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatarUrl ?? null);
+  const [homeCityDraft, setHomeCityDraft] = useState(user?.homeCity ?? null);
 
   const [savingProfile, setSavingProfile] = useState(false);
+  const [savingHomeCity, setSavingHomeCity] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [removingAvatar, setRemovingAvatar] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -252,6 +257,27 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleSaveHomeCity = async (cityName: string) => {
+    if (!user?.id || savingHomeCity) return;
+    setSavingHomeCity(true);
+    setSuccessMsg(null);
+    const previousHome = user.homeCity?.trim() || null;
+    try {
+      await updateProfile(user.id, { homeCity: cityName });
+      setUser({ ...user, homeCity: cityName });
+      setHomeCityDraft(cityName);
+      if (!selectedCity || selectedCity === previousHome) {
+        setSelectedCity(cityName);
+      }
+      setSuccessMsg('Ville enregistrée.');
+    } catch (err) {
+      logError('Settings.saveHomeCity', err);
+      Alert.alert('Ma ville', toAppError(err, 'Impossible de sauvegarder votre ville.').userMessage);
+    } finally {
+      setSavingHomeCity(false);
+    }
+  };
+
   // ── Suppression compte (double confirmation) ──────────────────────────────
   const handleDeleteAccount = () => {
     Alert.alert(
@@ -389,6 +415,36 @@ export default function SettingsScreen() {
             Clair, sombre ou celui du système.
           </Text>
           <ThemePreferencePicker />
+        </View>
+
+        <Text style={styles.sectionTitle}>Ma ville</Text>
+        <View style={styles.card}>
+          <View style={styles.homeCityHeader}>
+            <MapPin size={16} color={colors.accent} />
+            <Text style={[styles.switchLabel, { color: colors.text }]}>Ville de référence</Text>
+          </View>
+          <Text style={[styles.switchHint, { color: colors.muted, marginBottom: 12 }]}>
+            Utilisée par défaut pour vos recommandations et parcours surprise.
+          </Text>
+          <View style={styles.homeCityChips}>
+            {cities.map((city) => {
+              const active = (homeCityDraft ?? user?.homeCity) === city.name;
+              return (
+                <Pressable
+                  key={city.name}
+                  onPress={() => handleSaveHomeCity(city.name)}
+                  disabled={savingHomeCity}
+                  style={[styles.homeCityChip, active && styles.homeCityChipActive]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active, disabled: savingHomeCity }}
+                >
+                  <Text style={[styles.homeCityChipText, active && styles.homeCityChipTextActive]}>
+                    {city.name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
 
         {/* ── Profil éditable ── */}
@@ -822,6 +878,38 @@ function createStyles(colors: OdosColorPalette) {
     fontFamily: FontFamily.ui,
     color: colors.muted,
     lineHeight: 17,
+  },
+  homeCityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  homeCityChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  homeCityChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  homeCityChipActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentSoft,
+  },
+  homeCityChipText: {
+    fontFamily: FontFamily.uiMedium,
+    fontSize: 13,
+    color: colors.muted,
+  },
+  homeCityChipTextActive: {
+    color: colors.accent,
+    fontFamily: FontFamily.uiBold,
   },
 });
 }

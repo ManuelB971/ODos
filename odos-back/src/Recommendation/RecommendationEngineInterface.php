@@ -19,7 +19,9 @@ interface RecommendationEngineInterface
     /**
      * Calcule les activités recommandées pour un utilisateur.
      *
+     * @param string|null $city ville cible (query param) ; repli sur homeCity si null
+     *
      * @return array<Activity> activités ordonnées, la plus pertinente en premier
      */
-    public function recommend(User $user): array;
+    public function recommend(User $user, ?string $city = null): array;
 }

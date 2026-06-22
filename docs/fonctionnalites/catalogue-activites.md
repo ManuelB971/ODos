@@ -24,8 +24,19 @@ Chaque activité inclut : nom, description, catégorie, ville, coordonnées GPS,
 | GET | `/api/activities` | Public* | Liste paginée Hydra (`hydra:member`) |
 | GET | `/api/activities/{id}` | Public* | Détail d’une activité |
 | GET | `/api/categories` | Public | Taxonomie (catégories / centres d’intérêt) |
+| GET | `/api/cities` | JWT | Villes distinctes des activités publiées (centroïde + compteur) |
 
 \* Les brouillons (`isPublished = false`) sont masqués sauf pour `ROLE_ADMIN`.
+
+Le catalogue **ville** est dérivé automatiquement de `Activity.city` (import admin / CRUD).
+
+---
+
+## Filtre ville (mobile)
+
+- **Onboarding** : étape 2 obligatoire (`/onboarding-city`) → `User.homeCity`.
+- **Filtre Shotgun** : pills sur accueil, recherche et carte (`CityFilter`) ; `selectedCity` sans modifier le profil.
+- **Recommandations** : `GET /api/recommendations?city=` · **parcours surprise** : pool filtré côté client.
 
 ---
 
@@ -34,9 +45,12 @@ Chaque activité inclut : nom, description, catégorie, ville, coordonnées GPS,
 | Fichier | Rôle |
 |---------|------|
 | `hooks/useActivities.ts` | Cache global `['activities']`, `staleTime` 5 min |
+| `context/CityContext.tsx` | Ville sélectionnée + catalogue `/api/cities` |
+| `components/CityFilter.tsx` | Pills ville (accueil, recherche, carte) |
+| `app/onboarding-city.tsx` | Onboarding étape 2 — choix `homeCity` |
 | `app/(tabs)/index.tsx` | Accueil : recommandations + liste « Toutes les activités » + mini-carte |
 | `app/activity/[id].tsx` | Fiche complète (image, infos, note, favori, commentaires, navigation GPS) |
-| `scripts/api.ts` | `fetchActivities`, helpers REST |
+| `scripts/api.ts` | `fetchActivities`, `fetchCities`, helpers REST |
 
 **Fiche détail — requêtes parallèles :**
 
@@ -55,6 +69,7 @@ Chaque activité inclut : nom, description, catégorie, ville, coordonnées GPS,
 | Composant | Rôle |
 |-----------|------|
 | Entité `Activity` | Modèle Doctrine + `#[ApiResource]` |
+| `CityCatalogController` | `GET /api/cities` |
 | `ActivityImportService` | Import CSV admin |
 | `public/uploads/activities/` | Photos liées à `imageUrl` |
 

@@ -27,6 +27,8 @@ import { FontFamily } from '@/constants/theme';
 import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
 import { MosaicPopCard, MosaicPopRow } from '@/components/cards/MosaicPopCard';
 import { CTAButton } from '@/components/ui/CTAButton';
+import { CityFilter } from '@/components/CityFilter';
+import { useCity } from '@/context/CityContext';
 
 const serif = FontFamily.display;
 const sans = FontFamily.ui;
@@ -48,14 +50,17 @@ export default function SearchScreen() {
   const { cardStyle } = useTheme();
   const insets = useSafeAreaInsets();
   const activitiesQuery = useActivities();
+  const { selectedCity } = useCity();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeChip, setActiveChip] = useState<string>('Tout');
   const debouncedQuery = useDebounce(searchQuery, 250);
 
   const published = useMemo(() => {
     const raw = activitiesQuery.data ?? [];
-    return raw.filter((a) => a.isPublished !== false);
-  }, [activitiesQuery.data]);
+    const pub = raw.filter((a) => a.isPublished !== false);
+    if (!selectedCity) return pub;
+    return pub.filter((a) => (a.city ?? '') === selectedCity);
+  }, [activitiesQuery.data, selectedCity]);
 
   const chipOptions = useMemo(() => {
     const names = new Set<string>();
@@ -126,6 +131,8 @@ export default function SearchScreen() {
           returnKeyType="search"
         />
       </View>
+
+      <CityFilter accessibilityLabel="Filtrer les activités par ville" />
 
       <ScrollView
         horizontal

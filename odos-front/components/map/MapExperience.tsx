@@ -39,6 +39,8 @@ import { ExplorationProgressChip } from './ExplorationProgressChip';
 import { ExplorationVisitedLayer } from './ExplorationVisitedLayer';
 import { MapPin } from './MapPin';
 import { SearchBar } from './SearchBar';
+import { CityFilter } from '@/components/CityFilter';
+import { useCity } from '@/context/CityContext';
 
 export type MapExperienceProps = {
   activities: ApiActivity[];
@@ -66,8 +68,10 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isAuthenticated, user, setUser } = useAuth();
+  const { selectedCity, cityCentroid } = useCity();
   const cameraRef = useRef<CameraRef | null>(null);
   const cameraBusyRef = useRef(false);
+  const cameraTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFilterKeyRef = useRef('');
 
   const [search, setSearch] = useState('');
@@ -83,6 +87,26 @@ export function MapExperience({ activities, loading = false, error = null }: Map
 
   const exploration = useMapExploration(isAuthenticated && (user?.mapExplorationEnabled ?? false));
 
+  const clearCameraTimer = useCallback(() => {
+    if (cameraTimerRef.current != null) {
+      clearTimeout(cameraTimerRef.current);
+      cameraTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleCameraReady = useCallback(
+    (delayMs: number) => {
+      clearCameraTimer();
+      cameraTimerRef.current = setTimeout(() => {
+        cameraBusyRef.current = false;
+        cameraTimerRef.current = null;
+      }, delayMs);
+    },
+    [clearCameraTimer],
+  );
+
+  useEffect(() => () => clearCameraTimer(), [clearCameraTimer]);
+
   // Progression d'exploration = activités marquées "visitées" / total publié.
   // Même métrique que la barre du profil ; le cache ['visitedIds'] est invalidé
   // au toggle "Lieu visité", donc le chip se met à jour automatiquement.
@@ -93,14 +117,6 @@ export function MapExperience({ activities, loading = false, error = null }: Map
     staleTime: 1000 * 60 * 2,
   });
 
-  const publishedCount = useMemo(
-    () => activities.filter((a) => a.isPublished !== false).length,
-    [activities]
-  );
-  const visitedCount = visitedQuery.data?.length ?? 0;
-  const explorationPercent =
-    publishedCount > 0 ? Math.round((visitedCount / publishedCount) * 100) : 0;
-
   const geoActivities = useMemo(
     () =>
       activities.filter(
@@ -109,9 +125,22 @@ export function MapExperience({ activities, loading = false, error = null }: Map
     [activities]
   );
 
+  const cityScopedActivities = useMemo(() => {
+    if (!selectedCity) return geoActivities;
+    return geoActivities.filter((a) => (a.city ?? '') === selectedCity);
+  }, [geoActivities, selectedCity]);
+
+  const publishedCount = useMemo(
+    () => cityScopedActivities.length,
+    [cityScopedActivities]
+  );
+  const visitedCount = visitedQuery.data?.length ?? 0;
+  const explorationPercent =
+    publishedCount > 0 ? Math.round((visitedCount / publishedCount) * 100) : 0;
+
   const chips: Chip[] = useMemo(() => {
     const seen = new globalThis.Map<string, string>();
-    for (const a of geoActivities) {
+    for (const a of cityScopedActivities) {
       const label =
         typeof a.category === 'string' ? a.category : a.category?.name ?? '';
       if (label && !seen.has(label.toLowerCase())) {
@@ -122,11 +151,11 @@ export function MapExperience({ activities, loading = false, error = null }: Map
       .map(([id, label]) => ({ id, label }))
       .sort((a, b) => a.label.localeCompare(b.label, 'fr'));
     return [{ id: 'all', label: 'Tous' }, ...sorted];
-  }, [geoActivities]);
+  }, [cityScopedActivities]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return geoActivities.filter((a) => {
+    return cityScopedActivities.filter((a) => {
       if (activeCategoryId !== 'all') {
         const catLabel = (typeof a.category === 'string' ? a.category : a.category?.name ?? '').toLowerCase();
         if (catLabel !== activeCategoryId) return false;
@@ -138,7 +167,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         (a.description ?? '').toLowerCase().includes(q)
       );
     });
-  }, [geoActivities, search, activeCategoryId]);
+  }, [cityScopedActivities, search, activeCategoryId]);
 
   const filterKey = useMemo(
     () => filtered.map((a) => a.id).join(','),
@@ -195,11 +224,9 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         duration: CAMERA_EASE_MS,
         easing: 'ease',
       });
-      setTimeout(() => {
-        cameraBusyRef.current = false;
-      }, CAMERA_EASE_MS + 80);
+      scheduleCameraReady(CAMERA_EASE_MS + 80);
     },
-    []
+    [scheduleCameraReady]
   );
 
   const handlePinPress = useCallback(
@@ -225,6 +252,23 @@ export function MapExperience({ activities, loading = false, error = null }: Map
     const id = requestAnimationFrame(() => fitFilteredBounds(false));
     return () => cancelAnimationFrame(id);
   }, [filterKey, fitFilteredBounds]);
+
+  useEffect(() => {
+    if (!selectedCity) return;
+    const center = cityCentroid(selectedCity);
+    if (!center) return;
+    setSelectedId(null);
+    cameraBusyRef.current = true;
+    cameraRef.current?.easeTo({
+      center: [center.longitude, center.latitude],
+      zoom: 12,
+      padding: MAP_CAMERA_PADDING,
+      duration: 480,
+      easing: 'ease',
+    });
+    scheduleCameraReady(560);
+    return clearCameraTimer;
+  }, [selectedCity, cityCentroid, scheduleCameraReady, clearCameraTimer]);
 
   useEffect(() => {
     if (cameraBusyRef.current || selectedId != null) return;
@@ -320,6 +364,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
             <SearchBar value={search} onChangeText={setSearch} />
           </View>
         </View>
+        <CityFilter />
         <CategoryChips chips={chips} activeId={activeCategoryId} onPressChip={(c) => setActiveCategoryId(c.id)} />
         {isAuthenticated && publishedCount > 0 ? (
           <ExplorationProgressChip

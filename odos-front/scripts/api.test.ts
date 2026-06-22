@@ -72,6 +72,7 @@ describe('api helpers', () => {
       .mockResolvedValueOnce({ data: [{ id: 2 }] })
       .mockResolvedValueOnce({ data: { member: [{ id: 3 }] } })
       .mockResolvedValueOnce({ data: { 'hydra:member': [{ id: 4 }] } })
+      .mockResolvedValueOnce({ data: { cities: [{ name: 'Lyon', activityCount: 2, latitude: 45.7, longitude: 4.8 }] } })
       .mockResolvedValueOnce({ data: { favorites: ['/api/activities/8'] } })
       .mockResolvedValueOnce({ data: { avg: 4 } })
       .mockResolvedValueOnce({ data: { member: [], totalItems: 0, page: 1, itemsPerPage: 10 } });
@@ -79,7 +80,9 @@ describe('api helpers', () => {
     expect(await api.fetchCategories()).toEqual([{ id: 1 }]);
     expect(await api.fetchActivities()).toEqual([{ id: 2 }]);
     expect(await api.fetchActivities()).toEqual([{ id: 3 }]);
-    expect(await api.fetchRecommendations()).toEqual([{ id: 4 }]);
+    expect(await api.fetchRecommendations('Lyon')).toEqual([{ id: 4 }]);
+    expect(mockApiInstance.get).toHaveBeenCalledWith('/api/recommendations', { params: { city: 'Lyon' } });
+    expect(await api.fetchCities()).toEqual([{ name: 'Lyon', activityCount: 2, latitude: 45.7, longitude: 4.8 }]);
     expect(await api.fetchFavoriteIds()).toEqual([8]);
     expect(await api.fetchActivityRating(7)).toEqual({ avg: 4 });
     expect(await api.fetchActivityComments(9, 2)).toEqual({ member: [], totalItems: 0, page: 1, itemsPerPage: 10 });

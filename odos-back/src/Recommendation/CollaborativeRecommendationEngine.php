@@ -34,8 +34,13 @@ final class CollaborativeRecommendationEngine implements RecommendationEngineInt
         private readonly int $candidateLimit = 50,
     ) {}
 
-    public function recommend(User $user): array
+    public function recommend(User $user, ?string $city = null): array
     {
+        $resolvedCity = $this->resolveCity($user, $city);
+        if (null === $resolvedCity) {
+            return [];
+        }
+
         // Lieux déjà connus (favoris + visites) : graine du goût ET filtre d'exclusion.
         $visitedIds = $this->collectIds($user->getVisitedActivities());
         $favoriteIds = $this->collectIds($user->getFavorites());
@@ -53,14 +58,24 @@ final class CollaborativeRecommendationEngine implements RecommendationEngineInt
         /** @var array<string> $interestNames */
         $interestNames = array_values($interests->map(static fn ($category) => $category->getName())->toArray());
 
-        $candidates = $this->activityRepository->findRecommendationCandidates($categoryIds, $knownIds);
+        $candidates = $this->activityRepository->findRecommendationCandidates($categoryIds, $knownIds, $resolvedCity);
         $candidates = $this->boostCoEngaged($candidates, $userId, $knownIds);
 
         return $this->llmRankingService->rank(
             $interestNames,
             $candidates,
-            $this->cacheKey($userId, $categoryIds, $knownIds),
+            $this->cacheKey($userId, $categoryIds, $knownIds, $resolvedCity),
         );
+    }
+
+    private function resolveCity(User $user, ?string $city): ?string
+    {
+        $candidate = null !== $city && '' !== trim($city) ? trim($city) : $user->getHomeCity();
+        if (null === $candidate || '' === trim($candidate)) {
+            return null;
+        }
+
+        return trim($candidate);
     }
 
     /**
@@ -145,7 +160,7 @@ final class CollaborativeRecommendationEngine implements RecommendationEngineInt
      * @param array<int> $categoryIds
      * @param array<int> $knownIds
      */
-    private function cacheKey(?int $userId, array $categoryIds, array $knownIds): ?string
+    private function cacheKey(?int $userId, array $categoryIds, array $knownIds, string $city): ?string
     {
         if (null === $userId) {
             return null;
@@ -157,7 +172,7 @@ final class CollaborativeRecommendationEngine implements RecommendationEngineInt
 
         return hash(
             'sha256',
-            $userId . ':' . implode(',', $cats) . ':k' . implode(',', $knownIds),
+            $userId . ':' . implode(',', $cats) . ':k' . implode(',', $knownIds) . ':c' . $city,
         );
     }
 }

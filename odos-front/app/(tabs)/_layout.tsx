@@ -3,6 +3,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
+import { getOnboardingRoute, hasCompletedOnboarding } from '@/utils/onboardingRoute';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { BlobFrame } from '@/components/ui/BlobFrame';
@@ -14,7 +15,7 @@ import React, { useEffect } from 'react';
 type TabIconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
 export default function TabLayout() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const colors = useOdosColors();
   const isMosaicPop = useIsMosaicPop();
@@ -22,11 +23,15 @@ export default function TabLayout() {
   const { data: unread } = useSocialUnreadCount();
   const badgeCount = unread?.total ?? 0;
   useEffect(() => {
-
-    if (!isLoading && !isAuthenticated) {
+    if (isLoading) return;
+    if (!isAuthenticated) {
       router.replace('/login');
+      return;
     }
-  }, [isAuthenticated, isLoading, router]);
+    if (user && !hasCompletedOnboarding(user)) {
+      router.replace(getOnboardingRoute(user));
+    }
+  }, [isAuthenticated, isLoading, user, router]);
 
   const renderTabIcon = (
     name: TabIconName,
@@ -105,9 +110,20 @@ export default function TabLayout() {
     );
   };
 
-  // En mosaïque pop, on affiche des libellés majuscules sous chaque icône (le
-  // classique reste sans libellé — `title: ''`).
-  const tabTitle = (mosaic: string) => (isMosaicPop ? mosaic : '');
+  // Libellés sous chaque icône (classic + mosaïque pop).
+  const tabLabelStyle = isMosaicPop
+    ? {
+        fontFamily: FontFamily.uiBold,
+        fontSize: 9.5,
+        letterSpacing: 0.6,
+        textTransform: 'uppercase' as const,
+        marginTop: 6,
+      }
+    : {
+        fontFamily: FontFamily.uiMedium,
+        fontSize: 11,
+        marginTop: 6,
+      };
 
   return (
     <Tabs
@@ -119,31 +135,21 @@ export default function TabLayout() {
               backgroundColor: pop.paper,
               borderTopColor: pop.ink,
               borderTopWidth: 2.5,
-              height: 66,
+              height: 68,
               paddingBottom: 8,
-              paddingTop: 6,
+              paddingTop: 4,
             }
           : {
               backgroundColor: colors.background,
               borderTopColor: colors.border,
-              height: 62,
+              height: 68,
               paddingBottom: 8,
-              paddingTop: 6,
+              paddingTop: 4,
             },
         tabBarItemStyle: {
-          paddingVertical: 2,
+          paddingVertical: 4,
         },
-        tabBarLabelStyle: isMosaicPop
-          ? {
-              fontFamily: FontFamily.uiBold,
-              fontSize: 9.5,
-              letterSpacing: 0.6,
-              textTransform: 'uppercase',
-            }
-          : {
-              fontFamily: FontFamily.uiMedium,
-              fontSize: 11,
-            },
+        tabBarLabelStyle: tabLabelStyle,
         tabBarActiveTintColor: isMosaicPop ? pop.ink : colors.accent,
         tabBarInactiveTintColor: isMosaicPop ? pop.muted : colors.muted,
       }}
@@ -152,28 +158,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: tabTitle('Accueil'),
+          title: 'Accueil',
           tabBarIcon: renderTabIcon('explore', 0, 'Accueil'),
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
-          title: tabTitle('Recherche'),
+          title: 'Recherche',
           tabBarIcon: renderTabIcon('search', 1, 'Recherche'),
         }}
       />
       <Tabs.Screen
         name="parcours"
         options={{
-          title: tabTitle('Parcours'),
+          title: 'Parcours',
           tabBarIcon: renderParcoursIcon(),
         }}
       />
       <Tabs.Screen
         name="community"
         options={{
-          title: tabTitle('Communauté'),
+          title: 'Communauté',
           tabBarIcon: renderTabIcon('groups', 2, 'Communauté'),
           tabBarBadge: badgeCount > 0 ? badgeCount : undefined,
         }}
@@ -187,7 +193,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="account"
         options={{
-          title: tabTitle('Compte'),
+          title: 'Compte',
           tabBarIcon: renderTabIcon('person', 3, 'Compte'),
         }}
       />

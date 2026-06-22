@@ -39,11 +39,11 @@ describe('useRecommendations', () => {
       refetch,
     });
 
-    const { result } = renderHook(() => useRecommendations(['Sport']));
+    const { result } = renderHook(() => useRecommendations(['Sport'], 'Lyon'));
 
     expect(useQuery).toHaveBeenCalledWith({
-      queryKey: ['recommendations', 42, ['Sport']],
-      queryFn: fetchRecommendations,
+      queryKey: ['recommendations', 42, ['Sport'], 'Lyon'],
+      queryFn: expect.any(Function),
       enabled: true,
       staleTime: 1000 * 60 * 2,
       retry: 1,
@@ -61,10 +61,23 @@ describe('useRecommendations', () => {
       refetch: jest.fn(),
     });
 
-    const { result } = renderHook(() => useRecommendations([]));
+    const { result } = renderHook(() => useRecommendations([], 'Paris'));
 
     expect((useQuery as jest.Mock).mock.calls[0][0].enabled).toBe(false);
     expect(result.current.recommendations).toEqual([]);
+  });
+
+  it('disables query when city is missing', () => {
+    (useQuery as jest.Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
+
+    renderHook(() => useRecommendations(['Sport'], null));
+
+    expect((useQuery as jest.Mock).mock.calls[0][0].enabled).toBe(false);
   });
 
   it('maps query errors to user message', () => {
@@ -75,7 +88,7 @@ describe('useRecommendations', () => {
       refetch: jest.fn(),
     });
 
-    const { result } = renderHook(() => useRecommendations(['Food']));
+    const { result } = renderHook(() => useRecommendations(['Food'], 'Paris'));
 
     expect(mockToAppError).toHaveBeenCalled();
     expect(result.current.error).toBe('friendly error');
