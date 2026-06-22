@@ -3,18 +3,22 @@ import { Pressable, View, Text } from 'react-native';
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { fireEvent, render, screen, within } from '@testing-library/react-native';
+import { fireEvent, render, screen, within, cleanup } from '@testing-library/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 import { MapExperience } from '@/components/map/MapExperience';
 import type { ApiActivity } from '@/types';
 
+let queryClient: QueryClient;
+
 /** Rend MapExperience dans un QueryClientProvider (requis par useQuery interne). */
 function renderMap(ui: React.ReactElement) {
-  const client = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
+  queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, gcTime: 0 },
+    },
   });
-  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
 }
 
 const mockBack = jest.fn();
@@ -35,6 +39,21 @@ jest.mock('@/context/AuthContext', () => ({
     user: null,
     setUser: jest.fn(),
   }),
+}));
+
+jest.mock('@/context/CityContext', () => ({
+  useCity: () => ({
+    cities: [],
+    citiesLoading: false,
+    citiesError: null,
+    selectedCity: null,
+    setSelectedCity: jest.fn(),
+    cityCentroid: () => null,
+  }),
+}));
+
+jest.mock('@/components/CityFilter', () => ({
+  CityFilter: () => null,
 }));
 
 jest.mock('@/hooks/useMapExploration', () => ({
@@ -150,6 +169,11 @@ describe('MapExperience UX contract', () => {
 describe('MapExperience', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
+    queryClient?.clear();
   });
 
   it('renders one marker per published geo-located activity', () => {

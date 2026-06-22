@@ -71,6 +71,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   const { selectedCity, cityCentroid } = useCity();
   const cameraRef = useRef<CameraRef | null>(null);
   const cameraBusyRef = useRef(false);
+  const cameraTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFilterKeyRef = useRef('');
 
   const [search, setSearch] = useState('');
@@ -85,6 +86,26 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   const [styleVersion, setStyleVersion] = useState(0);
 
   const exploration = useMapExploration(isAuthenticated && (user?.mapExplorationEnabled ?? false));
+
+  const clearCameraTimer = useCallback(() => {
+    if (cameraTimerRef.current != null) {
+      clearTimeout(cameraTimerRef.current);
+      cameraTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleCameraReady = useCallback(
+    (delayMs: number) => {
+      clearCameraTimer();
+      cameraTimerRef.current = setTimeout(() => {
+        cameraBusyRef.current = false;
+        cameraTimerRef.current = null;
+      }, delayMs);
+    },
+    [clearCameraTimer],
+  );
+
+  useEffect(() => () => clearCameraTimer(), [clearCameraTimer]);
 
   // Progression d'exploration = activités marquées "visitées" / total publié.
   // Même métrique que la barre du profil ; le cache ['visitedIds'] est invalidé
@@ -203,11 +224,9 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         duration: CAMERA_EASE_MS,
         easing: 'ease',
       });
-      setTimeout(() => {
-        cameraBusyRef.current = false;
-      }, CAMERA_EASE_MS + 80);
+      scheduleCameraReady(CAMERA_EASE_MS + 80);
     },
-    []
+    [scheduleCameraReady]
   );
 
   const handlePinPress = useCallback(
@@ -247,11 +266,9 @@ export function MapExperience({ activities, loading = false, error = null }: Map
       duration: 480,
       easing: 'ease',
     });
-    const timer = setTimeout(() => {
-      cameraBusyRef.current = false;
-    }, 560);
-    return () => clearTimeout(timer);
-  }, [selectedCity, cityCentroid]);
+    scheduleCameraReady(560);
+    return clearCameraTimer;
+  }, [selectedCity, cityCentroid, scheduleCameraReady, clearCameraTimer]);
 
   useEffect(() => {
     if (cameraBusyRef.current || selectedId != null) return;
