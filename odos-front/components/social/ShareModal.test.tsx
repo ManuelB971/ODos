@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react-native';
 import { ShareModal } from '@/components/social/ShareModal';
 import { shareActivity } from '@/scripts/api';
 
@@ -36,6 +36,8 @@ jest.mock('@/context/ThemeContext', () => ({
     danger: '#ef4444',
   }),
 }));
+
+afterEach(cleanup);
 
 describe('ShareModal', () => {
   it('renders friends and groups lists', () => {

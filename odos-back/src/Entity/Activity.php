@@ -181,7 +181,10 @@ class Activity
 
     public function setCity(?string $city): static
     {
-        $this->city = $city;
+        // Normalisation à l'écriture : on évite les doublons de villes liés aux
+        // espaces parasites (« Paris » vs « Paris ») dans le catalogue et les filtres.
+        $clean = null === $city ? null : trim($city);
+        $this->city = ('' === $clean) ? null : $clean;
 
         return $this;
     }

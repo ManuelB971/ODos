@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react-native';
+import { render, screen, cleanup } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
 import { InterestProvider, useInterests } from '@/context/InterestContext';
@@ -13,6 +13,8 @@ function Probe() {
   const { interests } = useInterests();
   return <Text testID="interests">{interests.join(',')}</Text>;
 }
+
+afterEach(cleanup);
 
 describe('InterestProvider', () => {
   it('hydrates interests from authenticated user', () => {

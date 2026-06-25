@@ -25,7 +25,10 @@ module.exports = {
     '!**/jest.config.js',
     '!**/expo-env.d.ts',
   ],
-  detectOpenHandles: true,
+  // ⚠️ Ne PAS activer `detectOpenHandles` ici : il force l'exécution en série
+  // (un seul process, plus de workers parallèles) + tracing async_hooks, ce qui
+  // fait passer la suite de ~2-3 min à ~10 min. Pour debugger une fuite de
+  // handle ponctuelle, utiliser le script `pnpm test:debug`.
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html', 'clover'],
   moduleNameMapper: {

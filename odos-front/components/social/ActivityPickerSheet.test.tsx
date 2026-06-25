@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react-native';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react-native';
 import { ActivityPickerSheet } from '@/components/social/ActivityPickerSheet';
 import type { ApiActivity } from '@/types';
 
@@ -39,6 +39,8 @@ jest.mock('@/context/ThemeContext', () => ({
     danger: '#ef4444',
   }),
 }));
+
+afterEach(cleanup);
 
 describe('ActivityPickerSheet', () => {
   it('lists favorites by default', () => {

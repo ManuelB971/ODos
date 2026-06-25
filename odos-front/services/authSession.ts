@@ -26,6 +26,7 @@ export function mapMeResponseToUser(data: Record<string, unknown>): NonNullable<
     mapExplorationEnabled: (data.mapExplorationEnabled as boolean | undefined) ?? false,
     socialConsentedAt: (data.socialConsentedAt as string | null | undefined) ?? null,
     profilePublic: (data.profilePublic as boolean | undefined) ?? true,
+    homeCity: (data.homeCity as string | null | undefined) ?? null,
   };
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   Alert,
   FlatList,
   KeyboardAvoidingView,
@@ -12,6 +13,8 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { MessageCircle, Plus, Send } from 'lucide-react-native';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useChatMessages, useChatMutations, useConversations } from '@/hooks/useChat';
 import { useContentReport } from '@/hooks/useContentReport';
@@ -25,6 +28,7 @@ import { ReportContentModal } from '@/components/social/ReportContentModal';
 import { MessageActivityCard, MessageParcoursCard } from '@/components/social/MessageAttachmentCards';
 import { UserLink } from '@/components/social/UserLink';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
+import { useKeyboardComposerMotion } from '@/hooks/useKeyboardComposerMotion';
 import type { ChatActivitySnippet } from '@/types';
 
 export default function ChatScreen() {
@@ -33,6 +37,9 @@ export default function ChatScreen() {
   const colors = useOdosColors();
   const isMosaicPop = useIsMosaicPop();
   const pop = usePopTokens();
+  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
+  const { animatedStyle: composerAnimatedStyle } = useKeyboardComposerMotion();
   const { data, isLoading } = useChatMessages(conversationId);
   const { data: convData } = useConversations();
   const { sendMessage, markRead } = useChatMutations();
@@ -99,13 +106,15 @@ export default function ChatScreen() {
       <Stack.Screen options={{ title, headerShown: true, headerBackTitle: 'Retour' }} />
       <KeyboardAvoidingView
         style={[styles.container, { backgroundColor: isMosaicPop ? pop.paper : colors.background }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={headerHeight}
       >
         <FlatList
           ref={listRef}
           data={messages}
           keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: 92 + Math.max(insets.bottom, 8) }]}
+          keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
           ListEmptyComponent={
             isLoading ? null : (
@@ -198,21 +207,24 @@ export default function ChatScreen() {
             );
           }}
         />
+        <Animated.View style={composerAnimatedStyle}>
         <View
           style={[
             styles.composer,
             { borderTopColor: colors.border, backgroundColor: colors.surface },
             isMosaicPop && { borderTopWidth: 2.5, borderTopColor: pop.ink, backgroundColor: pop.paper },
+            { paddingBottom: Math.max(insets.bottom, 8) },
           ]}
         >
           <Pressable
             onPress={() => setPickerOpen(true)}
             accessibilityRole="button"
             accessibilityLabel="Partager une activité"
-            style={[
+            style={({ pressed }) => [
               styles.attach,
               { backgroundColor: colors.surface, borderColor: colors.border },
               isMosaicPop && { backgroundColor: pop.paper, borderWidth: 2, borderColor: pop.ink },
+              pressed && styles.composerPressed,
             ]}
           >
             <Plus size={20} color={isMosaicPop ? pop.ink : colors.accent} />
@@ -234,15 +246,17 @@ export default function ChatScreen() {
             disabled={!canSend}
             accessibilityRole="button"
             accessibilityLabel="Envoyer le message"
-            style={[
+            style={({ pressed }) => [
               styles.send,
               { backgroundColor: colors.accent, opacity: canSend ? 1 : 0.5 },
               isMosaicPop && { backgroundColor: pop.orange, borderWidth: 2, borderColor: pop.ink, borderRadius: 100 },
+              pressed && canSend && styles.composerPressed,
             ]}
           >
             <Send size={18} color={isMosaicPop ? pop.ink : colors.onAccent} />
           </Pressable>
         </View>
+        </Animated.View>
       </KeyboardAvoidingView>
 
       <ActivityPickerSheet
@@ -334,8 +348,9 @@ const styles = StyleSheet.create({
   metaLine: { fontSize: 10.5, fontFamily: FontFamily.ui, marginTop: 3, marginHorizontal: 4 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   reportLink: { fontSize: 10.5, fontFamily: FontFamily.uiMedium, marginTop: 3, textDecorationLine: 'underline' },
-  composer: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, alignItems: 'flex-end' },
+  composer: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 12, borderTopWidth: 1, alignItems: 'flex-end' },
   attach: { width: 44, height: 44, borderRadius: 12, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  input: { flex: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, maxHeight: 120 },
+  input: { flex: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, maxHeight: 120, textAlignVertical: 'top' },
   send: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  composerPressed: { transform: [{ scale: 0.97 }] },
 });

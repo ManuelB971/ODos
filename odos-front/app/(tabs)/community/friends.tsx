@@ -1,7 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { EyeOff, Users } from 'lucide-react-native';
 import { useFriendshipMutations, useFriendships } from '@/hooks/useFriendships';
-import { useSharedActivities } from '@/hooks/useSharedActivities';
+import { useSharedActivities, useSharedActivitiesMutations } from '@/hooks/useSharedActivities';
 import { useProfileVisibility } from '@/hooks/useProfileVisibility';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
@@ -19,12 +20,29 @@ export default function FriendsScreen() {
   const pop = usePopTokens();
   const { friends, pending, isLoading, refetch, isRefetching } = useFriendships();
   const { data: sharesData } = useSharedActivities();
+  const { markSeen } = useSharedActivitiesMutations();
   const { acceptRequest, declineRequest } = useFriendshipMutations();
   const { isPublic, isPending: visibilityPending, setPublic } = useProfileVisibility();
+  const autoSeenRef = useRef<Set<number>>(new Set());
 
   const unreadShares = (sharesData?.member ?? []).filter((s) => !s.seenAt);
 
   const incomingPending = pending.filter((r) => r.isIncoming);
+  
+  useEffect(() => {
+    const unseen = (sharesData?.member ?? [])
+      .filter((s) => !s.seenAt && typeof s.id === 'number' && !autoSeenRef.current.has(s.id));
+    if (unseen.length === 0) return;
+
+    for (const share of unseen) {
+      autoSeenRef.current.add(share.id);
+      markSeen.mutate(share.id, {
+        onError: () => {
+          autoSeenRef.current.delete(share.id);
+        },
+      });
+    }
+  }, [sharesData, markSeen]);
 
   const sectionTitleColor = isMosaicPop ? pop.ink : colors.text;
 
@@ -108,6 +126,24 @@ export default function FriendsScreen() {
               ]}
             >
               <View style={styles.shareTitleRow}>
+                <View
+                  style={[
+                    styles.newBadge,
+                    { backgroundColor: isMosaicPop ? pop.orange : colors.accentSoft },
+                    isMosaicPop && { borderColor: pop.ink },
+                  ]}
+                  accessibilityRole="text"
+                  accessibilityLabel="Nouveau partage"
+                >
+                  <Text
+                    style={[
+                      styles.newBadgeText,
+                      { color: isMosaicPop ? pop.ink : colors.accent },
+                    ]}
+                  >
+                    Nouveau
+                  </Text>
+                </View>
                 <UserLink userId={share.sender?.id} name={share.sender?.displayName}>
                   <Text style={{ color: isMosaicPop ? pop.terra : colors.accent, fontFamily: FontFamily.uiBold }}>
                     {share.sender?.displayName ?? 'Quelqu’un'}
@@ -161,7 +197,16 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: 16, paddingTop: 16, gap: 4 },
   sectionTitle: { fontSize: 15, marginBottom: 8 },
   shareCard: { borderRadius: 12, borderWidth: 1, padding: 14, gap: 4, marginBottom: 8 },
-  shareTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
+  shareTitleRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
+  newBadge: {
+    borderRadius: 100,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    marginRight: 2,
+  },
+  newBadgeText: { fontSize: 10.5, fontFamily: FontFamily.uiBold, letterSpacing: 0.3 },
   empty: { textAlign: 'center', marginTop: 24, fontSize: 14 },
   list: { padding: 16, gap: 10, flexGrow: 1 },
   privacyBanner: {

@@ -3,7 +3,8 @@ import { Tabs, useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
-import { getOnboardingRoute, hasCompletedOnboarding } from '@/utils/onboardingRoute';
+import { useCity } from '@/context/CityContext';
+import { getOnboardingRoute, hasCompletedOnboarding, ONBOARDING_CITY_HREF } from '@/utils/onboardingRoute';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { BlobFrame } from '@/components/ui/BlobFrame';
@@ -16,6 +17,7 @@ type TabIconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
 export default function TabLayout() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  const { cities, citiesLoading } = useCity();
   const router = useRouter();
   const colors = useOdosColors();
   const isMosaicPop = useIsMosaicPop();
@@ -28,10 +30,14 @@ export default function TabLayout() {
       router.replace('/login');
       return;
     }
-    if (user && !hasCompletedOnboarding(user)) {
-      router.replace(getOnboardingRoute(user));
-    }
-  }, [isAuthenticated, isLoading, user, router]);
+    if (!user || hasCompletedOnboarding(user)) return;
+
+    const next = getOnboardingRoute(user);
+    // Catalogue de villes vide (aucune activité publiée localisée) : on ne bloque
+    // pas l'utilisateur sur l'étape ville, sinon il reste enfermé hors de l'app.
+    if (next === ONBOARDING_CITY_HREF && !citiesLoading && cities.length === 0) return;
+    router.replace(next);
+  }, [isAuthenticated, isLoading, user, cities.length, citiesLoading, router]);
 
   const renderTabIcon = (
     name: TabIconName,

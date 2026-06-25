@@ -93,6 +93,10 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(ForumReportCrudController::class, 'Signalements forum', 'fas fa-flag');
         yield MenuItem::linkTo(ContentReportCrudController::class, 'Signalements contenu', 'fas fa-flag');
         yield MenuItem::linkTo(ActivityGroupCrudController::class, 'Groupes', 'fas fa-users');
+        yield MenuItem::linkTo(ParcoursCrudController::class, 'Parcours', 'fas fa-route');
+        yield MenuItem::section('Gamification');
+        yield MenuItem::linkTo(UserBadgeCrudController::class, 'Badges attribués', 'fas fa-medal');
+        yield MenuItem::section('Système');
         yield MenuItem::linkTo(RefreshTokenCrudController::class, 'Jetons refresh (JWT)', 'fas fa-key');
         yield MenuItem::linkTo(AdminWebauthnCredentialCrudController::class, 'WebAuthn (admin)', 'fas fa-fingerprint');
         yield MenuItem::linkTo(AdminAuditLogCrudController::class, 'Logs admin', 'fas fa-clipboard-list');

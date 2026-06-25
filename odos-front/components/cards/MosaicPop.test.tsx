@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { render, cleanup } from '@testing-library/react-native';
 import { MosaicPopCard, MosaicPopRow } from './MosaicPopCard';
 import { MosaicPopMap } from './MosaicPopMap';
 import type { ApiActivity } from '@/types';
@@ -37,6 +37,8 @@ jest.mock('@/hooks/useFavoriteToggle', () => ({
 jest.mock('@/components/social/ParcoursPickerSheet', () => ({
   ParcoursPickerSheet: () => null,
 }));
+
+afterEach(cleanup);
 
 describe('Mosaïque pop', () => {
   it('renders the list row', () => {

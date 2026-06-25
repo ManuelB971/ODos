@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react-native';
 import { ParcoursPickerSheet } from '@/components/social/ParcoursPickerSheet';
 
 const mockAddItem = jest.fn(() => Promise.resolve());
@@ -33,6 +33,8 @@ jest.mock('@/context/ThemeContext', () => ({
     danger: '#ef4444',
   }),
 }));
+
+afterEach(cleanup);
 
 describe('ParcoursPickerSheet', () => {
   beforeEach(() => {

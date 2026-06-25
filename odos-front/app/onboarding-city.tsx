@@ -38,10 +38,21 @@ export default function OnboardingCityScreen() {
     }
   }, [user?.homeCity]);
 
-  const canContinue = !!selectedName && !saving;
+  // Catalogue vide après chargement : aucune ville à proposer, on laisse passer
+  // l'utilisateur plutôt que de l'enfermer sur une étape impossible à valider.
+  const catalogEmpty = !citiesLoading && cities.length === 0;
+  const canContinue = (!!selectedName || catalogEmpty) && !saving;
 
   const handleContinue = async () => {
-    if (!canContinue || !user?.id || !selectedName) return;
+    if (!canContinue || saving) return;
+
+    // Aucune ville disponible : on continue sans enregistrer de ville de référence.
+    if (catalogEmpty && !selectedName) {
+      router.replace('/');
+      return;
+    }
+
+    if (!user?.id || !selectedName) return;
 
     setSaving(true);
     setError(null);
@@ -118,6 +129,13 @@ export default function OnboardingCityScreen() {
                 <Skeleton key={i} width={120 + (i % 2) * 24} height={44} radius={22} />
               ))}
             </View>
+          ) : catalogEmpty ? (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>
+                Aucune ville n&apos;est disponible pour le moment. Vous pourrez en
+                choisir une plus tard depuis les Paramètres.
+              </Text>
+            </View>
           ) : (
             <View style={styles.chipsContainer}>
               {cities.map((city) => {
@@ -147,7 +165,7 @@ export default function OnboardingCityScreen() {
 
         <View style={styles.stickyBar}>
           <CTAButton
-            label={selectedName ? 'Continuer' : 'Choisissez une ville'}
+            label={selectedName || catalogEmpty ? 'Continuer' : 'Choisissez une ville'}
             onPress={handleContinue}
             disabled={!canContinue}
             loading={saving}
@@ -255,6 +273,19 @@ function createStyles(colors: OdosColorPalette) {
       fontSize: 14,
     },
     skeletonGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+    emptyCard: {
+      backgroundColor: colors.surface,
+      borderRadius: Radius.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: 16,
+    },
+    emptyText: {
+      fontFamily: FontFamily.ui,
+      fontSize: 14,
+      lineHeight: 21,
+      color: colors.muted,
+    },
     chipsContainer: { gap: 10 },
     chip: {
       flexDirection: 'row',
