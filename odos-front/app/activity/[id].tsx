@@ -45,6 +45,7 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 import { InlineToast, InlineToastVariant } from '@/components/InlineToast';
 import { ShareModal } from '@/components/social/ShareModal';
 import { ParcoursPickerSheet } from '@/components/social/ParcoursPickerSheet';
+import { useKeyboardComposerMotion } from '@/hooks/useKeyboardComposerMotion';
 
 function routeParamToString(param: string | string[] | undefined): string | undefined {
   if (param === undefined) return undefined;
@@ -130,6 +131,7 @@ export default function ActivityDetails() {
   const [commentToast, setCommentToast] = useState<ToastState | null>(null);
   const [shareVisible, setShareVisible] = useState(false);
   const [parcoursVisible, setParcoursVisible] = useState(false);
+  const { isKeyboardVisible } = useKeyboardComposerMotion();
   const scrollRef = useRef<ScrollView>(null);
   const queryClient = useQueryClient();
   const { mergeUnlocked } = useBadgeUnlock();
@@ -710,7 +712,7 @@ export default function ActivityDetails() {
       </ScrollView>
 
       {/* ── Sticky CTA bottom : itinéraire ── */}
-      {activity.latitude != null && activity.longitude != null ? (
+      {activity.latitude != null && activity.longitude != null && !isKeyboardVisible ? (
         <StickyCTABar
           latitude={activity.latitude}
           longitude={activity.longitude}

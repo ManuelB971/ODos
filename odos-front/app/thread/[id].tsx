@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Animated,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -10,6 +11,8 @@ import {
   View,
 } from 'react-native';
 import { Send, MessagesSquare } from 'lucide-react-native';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { fetchForumReplies, fetchForumThread } from '@/scripts/api';
@@ -24,6 +27,7 @@ import type { ForumReportReason } from '@/types';
 import { PopSurface } from '@/components/pop/PopSurface';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
+import { useKeyboardComposerMotion } from '@/hooks/useKeyboardComposerMotion';
 
 export default function ThreadDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -31,6 +35,9 @@ export default function ThreadDetailScreen() {
   const colors = useOdosColors();
   const isMosaicPop = useIsMosaicPop();
   const pop = usePopTokens();
+  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
+  const { animatedStyle: composerAnimatedStyle } = useKeyboardComposerMotion();
   const { user } = useAuth();
   const [reportReplyId, setReportReplyId] = useState<number | null>(null);
   const [reportThreadOpen, setReportThreadOpen] = useState(false);
@@ -95,13 +102,15 @@ export default function ThreadDetailScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: isMosaicPop ? pop.paper : colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={headerHeight}
     >
       <Stack.Screen options={{ title: 'Discussion', headerShown: true, headerBackTitle: 'Retour' }} />
       <FlatList
         data={replies}
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: 92 + Math.max(insets.bottom, 8) }]}
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
         ListHeaderComponent={header}
         refreshing={repliesQuery.isRefetching}
         onRefresh={() => repliesQuery.refetch()}
@@ -134,11 +143,13 @@ export default function ThreadDetailScreen() {
           </Text>
         </View>
       ) : (
+        <Animated.View style={composerAnimatedStyle}>
         <View
           style={[
             styles.composer,
             { borderTopColor: colors.border, backgroundColor: colors.surface },
             isMosaicPop && { borderTopWidth: 2.5, borderTopColor: pop.ink, backgroundColor: pop.paper },
+            { paddingBottom: Math.max(insets.bottom, 8) },
           ]}
         >
           <TextInput
@@ -158,15 +169,17 @@ export default function ThreadDetailScreen() {
             disabled={!canSend || createReply.isPending}
             accessibilityRole="button"
             accessibilityLabel="Envoyer la réponse"
-            style={[
+            style={({ pressed }) => [
               styles.send,
               { backgroundColor: colors.accent, opacity: canSend && !createReply.isPending ? 1 : 0.5 },
               isMosaicPop && { backgroundColor: pop.orange, borderWidth: 2, borderColor: pop.ink, borderRadius: 100 },
+              pressed && canSend && !createReply.isPending && styles.composerPressed,
             ]}
           >
             <Send size={18} color={isMosaicPop ? pop.ink : colors.onAccent} />
           </Pressable>
         </View>
+        </Animated.View>
       )}
 
       <ReportContentModal
@@ -194,8 +207,9 @@ const styles = StyleSheet.create({
   body: { fontSize: 15, lineHeight: 22 },
   report: { fontSize: 12, marginTop: 4 },
   list: { padding: 16, gap: 10, flexGrow: 1 },
-  composer: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, alignItems: 'flex-end' },
-  input: { flex: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, maxHeight: 120 },
+  composer: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 12, borderTopWidth: 1, alignItems: 'flex-end' },
+  input: { flex: 1, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10, maxHeight: 120, textAlignVertical: 'top' },
   send: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  composerPressed: { transform: [{ scale: 0.97 }] },
   lockedBar: { padding: 16, borderTopWidth: 1, alignItems: 'center' },
 });

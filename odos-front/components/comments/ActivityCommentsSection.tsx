@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
+  Animated,
   ActivityIndicator,
   Alert,
+  Easing,
   Pressable,
   StyleSheet,
   Text,
@@ -110,6 +112,16 @@ export function ActivityCommentsSection({
   const draftLen = commentDraft.length;
   const { report } = useContentReport();
   const [reportCommentId, setReportCommentId] = useState<number | null>(null);
+  const composeFocus = useRef(new Animated.Value(0)).current;
+
+  const animateComposeFocus = (focused: boolean) => {
+    Animated.timing(composeFocus, {
+      toValue: focused ? 1 : 0,
+      duration: 200,
+      easing: Easing.bezier(0.2, 0.8, 0.2, 1),
+      useNativeDriver: true,
+    }).start();
+  };
 
   const handlePost = () => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -261,7 +273,21 @@ export function ActivityCommentsSection({
         })}
 
       {isAuthenticated ? (
-        <View style={styles.compose}>
+        <Animated.View
+          style={[
+            styles.compose,
+            {
+              transform: [
+                {
+                  translateY: composeFocus.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -2],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
           <Text style={styles.composeLabel}>Ton message</Text>
           <TextInput
             style={styles.composeInput}
@@ -269,7 +295,11 @@ export function ActivityCommentsSection({
             placeholderTextColor={colors.muted}
             value={commentDraft}
             onChangeText={onChangeDraft}
-            onFocus={onComposeFocus}
+            onFocus={() => {
+              animateComposeFocus(true);
+              onComposeFocus?.();
+            }}
+            onBlur={() => animateComposeFocus(false)}
             multiline
             maxLength={MAX_LEN}
           />
@@ -283,7 +313,11 @@ export function ActivityCommentsSection({
               {draftLen}/{MAX_LEN}
             </Text>
             <Pressable
-              style={[styles.sendBtn, draftLen < 2 && styles.sendBtnDisabled]}
+              style={({ pressed }) => [
+                styles.sendBtn,
+                draftLen < 2 && styles.sendBtnDisabled,
+                pressed && draftLen >= 2 && !postPending && styles.sendBtnPressed,
+              ]}
               onPress={handlePost}
               disabled={draftLen < 2 || postPending}
             >
@@ -294,7 +328,7 @@ export function ActivityCommentsSection({
               )}
             </Pressable>
           </View>
-        </View>
+        </Animated.View>
       ) : (
         <CTAButton label="Se connecter pour commenter" onPress={onLoginPress} variant="secondary" />
       )}
@@ -428,5 +462,6 @@ function createStyles(colors: OdosColorPalette) {
     justifyContent: 'center',
   },
   sendBtnDisabled: { opacity: 0.45 },
+  sendBtnPressed: { transform: [{ scale: 0.97 }] },
 });
 }
