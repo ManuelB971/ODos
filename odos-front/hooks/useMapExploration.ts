@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { AppState } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 
@@ -7,6 +8,7 @@ import { useBadgeUnlock } from '@/context/BadgeUnlockContext';
 import {
   fetchMapExploration,
   postMapExplorationConsent,
+  safeStorage,
   syncMapExplorationCells,
 } from '@/scripts/api';
 import { encodeGeohash } from '@/utils/geohash';
@@ -34,6 +36,10 @@ function withVisitedGeoJson(
 
 const SYNC_MIN_INTERVAL_MS = 25_000;
 const LOCATION_DISTANCE_M = 80;
+/** Taille de lot alignée sur le cap serveur (MapExplorationService::MAX_SYNC_CELLS). */
+const SYNC_CHUNK_SIZE = 40;
+/** Préfixe de la file de cellules non synchronisées (scopée par utilisateur). */
+const PENDING_STORAGE_PREFIX = 'map_exploration_pending:';
 
 export function useMapExploration(screenActive: boolean) {
   const { isAuthenticated, user } = useAuth();
@@ -41,6 +47,13 @@ export function useMapExploration(screenActive: boolean) {
   const queryClient = useQueryClient();
   const lastSyncAt = useRef(0);
   const pendingCells = useRef<Set<string>>(new Set());
+  /** Empêche deux flush concurrents (timer, seuil de taille, teardown, AppState). */
+  const syncInFlight = useRef(false);
+
+  const pendingKey = useMemo(
+    () => `${PENDING_STORAGE_PREFIX}${user?.id ?? 'anon'}`,
+    [user?.id]
+  );
 
   const query = useQuery<MapExplorationOverview>({
     queryKey: MAP_EXPLORATION_QUERY_KEY,
@@ -69,24 +82,110 @@ export function useMapExploration(screenActive: boolean) {
     },
   });
 
-  const flushCells = useCallback(async () => {
-    if (!query.data?.active || pendingCells.current.size === 0) return;
-    const now = Date.now();
-    if (now - lastSyncAt.current < SYNC_MIN_INTERVAL_MS) return;
-    const batch = Array.from(pendingCells.current);
-    pendingCells.current.clear();
-    lastSyncAt.current = now;
-    await syncMutation.mutateAsync(batch);
-  }, [query.data?.consented, syncMutation]);
+  /** Persiste la file (vide → suppression) pour survivre à un kill de l'app. */
+  const persistPending = useCallback(async () => {
+    const arr = Array.from(pendingCells.current);
+    try {
+      if (arr.length === 0) {
+        await safeStorage.deleteItem(pendingKey);
+      } else {
+        await safeStorage.setItem(pendingKey, JSON.stringify(arr));
+      }
+    } catch {
+      // stockage indisponible : on garde au moins la file en mémoire.
+    }
+  }, [pendingKey]);
+
+  /**
+   * Vide la file vers le serveur, par lots de SYNC_CHUNK_SIZE.
+   *
+   * Invariants anti-perte :
+   *  - on ne retire une cellule de la file qu'APRÈS l'ACK serveur du lot ;
+   *  - en cas d'échec (réseau), les cellules non confirmées restent en file et
+   *    seront rejouées (l'écriture serveur est idempotente) ;
+   *  - `force` ignore le throttle (seuil de taille, teardown, arrière-plan).
+   */
+  const flushCells = useCallback(
+    async (force = false) => {
+      if (!query.data?.active || pendingCells.current.size === 0) return;
+      if (syncInFlight.current) return;
+      if (!force && Date.now() - lastSyncAt.current < SYNC_MIN_INTERVAL_MS) return;
+
+      syncInFlight.current = true;
+      lastSyncAt.current = Date.now();
+      try {
+        const snapshot = Array.from(pendingCells.current);
+        for (let i = 0; i < snapshot.length; i += SYNC_CHUNK_SIZE) {
+          const chunk = snapshot.slice(i, i + SYNC_CHUNK_SIZE);
+          await syncMutation.mutateAsync(chunk);
+          for (const cell of chunk) pendingCells.current.delete(cell);
+          await persistPending();
+        }
+      } catch {
+        // Lot non confirmé conservé en file → rejoué au prochain flush.
+        await persistPending();
+      } finally {
+        syncInFlight.current = false;
+      }
+    },
+    [query.data?.active, syncMutation, persistPending]
+  );
+
+  /** Réf vers le dernier flush, pour les déclencheurs hors cycle de rendu. */
+  const flushRef = useRef(flushCells);
+  flushRef.current = flushCells;
 
   const queueCell = useCallback(
     (latitude: number, longitude: number) => {
       if (!query.data?.active) return;
       pendingCells.current.add(encodeGeohash(latitude, longitude, query.data.precision ?? 6));
-      void flushCells();
+      void persistPending();
+      // Seuil de taille atteint : on flush sans attendre le throttle pour ne pas
+      // accumuler (et ne pas heurter le cap serveur en localisation fine).
+      void flushCells(pendingCells.current.size >= SYNC_CHUNK_SIZE);
     },
-    [flushCells, query.data?.active, query.data?.precision]
+    [flushCells, persistPending, query.data?.active, query.data?.precision]
   );
+
+  // Réhydrate la file persistée (scopée utilisateur) et tente un flush.
+  useEffect(() => {
+    let cancelled = false;
+    pendingCells.current = new Set();
+    (async () => {
+      if (user?.id == null) return;
+      try {
+        const raw = await safeStorage.getItem(pendingKey);
+        if (cancelled || !raw) return;
+        const arr: unknown = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+          for (const cell of arr) {
+            if (typeof cell === 'string') pendingCells.current.add(cell);
+          }
+        }
+      } catch {
+        // file corrompue/illisible : on repart à vide.
+      }
+      if (!cancelled) void flushRef.current(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, pendingKey]);
+
+  // Dès que l'exploration devient active, on rejoue ce qui attend.
+  useEffect(() => {
+    if (query.data?.active) void flushRef.current(true);
+  }, [query.data?.active]);
+
+  // Flush forcé quand l'app passe en arrière-plan (sortie probable de l'app).
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'background' || state === 'inactive') {
+        void flushRef.current(true);
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (!screenActive || !isAuthenticated || !query.data?.active) return;
@@ -111,6 +210,9 @@ export function useMapExploration(screenActive: boolean) {
 
     return () => {
       subscription?.remove();
+      // Quitter l'écran carte ne doit pas jeter la file accumulée depuis le
+      // dernier sync : on force un dernier flush.
+      void flushRef.current(true);
     };
   }, [screenActive, isAuthenticated, query.data?.active, queueCell]);
 
