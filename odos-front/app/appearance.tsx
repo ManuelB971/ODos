@@ -34,8 +34,8 @@ const BG_PATTERN_OPTIONS: { value: BackgroundPattern; label: string }[] = [
 ];
 
 const CARD_STYLE_OPTIONS: { value: CardStyle; label: string; hint: string }[] = [
+  { value: 'mosaicPop', label: 'Mosaïque pop', hint: 'Style principal — tesselles, méandre grec, contour encre' },
   { value: 'classic', label: 'Classique', hint: 'Cartes ODOS standard' },
-  { value: 'mosaicPop', label: 'Mosaïque pop', hint: 'Tesselles, méandre grec, contour encre' },
 ];
 
 export default function AppearanceScreen() {
