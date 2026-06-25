@@ -103,7 +103,7 @@ class ActivityRepository extends ServiceEntityRepository
         $count = (int) $this->createQueryBuilder('a')
             ->select('COUNT(a.id)')
             ->andWhere('a.isPublished = :published')
-            ->andWhere('a.city = :city')
+            ->andWhere('LOWER(a.city) = LOWER(:city)')
             ->setParameter('published', true)
             ->setParameter('city', $trimmed)
             ->getQuery()
@@ -130,7 +130,7 @@ class ActivityRepository extends ServiceEntityRepository
             ->orderBy('a.id', 'DESC');
 
         if (null !== $city && '' !== trim($city)) {
-            $qb->andWhere('a.city = :city')
+            $qb->andWhere('LOWER(a.city) = LOWER(:city)')
                 ->setParameter('city', trim($city));
         }
 
