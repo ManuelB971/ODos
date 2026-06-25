@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text } from 'react-native';
-import { render, screen, waitFor, act } from '@testing-library/react-native';
+import { render, screen, waitFor, act, cleanup } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as ReactNative from 'react-native';
 
@@ -29,6 +29,8 @@ function Probe() {
     </>
   );
 }
+
+afterEach(cleanup);
 
 describe('ThemeProvider resolvePalette', () => {
   beforeEach(() => {
