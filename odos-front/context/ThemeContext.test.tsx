@@ -3,6 +3,7 @@ import { Text } from 'react-native';
 import { render, screen, waitFor, act, cleanup } from '@testing-library/react-native';
 import * as SecureStore from 'expo-secure-store';
 import * as ReactNative from 'react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 jest.unmock('@/context/ThemeContext');
 
@@ -13,6 +14,10 @@ jest.mock('expo-secure-store', () => ({
   isAvailableAsync: jest.fn(),
   getItemAsync: jest.fn(),
   setItemAsync: jest.fn(),
+}));
+
+jest.mock('@/hooks/useThemes', () => ({
+  useAvailableThemes: () => ({ data: [] }),
 }));
 
 const mockSecureStore = SecureStore as jest.Mocked<typeof SecureStore>;
@@ -33,6 +38,13 @@ function Probe() {
 afterEach(cleanup);
 
 describe('ThemeProvider resolvePalette', () => {
+  const withProviders = (children: React.ReactNode) => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('light');
@@ -50,9 +62,11 @@ describe('ThemeProvider resolvePalette', () => {
 
   it('exposes light palette when preference is system and OS is light', async () => {
     render(
-      <ThemeProvider>
-        <Probe />
-      </ThemeProvider>
+      withProviders(
+        <ThemeProvider>
+          <Probe />
+        </ThemeProvider>
+      )
     );
 
     await waitFor(() => {
@@ -71,9 +85,11 @@ describe('ThemeProvider resolvePalette', () => {
     });
 
     render(
-      <ThemeProvider>
-        <Probe />
-      </ThemeProvider>
+      withProviders(
+        <ThemeProvider>
+          <Probe />
+        </ThemeProvider>
+      )
     );
 
     await waitFor(() => {
@@ -87,9 +103,11 @@ describe('ThemeProvider resolvePalette', () => {
     jest.spyOn(ReactNative, 'useColorScheme').mockReturnValue('dark');
 
     render(
-      <ThemeProvider>
-        <Probe />
-      </ThemeProvider>
+      withProviders(
+        <ThemeProvider>
+          <Probe />
+        </ThemeProvider>
+      )
     );
 
     await waitFor(() => {
@@ -112,9 +130,11 @@ describe('ThemeProvider resolvePalette', () => {
     }
 
     render(
-      <ThemeProvider>
-        <PreferenceSwitcher />
-      </ThemeProvider>
+      withProviders(
+        <ThemeProvider>
+          <PreferenceSwitcher />
+        </ThemeProvider>
+      )
     );
 
     await waitFor(() => {

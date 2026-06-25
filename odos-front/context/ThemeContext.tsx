@@ -10,6 +10,7 @@ import { useColorScheme as useSystemColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
 import { BUNDLED_THEMES, resolvePalette } from '@/constants/themes/registry';
+import { useAvailableThemes } from '@/hooks/useThemes';
 import type {
   ColorScheme,
   OdosColorPalette,
@@ -26,9 +27,6 @@ const CARD_STYLE_STORAGE_KEY = 'odos_card_style';
 export type BackgroundPattern = 'off' | 'subtle' | 'medium' | 'strong';
 
 const BG_PATTERN_VALUES: BackgroundPattern[] = ['off', 'subtle', 'medium', 'strong'];
-
-/** Slugs de variantes valides (default / ocean / forest…), dérivés du registry. */
-const VARIANT_IDS: string[] = Object.keys(BUNDLED_THEMES);
 
 /**
  * Style des cartes d'activité — réglable par l'utilisateur, se superpose au thème de base.
@@ -86,7 +84,7 @@ async function readVariantId(): Promise<ThemeVariantId> {
   try {
     if (!(await SecureStore.isAvailableAsync())) return 'default';
     const raw = await SecureStore.getItemAsync(VARIANT_STORAGE_KEY);
-    if (raw && VARIANT_IDS.includes(raw)) return raw;
+    if (raw && raw.trim().length > 0) return raw.trim();
   } catch {
     // fallback
   }
@@ -138,7 +136,7 @@ async function writeBackgroundPattern(pattern: BackgroundPattern): Promise<void>
 
 async function readCardStyle(): Promise<CardStyle> {
   try {
-    if (!(await SecureStore.isAvailableAsync())) return 'classic';
+    if (!(await SecureStore.isAvailableAsync())) return 'mosaicPop';
     const raw = await SecureStore.getItemAsync(CARD_STYLE_STORAGE_KEY);
     if (raw && (CARD_STYLE_VALUES as string[]).includes(raw)) {
       return raw as CardStyle;
@@ -146,7 +144,7 @@ async function readCardStyle(): Promise<CardStyle> {
   } catch {
     // fallback
   }
-  return 'classic';
+  return 'mosaicPop';
 }
 
 async function writeCardStyle(style: CardStyle): Promise<void> {
@@ -161,10 +159,11 @@ async function writeCardStyle(style: CardStyle): Promise<void> {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useSystemColorScheme();
+  const { data: availableThemes = [] } = useAvailableThemes();
   const [preference, setPreferenceState] = useState<ThemePreference>('system');
   const [variantId, setVariantIdState] = useState<ThemeVariantId>('default');
   const [backgroundPattern, setBackgroundPatternState] = useState<BackgroundPattern>('medium');
-  const [cardStyle, setCardStyleState] = useState<CardStyle>('classic');
+  const [cardStyle, setCardStyleState] = useState<CardStyle>('mosaicPop');
 
   useEffect(() => {
     void Promise.all([
@@ -209,9 +208,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const isDark = colorScheme === 'dark';
 
+  const themeDefinitions = useMemo(() => {
+    const map: Record<string, { light: OdosColorPalette; dark: OdosColorPalette }> = {
+      ...BUNDLED_THEMES,
+    };
+    for (const theme of availableThemes) {
+      map[theme.slug] = theme.definition;
+    }
+    return map;
+  }, [availableThemes]);
+
+  const resolvedVariantId = useMemo(
+    () => (themeDefinitions[variantId] ? variantId : 'default'),
+    [themeDefinitions, variantId],
+  );
+
   const colors = useMemo(
-    () => resolvePalette(variantId, colorScheme),
-    [variantId, colorScheme],
+    () => resolvePalette(resolvedVariantId, colorScheme, themeDefinitions),
+    [resolvedVariantId, colorScheme, themeDefinitions],
   );
 
   const sprayOpacity = useMemo(
