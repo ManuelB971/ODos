@@ -22,4 +22,9 @@ describe('mapMeResponseToUser', () => {
       mapExplorationEnabled: true,
     });
   });
+
+  it('maps homeCity so onboarding is not re-triggered after reload', () => {
+    expect(mapMeResponseToUser({ id: 1, email: 'a@b.fr', homeCity: 'Lyon' }).homeCity).toBe('Lyon');
+    expect(mapMeResponseToUser({ id: 1, email: 'a@b.fr' }).homeCity).toBeNull();
+  });
 });

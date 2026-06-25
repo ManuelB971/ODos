@@ -56,6 +56,7 @@ describe('AuthService', () => {
         mapExplorationEnabled: false,
         profilePublic: true,
         socialConsentedAt: null,
+        homeCity: null,
       },
     });
     expect(mockSafeStorage.setItem).toHaveBeenCalledWith('user_token', 'token-123456');
