@@ -10,6 +10,7 @@ import { FontFamily } from '@/constants/theme';
 import { BlobFrame } from '@/components/ui/BlobFrame';
 import { HapticTab } from '@/components/HapticTab';
 import { useSocialUnreadCount } from '@/hooks/useSocialUnreadCount';
+import { useAppIconBadge } from '@/hooks/useAppIconBadge';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import React, { useEffect } from 'react';
 
@@ -23,6 +24,8 @@ export default function TabLayout() {
   const isMosaicPop = useIsMosaicPop();
   const pop = usePopTokens();
   const { data: unread } = useSocialUnreadCount();
+  // Synchronise le badge sur l'icône de l'app avec les non-lus social.
+  useAppIconBadge();
   const badgeCount = unread?.total ?? 0;
   useEffect(() => {
     if (isLoading) return;
