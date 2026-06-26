@@ -19,6 +19,7 @@ import { useNotificationResponse } from '@/hooks/useNotificationResponse';
 import { InterestProvider } from '@/context/InterestContext';
 import { CityProvider } from '@/context/CityContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { ThemedStatusBar } from '@/components/ThemedStatusBar';
 import { BadgeUnlockProvider, useBadgeUnlock } from '@/context/BadgeUnlockContext';
@@ -65,6 +66,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
+          <LanguageProvider>
           <ThemeProvider>
           <AuthProvider>
             <BadgeUnlockProvider>
@@ -94,6 +96,7 @@ export default function RootLayout() {
             </BadgeUnlockProvider>
           </AuthProvider>
           </ThemeProvider>
+          </LanguageProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

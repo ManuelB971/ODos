@@ -58,7 +58,8 @@
           "backgroundColor": "#FDF8F2"
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true,

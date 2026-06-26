@@ -1,0 +1,87 @@
+{
+  "common": {
+    "continue": "Continuer",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "back": "Retour",
+    "loading": "Chargement…",
+    "retry": "Réessayer",
+    "selected": "sélectionné"
+  },
+  "language": {
+    "title": "Langue",
+    "hint": "Choisissez la langue de l'application.",
+    "system": "Langue du système",
+    "fr": "Français",
+    "en": "Anglais",
+    "ar": "Arabe",
+    "restartNeeded": "Redémarrez l'application pour appliquer entièrement le sens d'écriture."
+  },
+  "appearance": {
+    "title": "Apparence",
+    "displayMode": "Mode d'affichage",
+    "theme": "Thème",
+    "background": "Fond d'écran",
+    "cardStyle": "Style des cartes"
+  },
+  "onboarding": {
+    "step1of2": "Étape 1 sur 2",
+    "step2of2": "Étape 2 sur 2",
+    "step1": "Étape 1",
+    "step2": "Étape 2",
+    "tastes": "Vos goûts",
+    "discovery": "Découverte"
+  },
+  "auth": {
+    "tabLogin": "Connexion",
+    "tabSignup": "Inscription",
+    "titleLogin": "Heureux de vous revoir",
+    "titleSignup": "Bienvenue sur la voie",
+    "subtitleLogin": "Connectez-vous pour continuer votre exploration.",
+    "subtitleSignup": "Créez un compte pour commencer votre voyage.",
+    "emailLabel": "Adresse email",
+    "emailPlaceholder": "exemple@email.com",
+    "emailError": "Vérifiez votre email.",
+    "passwordLabel": "Mot de passe",
+    "passwordPlaceholder": "Au moins 6 caractères",
+    "passwordHint": "6 caractères minimum.",
+    "forgot": "Mot de passe oublié ?",
+    "forgotA11y": "Mot de passe oublié",
+    "ctaSignup": "Créer mon compte",
+    "separatorOr": "ou",
+    "consentA11y": "Accepter les conditions générales et la politique de confidentialité",
+    "accepted": "Accepté",
+    "consent": "J'accepte les <cgu>CGU</cgu> et la <privacy>politique de confidentialité</privacy>.",
+    "legalNotice": "En continuant, vous acceptez nos <terms>conditions d'utilisation</terms>.",
+    "errors": {
+      "emailInvalid": "Email invalide.",
+      "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères.",
+      "termsRequired": "Veuillez accepter les CGU et la politique de confidentialité.",
+      "loginFailed": "Erreur de connexion.",
+      "generic": "Une erreur est survenue.",
+      "signupFailed": "Une erreur est survenue lors de l'inscription."
+    }
+  },
+  "interests": {
+    "topBarTitle": "Vos intérêts",
+    "eyebrow": "PERSONNALISATION",
+    "title": "Qu'est-ce qui vous inspire ?",
+    "subtitle": "Sélectionnez {{min}} à {{max}} centres d'intérêt pour que nous adaptions vos découvertes.",
+    "counterSuffix": "/ {{max}} choisis",
+    "clearAll": "Tout effacer",
+    "errorLoad": "Impossible de charger les catégories.",
+    "errorSave": "Impossible d'enregistrer vos intérêts.",
+    "ctaMin": "Choisissez au moins 1 intérêt"
+  },
+  "onboardingCity": {
+    "topBarTitle": "Votre ville",
+    "eyebrow": "LOCALISATION",
+    "title": "Où explorez-vous ?",
+    "subtitle": "Choisissez votre ville pour des parcours et recommandations cohérents. Vous pourrez en explorer d'autres plus tard.",
+    "emptyText": "Aucune ville n'est disponible pour le moment. Vous pourrez en choisir une plus tard depuis les Paramètres.",
+    "ctaPick": "Choisissez une ville",
+    "errorSave": "Impossible d'enregistrer votre ville.",
+    "activities_one": "{{count}} activité",
+    "activities_other": "{{count}} activités"
+  }
+}

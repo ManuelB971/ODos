@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { MapPin, Sparkles, ArrowLeft } from 'lucide-react-native';
 import { DaIcon } from '@/components/ui/DaIcon';
 
@@ -24,6 +25,7 @@ import { logError, toAppError } from '@/utils/errorHandling';
 export default function OnboardingCityScreen() {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { t } = useTranslation();
   const router = useRouter();
   const { user, setUser } = useAuth();
   const { cities, citiesLoading, citiesError, setSelectedCity } = useCity();
@@ -63,7 +65,7 @@ export default function OnboardingCityScreen() {
       router.replace('/');
     } catch (err) {
       logError('OnboardingCity.save', err, { userId: user.id });
-      setError(toAppError(err, 'Impossible d\'enregistrer votre ville.').userMessage);
+      setError(toAppError(err, t('onboardingCity.errorSave')).userMessage);
     } finally {
       setSaving(false);
     }
@@ -76,21 +78,21 @@ export default function OnboardingCityScreen() {
           <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
             <ArrowLeft size={22} color={colors.text} />
           </Pressable>
-          <Text style={styles.topBarTitle}>Votre ville</Text>
+          <Text style={styles.topBarTitle}>{t('onboardingCity.topBarTitle')}</Text>
           <View style={styles.backBtn} />
         </View>
 
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.onboardingSteps} accessibilityRole="text" accessibilityLabel="Étape 2 sur 2">
+          <View style={styles.onboardingSteps} accessibilityRole="text" accessibilityLabel={t('onboarding.step2of2')}>
             <View style={styles.onboardingStep}>
               <DaIcon
                 name="step-1"
                 variant="hero"
                 opacity={0.5}
                 blob={{ seed: 3, backgroundColor: colors.surface, padding: 6 }}
-                accessibilityLabel="Étape 1"
+                accessibilityLabel={t('onboarding.step1')}
               />
-              <Text style={[styles.onboardingStepLabel, styles.onboardingStepLabelMuted]}>Vos goûts</Text>
+              <Text style={[styles.onboardingStepLabel, styles.onboardingStepLabelMuted]}>{t('onboarding.tastes')}</Text>
             </View>
             <View style={styles.onboardingStepDivider} />
             <View style={styles.onboardingStep}>
@@ -98,9 +100,9 @@ export default function OnboardingCityScreen() {
                 name="step-2"
                 variant="hero"
                 blob={{ seed: 4, backgroundColor: colors.accentSoft, padding: 6 }}
-                accessibilityLabel="Étape 2"
+                accessibilityLabel={t('onboarding.step2')}
               />
-              <Text style={styles.onboardingStepLabel}>Découverte</Text>
+              <Text style={styles.onboardingStepLabel}>{t('onboarding.discovery')}</Text>
             </View>
           </View>
 
@@ -108,13 +110,10 @@ export default function OnboardingCityScreen() {
             <BrandBaseline variant="short" style={styles.heroBaseline} />
             <View style={styles.eyebrowRow}>
               <MapPin size={12} color={colors.accent} />
-              <Text style={styles.eyebrow}>LOCALISATION</Text>
+              <Text style={styles.eyebrow}>{t('onboardingCity.eyebrow')}</Text>
             </View>
-            <Text style={styles.title}>Où explorez-vous ?</Text>
-            <Text style={styles.subtitle}>
-              Choisissez votre ville pour des parcours et recommandations cohérents.
-              Vous pourrez en explorer d&apos;autres plus tard.
-            </Text>
+            <Text style={styles.title}>{t('onboardingCity.title')}</Text>
+            <Text style={styles.subtitle}>{t('onboardingCity.subtitle')}</Text>
           </View>
 
           {(error || citiesError) ? (
@@ -131,10 +130,7 @@ export default function OnboardingCityScreen() {
             </View>
           ) : catalogEmpty ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>
-                Aucune ville n&apos;est disponible pour le moment. Vous pourrez en
-                choisir une plus tard depuis les Paramètres.
-              </Text>
+              <Text style={styles.emptyText}>{t('onboardingCity.emptyText')}</Text>
             </View>
           ) : (
             <View style={styles.chipsContainer}>
@@ -147,14 +143,14 @@ export default function OnboardingCityScreen() {
                     style={[styles.chip, active && styles.chipActive]}
                     accessibilityRole="button"
                     accessibilityState={{ selected: active }}
-                    accessibilityLabel={`${city.name}, ${city.activityCount} activités${active ? ', sélectionné' : ''}`}
+                    accessibilityLabel={`${city.name}, ${t('onboardingCity.activities', { count: city.activityCount })}${active ? `, ${t('common.selected')}` : ''}`}
                   >
                     {active ? (
                       <Sparkles size={14} color={colors.accent} />
                     ) : null}
                     <Text style={[styles.chipText, active && styles.chipTextActive]}>{city.name}</Text>
                     <Text style={[styles.chipMeta, active && styles.chipMetaActive]}>
-                      {city.activityCount} activité{city.activityCount > 1 ? 's' : ''}
+                      {t('onboardingCity.activities', { count: city.activityCount })}
                     </Text>
                   </Pressable>
                 );
@@ -165,7 +161,7 @@ export default function OnboardingCityScreen() {
 
         <View style={styles.stickyBar}>
           <CTAButton
-            label={selectedName || catalogEmpty ? 'Continuer' : 'Choisissez une ville'}
+            label={selectedName || catalogEmpty ? t('common.continue') : t('onboardingCity.ctaPick')}
             onPress={handleContinue}
             disabled={!canContinue}
             loading={saving}
@@ -262,13 +258,13 @@ function createStyles(colors: OdosColorPalette) {
       lineHeight: 22,
     },
     errorBanner: {
-      backgroundColor: colors.errorSoft,
+      backgroundColor: colors.errorSurface,
       borderRadius: Radius.card,
       padding: 12,
       marginBottom: 16,
     },
     errorBannerText: {
-      color: colors.error,
+      color: colors.danger,
       fontFamily: FontFamily.uiMedium,
       fontSize: 14,
     },

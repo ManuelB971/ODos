@@ -1,6 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
+import i18n from '@/i18n';
 import { isJwtExpired } from '@/utils/jwt';
 import {
     ApiActivity,
@@ -169,6 +170,8 @@ api.interceptors.request.use(async (config) => {
     if (token && config.url !== '/api/token/refresh') {
         config.headers.Authorization = `Bearer ${token}`;
     }
+    // Langue active → messages d'API localisés (backend lit Accept-Language).
+    config.headers['Accept-Language'] = i18n.language;
     return config;
 });
 
