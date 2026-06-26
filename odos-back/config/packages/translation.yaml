@@ -1,9 +1,10 @@
 framework:
     default_locale: fr
+    # Langues exposées à l'app mobile (miroir de SUPPORTED_LANGUAGES côté front).
+    # NB: option top-level `framework`, PAS sous `translator`.
+    enabled_locales: ['fr', 'en', 'ar']
     translator:
         default_path: '%kernel.project_dir%/translations'
-        # Langues exposées à l'app mobile (miroir de SUPPORTED_LANGUAGES côté front).
-        enabled_locales: ['fr', 'en', 'ar']
         fallbacks:
             - fr
         providers:
