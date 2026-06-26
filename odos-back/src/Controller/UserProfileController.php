@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Gamification\GamificationProfileService;
 use App\Repository\ForumThreadRepository;
 use App\Repository\UserBadgeRepository;
 use App\Repository\UserRepository;
@@ -23,6 +24,7 @@ final class UserProfileController extends AbstractController
         private readonly FriendshipService $friendshipService,
         private readonly UserBadgeRepository $userBadgeRepository,
         private readonly ForumThreadRepository $forumThreadRepository,
+        private readonly GamificationProfileService $gamificationProfileService,
     ) {
     }
 
@@ -62,6 +64,7 @@ final class UserProfileController extends AbstractController
             $payload['favoriteCount'] = $profileUser->getFavorites()->count();
             $payload['visitCount'] = $profileUser->getVisitedActivities()->count();
             $payload['forumThreadCount'] = $this->forumThreadRepository->countByAuthor($profileUser);
+            $payload['profileBadges'] = $this->gamificationProfileService->buildProfileDisplayedBadges($profileUser);
         }
 
         return $this->json($payload);
