@@ -15,6 +15,7 @@ final class PushNotificationService
         private readonly PushTokenRepository $pushTokenRepository,
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
+        private readonly SocialUnreadCountService $socialUnreadCountService,
     ) {
     }
 
@@ -28,6 +29,10 @@ final class PushNotificationService
             return;
         }
 
+        // Badge = total non-lus du destinataire (post-flush) : l'OS l'applique sur
+        // l'icône même app tuée (iOS) et catégorise via le canal Android « social ».
+        $badge = $this->socialUnreadCountService->total($user);
+
         $messages = array_map(
             static fn (string $token): array => [
                 'to' => $token,
@@ -35,6 +40,9 @@ final class PushNotificationService
                 'body' => $body,
                 'data' => $data,
                 'sound' => 'default',
+                'badge' => $badge,
+                'channelId' => 'social',
+                'priority' => 'high',
             ],
             $tokens,
         );

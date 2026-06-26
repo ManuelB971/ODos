@@ -6,6 +6,7 @@ namespace App\Tests\Support;
 
 use App\Repository\PushTokenRepository;
 use App\Service\PushNotificationService;
+use App\Service\SocialUnreadCountService;
 use Psr\Log\LoggerInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
@@ -17,6 +18,7 @@ trait CreatesPushNotificationService
             $this->createMock(PushTokenRepository::class),
             $this->createMock(HttpClientInterface::class),
             $this->createMock(LoggerInterface::class),
+            $this->createMock(SocialUnreadCountService::class),
         );
     }
 }
