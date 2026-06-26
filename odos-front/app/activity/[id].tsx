@@ -4,17 +4,19 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Image,
-  Linking,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
-import { MapPin, ArrowLeft, Heart, Navigation, CircleCheck, MoreHorizontal } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MapPin, ArrowLeft, Heart, CircleCheck, MoreHorizontal } from 'lucide-react-native';
+import {
+  ActivityDirectionsFooter,
+  activityDirectionsScrollPadding,
+} from '@/components/activity/ActivityDirectionsFooter';
 import { DaIcon } from '@/components/ui/DaIcon';
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { CTAButton } from '@/components/ui/CTAButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import api, {
   fetchFavoriteIds,
@@ -41,6 +43,7 @@ import { useIsMosaicPop, usePopTokens, type PopTokens } from '@/components/pop/u
 import { logError, toAppError, AppError } from '@/utils/errorHandling';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
+import { odosAlert } from '@/context/OdosModalContext';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { InlineToast, InlineToastVariant } from '@/components/InlineToast';
 import { ShareModal } from '@/components/social/ShareModal';
@@ -132,6 +135,7 @@ export default function ActivityDetails() {
   const [shareVisible, setShareVisible] = useState(false);
   const [parcoursVisible, setParcoursVisible] = useState(false);
   const { isKeyboardVisible } = useKeyboardComposerMotion();
+  const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const queryClient = useQueryClient();
   const { mergeUnlocked } = useBadgeUnlock();
@@ -195,7 +199,7 @@ export default function ActivityDetails() {
       }
       logError('ActivityDetails.toggleFavorite', err, { id: activityId });
       const appError = toAppError(err, 'Impossible de modifier les favoris.');
-      Alert.alert('Favoris', appError.userMessage);
+      odosAlert('Favoris', appError.userMessage);
     },
     onSuccess: (data) => {
       const unlocked = (data as { unlockedBadges?: BadgeItem[] }).unlockedBadges;
@@ -235,7 +239,7 @@ export default function ActivityDetails() {
       }
       logError('ActivityDetails.toggleVisited', err, { id: activityId });
       const appError = toAppError(err, 'Impossible de modifier le statut de visite.');
-      Alert.alert('Visite', appError.userMessage);
+      odosAlert('Visite', appError.userMessage);
     },
     onSettled: async () => {
       // Le signal de visite change les recommandations → on invalide leur cache.
@@ -455,7 +459,7 @@ export default function ActivityDetails() {
 
   const onFavoritePress = () => {
     if (!isAuthenticated) {
-      Alert.alert('Connexion requise', 'Connectez-vous pour ajouter des favoris.', [
+      odosAlert('Connexion requise', 'Connectez-vous pour ajouter des favoris.', [
         { text: 'Annuler', style: 'cancel' },
         { text: 'Se connecter', onPress: () => router.push('/login') },
       ]);
@@ -475,12 +479,12 @@ export default function ActivityDetails() {
       options.push({ text: 'Partager', onPress: () => setShareVisible(true) });
     }
     options.push({ text: 'Annuler', style: 'cancel' });
-    Alert.alert(activity?.name ?? 'Activité', undefined, options);
+    odosAlert(activity?.name ?? 'Activité', undefined, options);
   };
 
   const onVisitedPress = () => {
     if (!isAuthenticated) {
-      Alert.alert('Connexion requise', 'Connectez-vous pour marquer vos visites.', [
+      odosAlert('Connexion requise', 'Connectez-vous pour marquer vos visites.', [
         { text: 'Annuler', style: 'cancel' },
         { text: 'Se connecter', onPress: () => router.push('/login') },
       ]);
@@ -492,7 +496,7 @@ export default function ActivityDetails() {
 
   const onPickStar = (score: number) => {
     if (!isAuthenticated) {
-      Alert.alert('Connexion requise', 'Connectez-vous pour noter cette activité.', [
+      odosAlert('Connexion requise', 'Connectez-vous pour noter cette activité.', [
         { text: 'Annuler', style: 'cancel' },
         { text: 'Se connecter', onPress: () => router.push('/login') },
       ]);
@@ -508,6 +512,7 @@ export default function ActivityDetails() {
     : null;
 
   const heroImage = resolveImageUrl(activity.imageUrl);
+  const scrollPaddingBottom = activityDirectionsScrollPadding(isKeyboardVisible, insets.bottom);
 
   return (
     <KeyboardAvoidingView
@@ -515,7 +520,13 @@ export default function ActivityDetails() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={88}
     >
-      <ScrollView ref={scrollRef} style={styles.scroll} contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollPaddingBottom }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
+      >
         <View style={styles.heroWrap}>
           {heroImage ? (
             <Image source={{ uri: heroImage }} style={styles.heroImage} resizeMode="cover" />
@@ -665,15 +676,6 @@ export default function ActivityDetails() {
           <Text style={styles.sectionTitle}>À propos de cette expérience</Text>
           <Text style={styles.description}>{activity.description}</Text>
 
-          {activity.latitude != null && activity.longitude != null && (
-            <View style={styles.coordsContainer}>
-              <MapPin color={colors.primary} size={14} />
-              <Text style={styles.coordsText}>
-                {activity.latitude.toFixed(4)}, {activity.longitude.toFixed(4)}
-              </Text>
-            </View>
-          )}
-
           <ActivityCommentsSection
             comments={comments}
             loading={commentsLoading}
@@ -695,7 +697,7 @@ export default function ActivityDetails() {
             onPost={() => {
               const t = commentDraft.trim();
               if (t.length < 2) {
-                Alert.alert('Commentaire', 'Le texte est trop court.');
+                odosAlert('Commentaire', 'Le texte est trop court.');
                 return;
               }
               postCommentMutation.mutate();
@@ -706,17 +708,23 @@ export default function ActivityDetails() {
             commentToast={commentToast}
             onDismissToast={() => setCommentToast(null)}
             onLoginPress={() => router.push('/login')}
-            onComposeFocus={() => setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 150)}
+            onComposeFocus={() => {
+              setTimeout(
+                () => scrollRef.current?.scrollToEnd({ animated: true }),
+                Platform.OS === 'ios' ? 280 : 180,
+              );
+            }}
           />
         </View>
       </ScrollView>
 
-      {/* ── Sticky CTA bottom : itinéraire ── */}
-      {activity.latitude != null && activity.longitude != null && !isKeyboardVisible ? (
-        <StickyCTABar
+      {activity.latitude != null && activity.longitude != null ? (
+        <ActivityDirectionsFooter
           latitude={activity.latitude}
           longitude={activity.longitude}
           name={activity.name}
+          city={activity.city}
+          composerActive={isKeyboardVisible}
         />
       ) : null}
 
@@ -740,67 +748,6 @@ export default function ActivityDetails() {
   );
 }
 
-/**
- * Barre CTA sticky en bas de l'écran détail : ouvre les directions natives
- * (Apple Maps sur iOS, Google Maps sur Android) vers l'activité.
- *
- * Gère son propre state "loading" pour le feedback bref (Linking.openURL est
- * asynchrone, on affiche le spinner jusqu'à la résolution).
- */
-function StickyCTABar({
-  latitude,
-  longitude,
-  name,
-}: {
-  latitude: number;
-  longitude: number;
-  name: string;
-}) {
-  const colors = useOdosColors();
-  const styles = useMemo(() => createStyles(colors), [colors]);
-  const [launching, setLaunching] = useState(false);
-
-  const openDirections = async () => {
-    if (launching) return;
-    setLaunching(true);
-    const label = encodeURIComponent(name);
-    const url =
-      Platform.OS === 'ios'
-        ? `http://maps.apple.com/?daddr=${latitude},${longitude}&q=${label}`
-        : `google.navigation:q=${latitude},${longitude}`;
-    try {
-      const supported = await Linking.canOpenURL(url);
-      if (supported) {
-        await Linking.openURL(url);
-      } else {
-        await Linking.openURL(
-          `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
-        );
-      }
-    } catch {
-      // silent fail — on rend la main à l'utilisateur
-    } finally {
-      // léger délai pour que le spinner reste visible ~1 frame après le switch d'app
-      setTimeout(() => setLaunching(false), 800);
-    }
-  };
-
-  return (
-    <View style={styles.stickyBar} pointerEvents="box-none">
-      <View style={styles.stickyInner}>
-        <CTAButton
-          label="Y aller"
-          onPress={openDirections}
-          loading={launching}
-          size="lg"
-          fullWidth
-          leftIcon={<Navigation size={18} color="#fff" />}
-        />
-      </View>
-    </View>
-  );
-}
-
 function createStyles(colors: OdosColorPalette, pop: PopTokens | null = null) {
   /** Contour encre « mosaïque pop » à fusionner dans les styles de cartes. */
   const popCard = pop ? { borderWidth: 2.5, borderColor: pop.ink, backgroundColor: pop.paper } : null;
@@ -814,7 +761,6 @@ function createStyles(colors: OdosColorPalette, pop: PopTokens | null = null) {
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 120, // espace pour la sticky CTA bar
   },
   container: {
     flex: 1,
@@ -962,20 +908,6 @@ function createStyles(colors: OdosColorPalette, pop: PopTokens | null = null) {
     lineHeight: 24,
     marginBottom: 24,
   },
-  coordsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.surface,
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    ...(popCard ?? {}),
-  },
-  coordsText: {
-    fontSize: 13,
-    color: colors.muted,
-  },
   errorText: {
     fontSize: 18,
     color: colors.danger,
@@ -1085,28 +1017,6 @@ function createStyles(colors: OdosColorPalette, pop: PopTokens | null = null) {
   },
   newCommentBox: {
     marginTop: 16,
-  },
-  stickyBar: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 18,
-    backgroundColor: pop ? pop.paper : colors.elevated,
-    borderTopWidth: pop ? 2.5 : 1,
-    borderTopColor: pop ? pop.ink : colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  stickyInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
   },
 });
 }
