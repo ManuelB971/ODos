@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Pressable,
   StyleSheet,
@@ -20,6 +19,7 @@ import { useParcoursDetail, useParcoursMutations } from '@/hooks/useParcours';
 import { useChatMutations } from '@/hooks/useChat';
 import { sendGroupMessage } from '@/scripts/api';
 import { useAuth } from '@/context/AuthContext';
+import { odosAlert } from '@/context/OdosModalContext';
 import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
 import { FontFamily, Spacing } from '@/constants/theme';
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
@@ -98,7 +98,7 @@ export default function ParcoursDetailScreen() {
   };
 
   const confirmRemove = (item: ParcoursItemDetail) => {
-    Alert.alert('Retirer l’étape', `Retirer « ${item.activity?.name ?? 'cette activité'} » du parcours ?`, [
+    odosAlert('Retirer l’étape', `Retirer « ${item.activity?.name ?? 'cette activité'} » du parcours ?`, [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Retirer',
@@ -120,7 +120,7 @@ export default function ParcoursDetailScreen() {
     setPickerOpen(false);
     addItem.mutate(
       { parcoursId, activityId: activity.id },
-      { onError: (err) => Alert.alert('Parcours', toAppError(err, 'Ajout impossible.').userMessage) },
+      { onError: (err) => odosAlert('Parcours', toAppError(err, 'Ajout impossible.').userMessage) },
     );
   };
 
@@ -139,9 +139,9 @@ export default function ParcoursDetailScreen() {
       } else {
         await sendGroupMessage(target.groupId, '', undefined, parcoursId);
       }
-      Alert.alert('Parcours partagé', `« ${parcours.title} » envoyé à ${target.displayName}.`);
+      odosAlert('Parcours partagé', `« ${parcours.title} » envoyé à ${target.displayName}.`);
     } catch (err) {
-      Alert.alert('Partage', toAppError(err, 'Partage impossible.').userMessage);
+      odosAlert('Partage', toAppError(err, 'Partage impossible.').userMessage);
     }
   };
 
@@ -150,15 +150,15 @@ export default function ParcoursDetailScreen() {
     addCollaborator.mutate(
       { parcoursId, userId },
       {
-        onSuccess: () => Alert.alert('Invitation envoyée', `${displayName} peut désormais co-éditer ce parcours.`),
+        onSuccess: () => odosAlert('Invitation envoyée', `${displayName} peut désormais co-éditer ce parcours.`),
         onError: (err) =>
-          Alert.alert('Co-édition', toAppError(err, 'Invitation impossible. La co-édition est réservée à vos amis.').userMessage),
+          odosAlert('Co-édition', toAppError(err, 'Invitation impossible. La co-édition est réservée à vos amis.').userMessage),
       },
     );
   };
 
   const confirmRemoveCollaborator = (collaborator: { id: number; displayName: string }) => {
-    Alert.alert('Retirer le collaborateur', `Retirer ${collaborator.displayName} de la co-édition ?`, [
+    odosAlert('Retirer le collaborateur', `Retirer ${collaborator.displayName} de la co-édition ?`, [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Retirer',
@@ -185,7 +185,7 @@ export default function ParcoursDetailScreen() {
     if (!isOwner) return;
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permission requise', "Autorisez l'accès à vos photos pour changer la pochette.");
+      odosAlert('Permission requise', "Autorisez l'accès à vos photos pour changer la pochette.");
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -201,7 +201,7 @@ export default function ParcoursDetailScreen() {
     const name = asset.fileName ?? `cover-${Date.now()}.${mime.split('/')[1] ?? 'jpg'}`;
     uploadCover.mutate(
       { parcoursId, file: { uri: asset.uri, name, mimeType: mime } },
-      { onError: (err) => Alert.alert('Pochette', toAppError(err, 'Upload impossible.').userMessage) },
+      { onError: (err) => odosAlert('Pochette', toAppError(err, 'Upload impossible.').userMessage) },
     );
   };
 
@@ -212,7 +212,7 @@ export default function ParcoursDetailScreen() {
 
   const confirmDelete = () => {
     if (!isOwner) return;
-    Alert.alert(
+    odosAlert(
       'Supprimer le parcours',
       `Supprimer « ${parcours?.title ?? 'ce parcours'} » ? Cette action est définitive.`,
       [
@@ -223,7 +223,7 @@ export default function ParcoursDetailScreen() {
           onPress: () =>
             remove.mutate(parcoursId, {
               onSuccess: () => router.back(),
-              onError: (err) => Alert.alert('Parcours', toAppError(err, 'Suppression impossible.').userMessage),
+              onError: (err) => odosAlert('Parcours', toAppError(err, 'Suppression impossible.').userMessage),
             }),
         },
       ],

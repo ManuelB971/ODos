@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from 'react';
 import {
   Animated,
   ActivityIndicator,
-  Alert,
   Easing,
   Pressable,
   StyleSheet,
@@ -16,6 +15,7 @@ import { DaIcon } from '@/components/ui/DaIcon';
 import * as Haptics from 'expo-haptics';
 import { Spacing } from '@/constants/theme';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { odosAlert } from '@/context/OdosModalContext';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { InlineToast, InlineToastVariant } from '@/components/InlineToast';
@@ -247,7 +247,7 @@ export function ActivityCommentsSection({
                         </Pressable>
                         <Pressable
                           onPress={() =>
-                            Alert.alert('Supprimer', 'Masquer ce commentaire ?', [
+                            odosAlert('Supprimer', 'Masquer ce commentaire ?', [
                               { text: 'Annuler', style: 'cancel' },
                               {
                                 text: 'Supprimer',
@@ -344,11 +344,11 @@ export function ActivityCommentsSection({
             {
               onSuccess: () => {
                 setReportCommentId(null);
-                Alert.alert('Merci', 'Votre signalement a été transmis à notre équipe.');
+                odosAlert('Merci', 'Votre signalement a été transmis à notre équipe.');
               },
               onError: () => {
                 setReportCommentId(null);
-                Alert.alert('Signalement', 'Impossible d’envoyer le signalement pour le moment.');
+                odosAlert('Signalement', 'Impossible d’envoyer le signalement pour le moment.');
               },
             },
           );

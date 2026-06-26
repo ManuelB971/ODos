@@ -5,11 +5,7 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\User;
-use App\Repository\FriendshipRepository;
-use App\Repository\GroupInvitationRepository;
-use App\Repository\ChatMessageRepository;
-use App\Repository\GroupMessageRepository;
-use App\Service\SharedActivityService;
+use App\Service\SocialUnreadCountService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,11 +17,7 @@ final class SocialUnreadCountController extends AbstractController
 {
     public function __construct(
         private readonly Security $security,
-        private readonly FriendshipRepository $friendshipRepository,
-        private readonly GroupInvitationRepository $groupInvitationRepository,
-        private readonly ChatMessageRepository $chatMessageRepository,
-        private readonly GroupMessageRepository $groupMessageRepository,
-        private readonly SharedActivityService $sharedActivityService,
+        private readonly SocialUnreadCountService $socialUnreadCountService,
     ) {
     }
 
@@ -38,19 +30,6 @@ final class SocialUnreadCountController extends AbstractController
             return $this->json(['message' => 'Non authentifié.'], Response::HTTP_UNAUTHORIZED);
         }
 
-        $pendingRequests = $this->friendshipRepository->countPendingReceived($user);
-        $unreadShares = $this->sharedActivityService->countUnread($user);
-        $pendingInvitations = $this->groupInvitationRepository->countPendingForUser($user);
-        $unreadMessages = $this->chatMessageRepository->countUnreadForUser($user);
-        $unreadGroupMessages = $this->groupMessageRepository->countUnreadForUser($user);
-
-        return $this->json([
-            'pendingFriendRequests' => $pendingRequests,
-            'unreadShares' => $unreadShares,
-            'pendingGroupInvitations' => $pendingInvitations,
-            'unreadMessages' => $unreadMessages,
-            'unreadGroupMessages' => $unreadGroupMessages,
-            'total' => $pendingRequests + $unreadShares + $pendingInvitations + $unreadMessages + $unreadGroupMessages,
-        ]);
+        return $this->json($this->socialUnreadCountService->breakdown($user));
     }
 }

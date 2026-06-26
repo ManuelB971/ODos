@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -14,6 +13,7 @@ import { Plus, Route, Shuffle, X } from 'lucide-react-native';
 import { useParcoursList, useParcoursMutations } from '@/hooks/useParcours';
 import { useActivities } from '@/hooks/useActivities';
 import { useOdosColors } from '@/context/ThemeContext';
+import { odosAlert } from '@/context/OdosModalContext';
 import { FontFamily } from '@/constants/theme';
 import { ParcoursCard } from '@/components/social/ParcoursCard';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
@@ -57,7 +57,7 @@ export default function ParcoursLibraryScreen() {
       pool = pool.filter((a) => (a.city ?? '') === selectedCity);
     }
     if (pool.length === 0) {
-      Alert.alert(
+      odosAlert(
         'Parcours surprise',
         selectedCity
           ? `Aucune activité disponible à ${selectedCity} pour le moment.`
@@ -73,7 +73,7 @@ export default function ParcoursLibraryScreen() {
       const res = await create.mutateAsync({ title: 'Parcours surprise', activityIds });
       if (res.parcours?.id) router.push(`/parcours/${res.parcours.id}`);
     } catch (err) {
-      Alert.alert('Parcours surprise', toAppError(err, 'Création impossible.').userMessage);
+      odosAlert('Parcours surprise', toAppError(err, 'Création impossible.').userMessage);
     }
   };
 

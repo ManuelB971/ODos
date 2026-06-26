@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -47,6 +46,7 @@ import { shareExportAsPdf, type ExportData } from '@/utils/generateExportPdf';
 import { MAP_EXPLORATION_QUERY_KEY } from '@/hooks/useMapExploration';
 import { FontFamily, Spacing } from '@/constants/theme';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { odosAlert } from '@/context/OdosModalContext';
 import { ThemePreferencePicker } from '@/components/settings/ThemePreferencePicker';
 import { logError, toAppError } from '@/utils/errorHandling';
 import { resolveImageUrl } from '@/utils/imageUrl';
@@ -125,7 +125,7 @@ export default function SettingsScreen() {
     },
     onError: (err) => {
       logError('Settings.mapExploration', err);
-      Alert.alert(
+      odosAlert(
         'Exploration carte',
         toAppError(err, 'Impossible de mettre à jour ce réglage.').userMessage
       );
@@ -145,7 +145,7 @@ export default function SettingsScreen() {
     // Demande de permission (iOS + Android) — on informe l'utilisateur en cas de refus.
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert(
+      odosAlert(
         'Permission requise',
         "Autorisez l'accès à vos photos pour changer votre avatar."
       );
@@ -182,7 +182,7 @@ export default function SettingsScreen() {
       setSuccessMsg('Photo de profil mise à jour.');
     } catch (err) {
       logError('Settings.uploadAvatar', err);
-      Alert.alert(
+      odosAlert(
         'Avatar',
         toAppError(err, "Impossible de mettre à jour la photo. Réessayez dans quelques secondes.").userMessage
       );
@@ -201,7 +201,7 @@ export default function SettingsScreen() {
       setSuccessMsg('Photo de profil retirée.');
     } catch (err) {
       logError('Settings.deleteAvatar', err);
-      Alert.alert('Avatar', toAppError(err, 'Impossible de retirer la photo.').userMessage);
+      odosAlert('Avatar', toAppError(err, 'Impossible de retirer la photo.').userMessage);
     } finally {
       setRemovingAvatar(false);
     }
@@ -251,7 +251,7 @@ export default function SettingsScreen() {
       // On essaie de router l'erreur sur le bon champ en fonction du message backend.
       if (/alias/i.test(app.userMessage)) setAliasError(app.userMessage);
       else if (/bio/i.test(app.userMessage)) setBioError(app.userMessage);
-      else Alert.alert('Profil', app.userMessage);
+      else odosAlert('Profil', app.userMessage);
     } finally {
       setSavingProfile(false);
     }
@@ -272,7 +272,7 @@ export default function SettingsScreen() {
       setSuccessMsg('Ville enregistrée.');
     } catch (err) {
       logError('Settings.saveHomeCity', err);
-      Alert.alert('Ma ville', toAppError(err, 'Impossible de sauvegarder votre ville.').userMessage);
+      odosAlert('Ma ville', toAppError(err, 'Impossible de sauvegarder votre ville.').userMessage);
     } finally {
       setSavingHomeCity(false);
     }
@@ -280,7 +280,7 @@ export default function SettingsScreen() {
 
   // ── Suppression compte (double confirmation) ──────────────────────────────
   const handleDeleteAccount = () => {
-    Alert.alert(
+    odosAlert(
       'Supprimer mon compte',
       'Cette action est irréversible. Toutes vos données seront supprimées.',
       [
@@ -289,7 +289,7 @@ export default function SettingsScreen() {
           text: 'Continuer',
           style: 'destructive',
           onPress: () =>
-            Alert.alert(
+            odosAlert(
               'Confirmation finale',
               "Êtes-vous vraiment sûr(e) ? Il n'y a pas de retour en arrière.",
               [
@@ -315,7 +315,7 @@ export default function SettingsScreen() {
       router.replace('/login');
     } catch (err) {
       logError('Settings.deleteAccount', err);
-      Alert.alert('Erreur', toAppError(err, 'Impossible de supprimer le compte.').userMessage);
+      odosAlert('Erreur', toAppError(err, 'Impossible de supprimer le compte.').userMessage);
       setDeleting(false);
     }
   };
@@ -326,7 +326,7 @@ export default function SettingsScreen() {
       await shareExportAsPdf(data as unknown as ExportData);
     } catch (err) {
       logError("Settings.exportData", err);
-      Alert.alert("Export", toAppError(err, "Impossible d’exporter vos données.").userMessage);
+      odosAlert("Export", toAppError(err, "Impossible d’exporter vos données.").userMessage);
     }
   };
 

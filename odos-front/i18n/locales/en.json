@@ -1,0 +1,87 @@
+{
+  "common": {
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "save": "Save",
+    "back": "Back",
+    "loading": "Loading…",
+    "retry": "Retry",
+    "selected": "selected"
+  },
+  "language": {
+    "title": "Language",
+    "hint": "Choose the app language.",
+    "system": "System language",
+    "fr": "French",
+    "en": "English",
+    "ar": "Arabic",
+    "restartNeeded": "Restart the app to fully apply the writing direction."
+  },
+  "appearance": {
+    "title": "Appearance",
+    "displayMode": "Display mode",
+    "theme": "Theme",
+    "background": "Background",
+    "cardStyle": "Card style"
+  },
+  "onboarding": {
+    "step1of2": "Step 1 of 2",
+    "step2of2": "Step 2 of 2",
+    "step1": "Step 1",
+    "step2": "Step 2",
+    "tastes": "Your tastes",
+    "discovery": "Discovery"
+  },
+  "auth": {
+    "tabLogin": "Log in",
+    "tabSignup": "Sign up",
+    "titleLogin": "Glad to see you again",
+    "titleSignup": "Welcome to the path",
+    "subtitleLogin": "Log in to continue exploring.",
+    "subtitleSignup": "Create an account to start your journey.",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "example@email.com",
+    "emailError": "Check your email.",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "At least 6 characters",
+    "passwordHint": "6 characters minimum.",
+    "forgot": "Forgot password?",
+    "forgotA11y": "Forgot password",
+    "ctaSignup": "Create my account",
+    "separatorOr": "or",
+    "consentA11y": "Accept the terms and conditions and the privacy policy",
+    "accepted": "Accepted",
+    "consent": "I accept the <cgu>Terms</cgu> and the <privacy>Privacy Policy</privacy>.",
+    "legalNotice": "By continuing, you accept our <terms>Terms of Use</terms>.",
+    "errors": {
+      "emailInvalid": "Invalid email.",
+      "passwordTooShort": "The password must be at least 6 characters long.",
+      "termsRequired": "Please accept the Terms and the Privacy Policy.",
+      "loginFailed": "Login error.",
+      "generic": "Something went wrong.",
+      "signupFailed": "Something went wrong during sign-up."
+    }
+  },
+  "interests": {
+    "topBarTitle": "Your interests",
+    "eyebrow": "PERSONALIZATION",
+    "title": "What inspires you?",
+    "subtitle": "Select {{min}} to {{max}} interests so we can tailor your discoveries.",
+    "counterSuffix": "/ {{max}} selected",
+    "clearAll": "Clear all",
+    "errorLoad": "Couldn't load categories.",
+    "errorSave": "Couldn't save your interests.",
+    "ctaMin": "Pick at least 1 interest"
+  },
+  "onboardingCity": {
+    "topBarTitle": "Your city",
+    "eyebrow": "LOCATION",
+    "title": "Where are you exploring?",
+    "subtitle": "Choose your city for consistent itineraries and recommendations. You can explore others later.",
+    "emptyText": "No city is available right now. You'll be able to pick one later from Settings.",
+    "ctaPick": "Choose a city",
+    "errorSave": "Couldn't save your city.",
+    "activities_one": "{{count}} activity",
+    "activities_other": "{{count}} activities"
+  }
+}

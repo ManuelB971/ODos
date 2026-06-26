@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Sparkles } from 'lucide-react-native';
 import { DaIcon } from '@/components/ui/DaIcon';
 
@@ -40,6 +41,7 @@ const MAX_SELECTION = 7;
 const InterestsScreen = () => {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { t } = useTranslation();
   const router = useRouter();
   const { interests: storedNames, setInterests } = useInterests();
   const { user } = useAuth();
@@ -66,7 +68,7 @@ const InterestsScreen = () => {
       })
       .catch((err) => {
         logError('Interests.fetchCategories', err);
-        setError(toAppError(err, 'Impossible de charger les catégories.').userMessage);
+        setError(toAppError(err, t('interests.errorLoad')).userMessage);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -74,7 +76,7 @@ const InterestsScreen = () => {
     return () => {
       cancelled = true;
     };
-  }, [storedNames]);
+  }, [storedNames, t]);
 
   const toggleInterest = (cat: Category) => {
     setSelectedIds((prev) => {
@@ -104,7 +106,7 @@ const InterestsScreen = () => {
         await updateUserInterests(user.id, iris);
       } catch (err) {
         logError('Interests.updateUserInterests', err, { userId: user.id });
-        setError(toAppError(err, "Impossible d'enregistrer vos intérêts.").userMessage);
+        setError(toAppError(err, t('interests.errorSave')).userMessage);
         setSaving(false);
         return;
       } finally {
@@ -127,7 +129,7 @@ const InterestsScreen = () => {
         ) : (
           <View style={styles.backBtn} />
         )}
-        <Text style={styles.topBarTitle}>Vos intérêts</Text>
+        <Text style={styles.topBarTitle}>{t('interests.topBarTitle')}</Text>
         <View style={styles.backBtn} />
       </View>
 
@@ -136,15 +138,15 @@ const InterestsScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         {!user ? (
-          <View style={styles.onboardingSteps} accessibilityRole="text" accessibilityLabel="Étape 1 sur 2">
+          <View style={styles.onboardingSteps} accessibilityRole="text" accessibilityLabel={t('onboarding.step1of2')}>
             <View style={styles.onboardingStep}>
               <DaIcon
                 name="step-1"
                 variant="hero"
                 blob={{ seed: 3, backgroundColor: colors.accentSoft, padding: 6 }}
-                accessibilityLabel="Étape 1"
+                accessibilityLabel={t('onboarding.step1')}
               />
-              <Text style={styles.onboardingStepLabel}>Vos goûts</Text>
+              <Text style={styles.onboardingStepLabel}>{t('onboarding.tastes')}</Text>
             </View>
             <View style={styles.onboardingStepDivider} />
             <View style={styles.onboardingStep}>
@@ -153,10 +155,10 @@ const InterestsScreen = () => {
                 variant="hero"
                 opacity={0.5}
                 blob={{ seed: 4, backgroundColor: colors.surface, padding: 6 }}
-                accessibilityLabel="Étape 2"
+                accessibilityLabel={t('onboarding.step2')}
               />
               <Text style={[styles.onboardingStepLabel, styles.onboardingStepLabelMuted]}>
-                Découverte
+                {t('onboarding.discovery')}
               </Text>
             </View>
           </View>
@@ -166,19 +168,18 @@ const InterestsScreen = () => {
           <BrandBaseline variant="short" style={styles.heroBaseline} />
           <View style={styles.eyebrowRow}>
             <Sparkles size={12} color={colors.accent} />
-            <Text style={styles.eyebrow}>PERSONNALISATION</Text>
+            <Text style={styles.eyebrow}>{t('interests.eyebrow')}</Text>
           </View>
-          <Text style={styles.title}>Qu&apos;est-ce qui vous inspire ?</Text>
+          <Text style={styles.title}>{t('interests.title')}</Text>
           <Text style={styles.subtitle}>
-            Sélectionnez {MIN_SELECTION} à {MAX_SELECTION} centres d&apos;intérêt pour
-            que nous adaptions vos découvertes.
+            {t('interests.subtitle', { min: MIN_SELECTION, max: MAX_SELECTION })}
           </Text>
         </View>
 
         <View style={styles.counterRow}>
           <Text style={styles.counterText}>
             <Text style={styles.counterValue}>{selectedIds.length}</Text>
-            <Text style={styles.counterMuted}> / {MAX_SELECTION} choisis</Text>
+            <Text style={styles.counterMuted}> {t('interests.counterSuffix', { max: MAX_SELECTION })}</Text>
           </Text>
           {selectedIds.length > 0 ? (
             <Pressable
@@ -186,7 +187,7 @@ const InterestsScreen = () => {
               hitSlop={6}
               accessibilityRole="button"
             >
-              <Text style={styles.resetText}>Tout effacer</Text>
+              <Text style={styles.resetText}>{t('interests.clearAll')}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -220,10 +221,10 @@ const InterestsScreen = () => {
                   ]}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active, disabled }}
-                  accessibilityLabel={`${cat.name}${active ? ', sélectionné' : ''}`}
+                  accessibilityLabel={`${cat.name}${active ? `, ${t('common.selected')}` : ''}`}
                 >
                   {active ? (
-                    <DaIcon name="check-mark" variant="chip" accessibilityLabel="Sélectionné" />
+                    <DaIcon name="check-mark" variant="chip" accessibilityLabel={t('common.selected')} />
                   ) : null}
                   <Text
                     style={[
@@ -244,7 +245,7 @@ const InterestsScreen = () => {
       {/* Sticky CTA en bas — toujours visible */}
       <View style={styles.stickyBar}>
         <CTAButton
-          label={selectedIds.length === 0 ? 'Choisissez au moins 1 intérêt' : 'Continuer'}
+          label={selectedIds.length === 0 ? t('interests.ctaMin') : t('common.continue')}
           onPress={handleContinue}
           disabled={!canContinue}
           loading={saving}

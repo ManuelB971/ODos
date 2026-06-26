@@ -1,0 +1,6 @@
+theme:
+    import:
+        payload_invalid: 'Invalid payload: an array of themes is required.'
+        slug_label_required: 'Each theme must contain "slug" and "label".'
+        palette_not_object: 'Palette "%kind%" is invalid (a key/value object is expected).'
+        palette_missing_keys: 'Palette "%kind%" is invalid: missing or empty keys: %keys%.'

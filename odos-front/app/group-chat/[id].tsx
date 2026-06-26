@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -21,6 +20,7 @@ import { useGroupDetail } from '@/hooks/useGroups';
 import { useContentReport } from '@/hooks/useContentReport';
 import { ReportContentModal } from '@/components/social/ReportContentModal';
 import { useOdosColors } from '@/context/ThemeContext';
+import { odosAlert } from '@/context/OdosModalContext';
 import { FontFamily } from '@/constants/theme';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { UserAvatar } from '@/components/social/UserAvatar';
@@ -69,7 +69,7 @@ export default function GroupChatScreen() {
       { content },
       {
         onError: () =>
-          Alert.alert('Message non envoyé', 'Vérifiez votre connexion.', [
+          odosAlert('Message non envoyé', 'Vérifiez votre connexion.', [
             { text: 'Annuler', style: 'cancel' },
             { text: 'Réessayer', onPress: () => submitMessage(content) },
           ]),
@@ -332,11 +332,11 @@ export default function GroupChatScreen() {
             {
               onSuccess: () => {
                 setReportMessageId(null);
-                Alert.alert('Merci', 'Votre signalement a été transmis à notre équipe.');
+                odosAlert('Merci', 'Votre signalement a été transmis à notre équipe.');
               },
               onError: () => {
                 setReportMessageId(null);
-                Alert.alert('Signalement', 'Impossible d’envoyer le signalement pour le moment.');
+                odosAlert('Signalement', 'Impossible d’envoyer le signalement pour le moment.');
               },
             },
           );

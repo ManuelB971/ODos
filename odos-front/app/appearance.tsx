@@ -7,7 +7,8 @@ import {
   View,
 } from 'react-native';
 import { router } from 'expo-router';
-import { ArrowLeft, Check, Moon, Sun, Smartphone, Sparkles, LayoutGrid } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import { ArrowLeft, Check, Moon, Sun, Smartphone, Sparkles, LayoutGrid, Languages } from 'lucide-react-native';
 import {
   useTheme,
   useOdosColors,
@@ -16,9 +17,17 @@ import {
   type BackgroundPattern,
   type CardStyle,
 } from '@/context/ThemeContext';
+import { useLanguage, type LanguagePreference } from '@/context/LanguageContext';
 import { useAvailableThemes } from '@/hooks/useThemes';
 import { FontFamily, Radius, Spacing } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const LANGUAGE_OPTIONS: { value: LanguagePreference; labelKey: string }[] = [
+  { value: 'system', labelKey: 'language.system' },
+  { value: 'fr', labelKey: 'language.fr' },
+  { value: 'en', labelKey: 'language.en' },
+  { value: 'ar', labelKey: 'language.ar' },
+];
 
 const PREFERENCE_OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
   { value: 'system', label: 'Système', Icon: Smartphone },
@@ -41,7 +50,9 @@ const CARD_STYLE_OPTIONS: { value: CardStyle; label: string; hint: string }[] = 
 export default function AppearanceScreen() {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { t } = useTranslation();
   const { preference, setPreference, variantId, setVariantId, backgroundPattern, setBackgroundPattern, cardStyle, setCardStyle } = useTheme();
+  const { preference: languagePreference, setLanguage, rtlRestartPending } = useLanguage();
   const { data: themes = [] } = useAvailableThemes();
   const insets = useSafeAreaInsets();
 
@@ -56,11 +67,40 @@ export default function AppearanceScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12} style={styles.backBtn}>
           <ArrowLeft size={22} color={colors.text} />
         </Pressable>
-        <Text style={styles.title}>Apparence</Text>
+        <Text style={styles.title}>{t('appearance.title')}</Text>
       </View>
 
+      {/* Langue */}
+      <Text style={styles.sectionLabel}>{t('language.title')}</Text>
+      <View style={styles.card}>
+        {LANGUAGE_OPTIONS.map((opt, i) => {
+          const isSelected = languagePreference === opt.value;
+          return (
+            <View key={opt.value}>
+              {i > 0 && <View style={styles.divider} />}
+              <Pressable
+                style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+                onPress={() => setLanguage(opt.value)}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: isSelected }}
+                accessibilityLabel={t(opt.labelKey)}
+              >
+                <Languages size={20} color={isSelected ? colors.primary : colors.muted} />
+                <Text style={[styles.rowLabel, isSelected && styles.rowLabelActive]}>
+                  {t(opt.labelKey)}
+                </Text>
+                {isSelected && <Check size={18} color={colors.primary} />}
+              </Pressable>
+            </View>
+          );
+        })}
+      </View>
+      {rtlRestartPending ? (
+        <Text style={styles.languageHint}>{t('language.restartNeeded')}</Text>
+      ) : null}
+
       {/* Mode */}
-      <Text style={styles.sectionLabel}>{"Mode d'affichage"}</Text>
+      <Text style={styles.sectionLabel}>{t('appearance.displayMode')}</Text>
       <View style={styles.card}>
         {PREFERENCE_OPTIONS.map((opt, i) => {
           const isSelected = preference === opt.value;
@@ -86,7 +126,7 @@ export default function AppearanceScreen() {
       </View>
 
       {/* Thème */}
-      <Text style={styles.sectionLabel}>Thème</Text>
+      <Text style={styles.sectionLabel}>{t('appearance.theme')}</Text>
       <View style={styles.themesGrid}>
         {themes.map((theme) => {
           const isSelected = variantId === theme.slug;
@@ -131,7 +171,7 @@ export default function AppearanceScreen() {
       </View>
 
       {/* Fond d'écran (texture spray) */}
-      <Text style={styles.sectionLabel}>{"Fond d'écran"}</Text>
+      <Text style={styles.sectionLabel}>{t('appearance.background')}</Text>
       <View style={styles.card}>
         {BG_PATTERN_OPTIONS.map((opt, i) => {
           const isSelected = backgroundPattern === opt.value;
@@ -157,7 +197,7 @@ export default function AppearanceScreen() {
       </View>
 
       {/* Style des cartes d'activité (se superpose au thème) */}
-      <Text style={styles.sectionLabel}>{'Style des cartes'}</Text>
+      <Text style={styles.sectionLabel}>{t('appearance.cardStyle')}</Text>
       <View style={styles.card}>
         {CARD_STYLE_OPTIONS.map((opt, i) => {
           const isSelected = cardStyle === opt.value;
@@ -221,6 +261,13 @@ function createStyles(colors: OdosColorPalette) {
       letterSpacing: 1,
       marginBottom: 10,
       marginTop: 24,
+    },
+    languageHint: {
+      fontSize: 12,
+      fontFamily: FontFamily.ui,
+      color: colors.muted,
+      marginTop: 8,
+      lineHeight: 17,
     },
     card: {
       backgroundColor: colors.elevated,

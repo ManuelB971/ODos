@@ -19,7 +19,9 @@ import { useNotificationResponse } from '@/hooks/useNotificationResponse';
 import { InterestProvider } from '@/context/InterestContext';
 import { CityProvider } from '@/context/CityContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { LanguageProvider } from '@/context/LanguageContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { OdosModalProvider } from '@/context/OdosModalContext';
 import { ThemedStatusBar } from '@/components/ThemedStatusBar';
 import { BadgeUnlockProvider, useBadgeUnlock } from '@/context/BadgeUnlockContext';
 import { BadgeUnlockModal } from '@/components/badges/BadgeUnlockModal';
@@ -65,7 +67,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
+          <LanguageProvider>
           <ThemeProvider>
+          <OdosModalProvider>
           <AuthProvider>
             <BadgeUnlockProvider>
               <InterestProvider>
@@ -93,7 +97,9 @@ export default function RootLayout() {
               </InterestProvider>
             </BadgeUnlockProvider>
           </AuthProvider>
+          </OdosModalProvider>
           </ThemeProvider>
+          </LanguageProvider>
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

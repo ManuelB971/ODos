@@ -51,6 +51,47 @@ final class GamificationProfileService
             }
         }
 
+        $profileDisplayed = $this->buildProfileDisplayedBadges($user, $earned);
+
+        return [
+            'hideAllOnProfile' => $user->isHideBadgesOnProfile(),
+            'earned' => $earned,
+            'available' => $available,
+            'profileDisplayed' => $profileDisplayed,
+            'unseenCount' => count($this->userBadgeRepository->findUnseenForUser($user)),
+        ];
+    }
+
+    /**
+     * Badges affichés sur le profil public (max 6), vides si l'utilisateur les masque.
+     *
+     * @param list<array<string, mixed>> $earned
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function buildProfileDisplayedBadges(User $user, ?array $earned = null): array
+    {
+        if ($user->isHideBadgesOnProfile()) {
+            return [];
+        }
+
+        if (null === $earned) {
+            $earned = [];
+            foreach ($this->badgeRepository->findActiveOrdered() as $badge) {
+                $userBadge = $this->userBadgeRepository->findOneForUserAndBadge($user, $badge);
+                if (!$userBadge instanceof UserBadge) {
+                    continue;
+                }
+                $display = $this->displayRepository->findOneForUserAndBadge($user, $badge);
+                $earned[] = $this->payloadFactory->definition(
+                    $badge,
+                    true,
+                    $userBadge,
+                    $display
+                );
+            }
+        }
+
         $profileDisplayed = array_values(array_filter(
             $earned,
             fn (array $b) => true === ($b['displayOnProfile'] ?? false)
@@ -65,17 +106,7 @@ final class GamificationProfileService
             return $oa <=> $ob;
         });
 
-        if ($user->isHideBadgesOnProfile()) {
-            $profileDisplayed = [];
-        }
-
-        return [
-            'hideAllOnProfile' => $user->isHideBadgesOnProfile(),
-            'earned' => $earned,
-            'available' => $available,
-            'profileDisplayed' => array_slice($profileDisplayed, 0, 6),
-            'unseenCount' => count($this->userBadgeRepository->findUnseenForUser($user)),
-        ];
+        return array_slice($profileDisplayed, 0, 6);
     }
 
     /**

@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MessageCircle, UserPlus, Check, Clock, X, Ban, Flag } from 'lucide-react-native';
 import api from '@/scripts/api';
 import { useAuth } from '@/context/AuthContext';
+import { odosAlert } from '@/context/OdosModalContext';
 import { useFriendshipMutations, useFriendships } from '@/hooks/useFriendships';
 import { useChatMutations } from '@/hooks/useChat';
 import { useBlockMutations } from '@/hooks/useBlocks';
@@ -16,7 +17,9 @@ import { CTAButton } from '@/components/ui/CTAButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { PopSurface } from '@/components/pop/PopSurface';
 import { UserAvatar } from '@/components/social/UserAvatar';
+import { ProfileBadgesShowcase } from '@/components/badges/ProfileBadgesShowcase';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
+import type { BadgeItem } from '@/types';
 
 type PublicProfile = {
   id: number;
@@ -29,6 +32,7 @@ type PublicProfile = {
   visitCount?: number;
   forumThreadCount?: number;
   isBlockedByMe?: boolean;
+  profileBadges?: BadgeItem[];
 };
 
 async function fetchPublicProfile(userId: number) {
@@ -79,7 +83,7 @@ export default function PublicProfileScreen() {
   };
 
   const confirmBlock = () => {
-    Alert.alert(
+    odosAlert(
       `Bloquer ${data?.alias ?? 'cet utilisateur'} ?`,
       'Vous ne verrez plus son profil et votre conversation sera supprimée. Il ne pourra plus vous contacter, vous ajouter ni vous trouver dans la recherche.',
       [
@@ -233,6 +237,7 @@ export default function PublicProfileScreen() {
                 {statsRow}
               </View>
             )}
+            <ProfileBadgesShowcase badges={data.profileBadges ?? []} />
             {!isSelf ? (
               <View style={styles.actions}>
                 {isBlockedByMe ? (
@@ -303,11 +308,11 @@ export default function PublicProfileScreen() {
             {
               onSuccess: () => {
                 setReportOpen(false);
-                Alert.alert('Merci', 'Votre signalement a été transmis à notre équipe.');
+                odosAlert('Merci', 'Votre signalement a été transmis à notre équipe.');
               },
               onError: () => {
                 setReportOpen(false);
-                Alert.alert('Signalement', 'Impossible d’envoyer le signalement pour le moment.');
+                odosAlert('Signalement', 'Impossible d’envoyer le signalement pour le moment.');
               },
             },
           )

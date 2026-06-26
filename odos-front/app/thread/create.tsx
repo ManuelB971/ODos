@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -16,6 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchCategories } from '@/scripts/api';
 import { useForumMutations } from '@/hooks/useForumMutations';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { odosAlert } from '@/context/OdosModalContext';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import { FontFamily, Spacing } from '@/constants/theme';
 import { CTAButton } from '@/components/ui/CTAButton';
@@ -56,7 +56,7 @@ export default function CreateThreadScreen() {
       router.replace(`/thread/${thread.id}`);
     } catch (err) {
       logError('CreateThread.submit', err);
-      Alert.alert('Nouveau sujet', toAppError(err, 'Impossible de publier le sujet.').userMessage);
+      odosAlert('Nouveau sujet', toAppError(err, 'Impossible de publier le sujet.').userMessage);
     }
   };
 

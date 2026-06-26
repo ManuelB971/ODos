@@ -1,0 +1,91 @@
+{
+  "common": {
+    "continue": "متابعة",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "back": "رجوع",
+    "loading": "جارٍ التحميل…",
+    "retry": "إعادة المحاولة",
+    "selected": "محدد"
+  },
+  "language": {
+    "title": "اللغة",
+    "hint": "اختر لغة التطبيق.",
+    "system": "لغة النظام",
+    "fr": "الفرنسية",
+    "en": "الإنجليزية",
+    "ar": "العربية",
+    "restartNeeded": "أعد تشغيل التطبيق لتطبيق اتجاه الكتابة بالكامل."
+  },
+  "appearance": {
+    "title": "المظهر",
+    "displayMode": "وضع العرض",
+    "theme": "السمة",
+    "background": "الخلفية",
+    "cardStyle": "نمط البطاقات"
+  },
+  "onboarding": {
+    "step1of2": "الخطوة 1 من 2",
+    "step2of2": "الخطوة 2 من 2",
+    "step1": "الخطوة 1",
+    "step2": "الخطوة 2",
+    "tastes": "أذواقك",
+    "discovery": "الاكتشاف"
+  },
+  "auth": {
+    "tabLogin": "تسجيل الدخول",
+    "tabSignup": "إنشاء حساب",
+    "titleLogin": "سعداء بعودتك",
+    "titleSignup": "مرحبًا بك في الطريق",
+    "subtitleLogin": "سجّل الدخول لمتابعة استكشافك.",
+    "subtitleSignup": "أنشئ حسابًا لبدء رحلتك.",
+    "emailLabel": "البريد الإلكتروني",
+    "emailPlaceholder": "example@email.com",
+    "emailError": "تحقق من بريدك الإلكتروني.",
+    "passwordLabel": "كلمة المرور",
+    "passwordPlaceholder": "6 أحرف على الأقل",
+    "passwordHint": "6 أحرف كحد أدنى.",
+    "forgot": "هل نسيت كلمة المرور؟",
+    "forgotA11y": "نسيت كلمة المرور",
+    "ctaSignup": "إنشاء حسابي",
+    "separatorOr": "أو",
+    "consentA11y": "الموافقة على الشروط والأحكام وسياسة الخصوصية",
+    "accepted": "تم القبول",
+    "consent": "أوافق على <cgu>الشروط</cgu> و<privacy>سياسة الخصوصية</privacy>.",
+    "legalNotice": "بالمتابعة، فإنك توافق على <terms>شروط الاستخدام</terms>.",
+    "errors": {
+      "emailInvalid": "بريد إلكتروني غير صالح.",
+      "passwordTooShort": "يجب أن تتكوّن كلمة المرور من 6 أحرف على الأقل.",
+      "termsRequired": "يرجى الموافقة على الشروط وسياسة الخصوصية.",
+      "loginFailed": "خطأ في تسجيل الدخول.",
+      "generic": "حدث خطأ ما.",
+      "signupFailed": "حدث خطأ أثناء إنشاء الحساب."
+    }
+  },
+  "interests": {
+    "topBarTitle": "اهتماماتك",
+    "eyebrow": "التخصيص",
+    "title": "ما الذي يلهمك؟",
+    "subtitle": "اختر من {{min}} إلى {{max}} اهتمامات لنخصّص اكتشافاتك.",
+    "counterSuffix": "/ {{max}} مختارة",
+    "clearAll": "مسح الكل",
+    "errorLoad": "تعذّر تحميل الفئات.",
+    "errorSave": "تعذّر حفظ اهتماماتك.",
+    "ctaMin": "اختر اهتمامًا واحدًا على الأقل"
+  },
+  "onboardingCity": {
+    "topBarTitle": "مدينتك",
+    "eyebrow": "الموقع",
+    "title": "أين تستكشف؟",
+    "subtitle": "اختر مدينتك للحصول على مسارات وتوصيات متناسقة. يمكنك استكشاف مدن أخرى لاحقًا.",
+    "emptyText": "لا تتوفر أي مدينة حاليًا. يمكنك اختيار واحدة لاحقًا من الإعدادات.",
+    "ctaPick": "اختر مدينة",
+    "errorSave": "تعذّر حفظ مدينتك.",
+    "activities_zero": "لا أنشطة",
+    "activities_one": "نشاط واحد",
+    "activities_two": "نشاطان",
+    "activities_few": "{{count}} أنشطة",
+    "activities_many": "{{count}} نشاطًا",
+    "activities_other": "{{count}} نشاط"
+  }
+}

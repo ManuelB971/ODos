@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   Modal,
   Pressable,
@@ -14,6 +13,7 @@ import { Check, Plus, Route, X } from 'lucide-react-native';
 
 import { useParcoursList, useParcoursMutations } from '@/hooks/useParcours';
 import { useOdosColors } from '@/context/ThemeContext';
+import { odosAlert } from '@/context/OdosModalContext';
 import { FontFamily } from '@/constants/theme';
 import { toAppError } from '@/utils/errorHandling';
 
@@ -48,7 +48,7 @@ export function ParcoursPickerSheet({ visible, onClose, activity, onAdded }: Par
       onAdded?.(parcoursId);
       onClose();
     } catch (err) {
-      Alert.alert('Parcours', toAppError(err, 'Impossible d’ajouter au parcours.').userMessage);
+      odosAlert('Parcours', toAppError(err, 'Impossible d’ajouter au parcours.').userMessage);
     }
   };
 
@@ -62,7 +62,7 @@ export function ParcoursPickerSheet({ visible, onClose, activity, onAdded }: Par
       onAdded?.(created.id);
       onClose();
     } catch (err) {
-      Alert.alert('Parcours', toAppError(err, 'Impossible de créer le parcours.').userMessage);
+      odosAlert('Parcours', toAppError(err, 'Impossible de créer le parcours.').userMessage);
     }
   };
 

@@ -25,6 +25,9 @@ function routeFromData(data: NotificationData | undefined): void {
     case 'activity_share':
       router.push('/(tabs)/community/friends');
       break;
+    case 'friend_request':
+      router.push('/(tabs)/community/friends');
+      break;
     default:
       break;
   }
@@ -40,6 +43,27 @@ export function useNotificationResponse(): void {
     (async () => {
       try {
         const Notifications = await import('expo-notifications');
+
+        // Comportement en premier plan : bannière + son + maj du badge, sans
+        // alerte modale bloquante (Jakob : ne pas interrompre la lecture).
+        Notifications.setNotificationHandler({
+          handleNotification: async () => ({
+            shouldShowBanner: true,
+            shouldShowList: true,
+            shouldPlaySound: true,
+            shouldSetBadge: true,
+          }),
+        });
+
+        // Canal Android « social » (cible de `channelId` côté backend). Sans lui,
+        // Android 8+ rangerait les push dans le canal par défaut.
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('social', {
+            name: 'Social',
+            importance: Notifications.AndroidImportance.HIGH,
+            sound: 'default',
+          });
+        }
 
         // App lancée depuis une notif (cold start).
         const last = await Notifications.getLastNotificationResponseAsync();

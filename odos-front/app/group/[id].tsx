@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -15,6 +14,7 @@ import { useGroupDetail, useGroupMutations } from '@/hooks/useGroups';
 import { useUserSearch } from '@/hooks/useUserSearch';
 import { useAuth } from '@/context/AuthContext';
 import { useOdosColors } from '@/context/ThemeContext';
+import { odosAlert } from '@/context/OdosModalContext';
 import { FontFamily } from '@/constants/theme';
 import { UserAvatar } from '@/components/social/UserAvatar';
 import { UserLink } from '@/components/social/UserLink';
@@ -74,7 +74,7 @@ export default function GroupDetailScreen() {
   };
 
   const confirmLeave = () => {
-    Alert.alert('Quitter le groupe', 'Voulez-vous vraiment quitter ce groupe ?', [
+    odosAlert('Quitter le groupe', 'Voulez-vous vraiment quitter ce groupe ?', [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Quitter',
@@ -88,7 +88,7 @@ export default function GroupDetailScreen() {
   };
 
   const confirmDelete = () => {
-    Alert.alert('Supprimer le groupe', 'Cette action est irréversible.', [
+    odosAlert('Supprimer le groupe', 'Cette action est irréversible.', [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Supprimer',
@@ -103,7 +103,7 @@ export default function GroupDetailScreen() {
 
   const confirmKick = (m: GroupMemberItem) => {
     if (!m.user?.id) return;
-    Alert.alert('Exclure', `Exclure ${m.user.displayName} du groupe ?`, [
+    odosAlert('Exclure', `Exclure ${m.user.displayName} du groupe ?`, [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Exclure',

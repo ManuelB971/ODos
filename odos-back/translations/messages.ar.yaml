@@ -1,0 +1,6 @@
+theme:
+    import:
+        payload_invalid: 'حمولة غير صالحة: مطلوب مصفوفة من السمات.'
+        slug_label_required: 'يجب أن يحتوي كل سمة على «slug» و«label».'
+        palette_not_object: 'لوحة الألوان «%kind%» غير صالحة (يُتوقع كائن مفتاح/قيمة).'
+        palette_missing_keys: 'لوحة الألوان «%kind%» غير صالحة: مفاتيح ناقصة أو فارغة: %keys%.'

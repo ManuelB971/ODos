@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Trans, useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AlertCircle, Mail, Square } from 'lucide-react-native';
@@ -35,6 +36,7 @@ function isValidEmail(email: string): boolean {
 export default function LoginScreen() {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { t } = useTranslation();
   const router = useRouter();
   const { setUser } = useAuth();
   const insets = useSafeAreaInsets();
@@ -56,10 +58,10 @@ export default function LoginScreen() {
 
   const handleAuth = async () => {
     if (!canSubmit) {
-      if (!emailValid) setError('Email invalide.');
-      else if (!passwordValid) setError('Le mot de passe doit contenir au moins 6 caractères.');
+      if (!emailValid) setError(t('auth.errors.emailInvalid'));
+      else if (!passwordValid) setError(t('auth.errors.passwordTooShort'));
       else if (!isLogin && !acceptTerms) {
-        setError('Veuillez accepter les CGU et la politique de confidentialité.');
+        setError(t('auth.errors.termsRequired'));
       }
       return;
     }
@@ -75,7 +77,7 @@ export default function LoginScreen() {
       if (!ok) {
         setError(
           errorMessage ??
-            (isLogin ? 'Erreur de connexion.' : 'Une erreur est survenue.'),
+            (isLogin ? t('auth.errors.loginFailed') : t('auth.errors.generic')),
         );
         return;
       }
@@ -85,7 +87,7 @@ export default function LoginScreen() {
         router.replace(getOnboardingRoute(user));
       }
     } catch {
-      setError(isLogin ? 'Erreur de connexion.' : 'Une erreur est survenue lors de l’inscription.');
+      setError(isLogin ? t('auth.errors.loginFailed') : t('auth.errors.signupFailed'));
     } finally {
       setLoading(false);
     }
@@ -170,10 +172,10 @@ export default function LoginScreen() {
                 style={[styles.segmentItem, isLogin && styles.segmentItemActive]}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: isLogin }}
-                accessibilityLabel="Connexion"
+                accessibilityLabel={t('auth.tabLogin')}
               >
                 <Text style={[styles.segmentText, isLogin && styles.segmentTextActive]}>
-                  Connexion
+                  {t('auth.tabLogin')}
                 </Text>
               </Pressable>
               <Pressable
@@ -181,21 +183,19 @@ export default function LoginScreen() {
                 style={[styles.segmentItem, !isLogin && styles.segmentItemActive]}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: !isLogin }}
-                accessibilityLabel="Inscription"
+                accessibilityLabel={t('auth.tabSignup')}
               >
                 <Text style={[styles.segmentText, !isLogin && styles.segmentTextActive]}>
-                  Inscription
+                  {t('auth.tabSignup')}
                 </Text>
               </Pressable>
             </View>
 
             <Text style={styles.title}>
-              {isLogin ? 'Heureux de vous revoir' : 'Bienvenue sur la voie'}
+              {isLogin ? t('auth.titleLogin') : t('auth.titleSignup')}
             </Text>
             <Text style={styles.subtitle}>
-              {isLogin
-                ? 'Connectez-vous pour continuer votre exploration.'
-                : 'Créez un compte pour commencer votre voyage.'}
+              {isLogin ? t('auth.subtitleLogin') : t('auth.subtitleSignup')}
             </Text>
 
             {error ? (
@@ -207,8 +207,8 @@ export default function LoginScreen() {
 
             <View style={styles.fields}>
               <InputField
-                label="Adresse email"
-                placeholder="exemple@email.com"
+                label={t('auth.emailLabel')}
+                placeholder={t('auth.emailPlaceholder')}
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
@@ -217,18 +217,18 @@ export default function LoginScreen() {
                 autoComplete="email"
                 textContentType="emailAddress"
                 leftIcon={<Mail size={18} color={colors.muted} />}
-                error={error && !emailValid ? 'Vérifiez votre email.' : null}
+                error={error && !emailValid ? t('auth.emailError') : null}
               />
 
               <InputField
-                label="Mot de passe"
-                placeholder="Au moins 6 caractères"
+                label={t('auth.passwordLabel')}
+                placeholder={t('auth.passwordPlaceholder')}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
                 autoComplete={isLogin ? 'password' : 'password-new'}
                 textContentType={isLogin ? 'password' : 'newPassword'}
-                hint={!isLogin ? '6 caractères minimum.' : undefined}
+                hint={!isLogin ? t('auth.passwordHint') : undefined}
                 onFocus={scrollToPasswordField}
                 returnKeyType="done"
                 onSubmitEditing={handleAuth}
@@ -240,9 +240,9 @@ export default function LoginScreen() {
                   style={styles.forgotBtn}
                   hitSlop={8}
                   accessibilityRole="button"
-                  accessibilityLabel="Mot de passe oublié"
+                  accessibilityLabel={t('auth.forgotA11y')}
                 >
-                  <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+                  <Text style={styles.forgotText}>{t('auth.forgot')}</Text>
                 </Pressable>
               ) : null}
             </View>
@@ -253,43 +253,45 @@ export default function LoginScreen() {
                 style={styles.consentRow}
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: acceptTerms }}
-                accessibilityLabel="Accepter les conditions générales et la politique de confidentialité"
+                accessibilityLabel={t('auth.consentA11y')}
               >
                 {acceptTerms ? (
                   <View style={[styles.consentBox, styles.consentBoxChecked]}>
-                    <DaIcon name="check-mark" variant="chip" accessibilityLabel="Accepté" />
+                    <DaIcon name="check-mark" variant="chip" accessibilityLabel={t('auth.accepted')} />
                   </View>
                 ) : (
                   <Square size={22} color={colors.muted} />
                 )}
                 <Text style={styles.consentText}>
-                  J&apos;accepte les{' '}
-                  <Text
-                    style={styles.consentLink}
-                    onPress={(e) => {
-                      e.stopPropagation?.();
-                      router.push({ pathname: '/legal', params: { section: 'cgu' } });
+                  <Trans
+                    i18nKey="auth.consent"
+                    components={{
+                      cgu: (
+                        <Text
+                          style={styles.consentLink}
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            router.push({ pathname: '/legal', params: { section: 'cgu' } });
+                          }}
+                        />
+                      ),
+                      privacy: (
+                        <Text
+                          style={styles.consentLink}
+                          onPress={(e) => {
+                            e.stopPropagation?.();
+                            router.push({ pathname: '/legal', params: { section: 'privacy' } });
+                          }}
+                        />
+                      ),
                     }}
-                  >
-                    CGU
-                  </Text>
-                  {' '}et la{' '}
-                  <Text
-                    style={styles.consentLink}
-                    onPress={(e) => {
-                      e.stopPropagation?.();
-                      router.push({ pathname: '/legal', params: { section: 'privacy' } });
-                    }}
-                  >
-                    politique de confidentialité
-                  </Text>
-                  .
+                  />
                 </Text>
               </Pressable>
             ) : null}
 
             <CTAButton
-              label={isLogin ? 'Continuer' : 'Créer mon compte'}
+              label={isLogin ? t('common.continue') : t('auth.ctaSignup')}
               onPress={handleAuth}
               loading={loading}
               disabled={!canSubmit}
@@ -301,7 +303,7 @@ export default function LoginScreen() {
               <>
                 <View style={styles.separatorRow}>
                   <View style={styles.separatorLine} />
-                  <Text style={styles.separatorText}>ou</Text>
+                  <Text style={styles.separatorText}>{t('auth.separatorOr')}</Text>
                   <View style={styles.separatorLine} />
                 </View>
 
@@ -315,11 +317,12 @@ export default function LoginScreen() {
           </View>
 
           <Text style={styles.legal}>
-            En continuant, vous acceptez nos{' '}
-            <Text style={styles.legalLink} onPress={() => router.push('/legal')}>
-              conditions d&apos;utilisation
-            </Text>
-            .
+            <Trans
+              i18nKey="auth.legalNotice"
+              components={{
+                terms: <Text style={styles.legalLink} onPress={() => router.push('/legal')} />,
+              }}
+            />
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
