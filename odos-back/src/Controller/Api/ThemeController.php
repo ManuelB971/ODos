@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Contracts\Translation\TranslatorInterface;
 
 class ThemeController extends AbstractController
 {
@@ -40,6 +41,7 @@ class ThemeController extends AbstractController
         Request $request,
         AppThemeRepository $themeRepo,
         EntityManagerInterface $em,
+        TranslatorInterface $translator,
     ): JsonResponse {
         $this->denyAccessUnlessGranted('ROLE_ADMIN');
 
@@ -47,7 +49,7 @@ class ThemeController extends AbstractController
         $items = $this->extractThemesPayload($payload);
         if ([] === $items) {
             return $this->json(
-                ['message' => 'Payload invalide: tableau de thèmes requis.'],
+                ['message' => $translator->trans('theme.import.payload_invalid')],
                 Response::HTTP_BAD_REQUEST
             );
         }
@@ -58,17 +60,17 @@ class ThemeController extends AbstractController
             $label = $this->normalizeString($row['label'] ?? null);
             if (null === $slug || null === $label) {
                 return $this->json(
-                    ['message' => 'Chaque thème doit contenir "slug" et "label".'],
+                    ['message' => $translator->trans('theme.import.slug_label_required')],
                     Response::HTTP_BAD_REQUEST
                 );
             }
 
-            $light = $this->validatePalette($row['light'] ?? null, 'light');
+            $light = $this->validatePalette($row['light'] ?? null, 'light', $translator);
             if ($light instanceof JsonResponse) {
                 return $light;
             }
 
-            $dark = $this->validatePalette($row['dark'] ?? null, 'dark');
+            $dark = $this->validatePalette($row['dark'] ?? null, 'dark', $translator);
             if ($dark instanceof JsonResponse) {
                 return $dark;
             }
@@ -127,14 +129,14 @@ class ThemeController extends AbstractController
     /**
      * @return array<string, string>|JsonResponse|null palette normalisée, réponse d'erreur, ou null si absente
      */
-    private function validatePalette(mixed $value, string $kind): array|JsonResponse|null
+    private function validatePalette(mixed $value, string $kind, TranslatorInterface $translator): array|JsonResponse|null
     {
         if (null === $value) {
             return null;
         }
         if (!\is_array($value)) {
             return $this->json(
-                ['message' => sprintf('Palette "%s" invalide (objet clé/valeur attendu).', $kind)],
+                ['message' => $translator->trans('theme.import.palette_not_object', ['%kind%' => $kind])],
                 Response::HTTP_BAD_REQUEST
             );
         }
@@ -142,7 +144,10 @@ class ThemeController extends AbstractController
         $missing = PaletteSchema::missingKeys($value);
         if ([] !== $missing) {
             return $this->json(
-                ['message' => sprintf('Palette "%s" invalide: clés manquantes ou vides: %s.', $kind, implode(', ', $missing))],
+                ['message' => $translator->trans('theme.import.palette_missing_keys', [
+                    '%kind%' => $kind,
+                    '%keys%' => implode(', ', $missing),
+                ])],
                 Response::HTTP_BAD_REQUEST
             );
         }

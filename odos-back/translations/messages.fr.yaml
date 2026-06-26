@@ -1,0 +1,8 @@
+# Catalogue FR — source de vérité des messages d'API traduits.
+# Étendu par lots lors de l'extraction des 154 messages backend (phase 2).
+theme:
+    import:
+        payload_invalid: 'Payload invalide : tableau de thèmes requis.'
+        slug_label_required: 'Chaque thème doit contenir « slug » et « label ».'
+        palette_not_object: 'Palette « %kind% » invalide (objet clé/valeur attendu).'
+        palette_missing_keys: 'Palette « %kind% » invalide : clés manquantes ou vides : %keys%.'
