@@ -12,6 +12,7 @@ Index des docs du dépôt. Dernière passe : **juin 2026**.
 | **Fiches fonctionnalités (index complet)** | **[fonctionnalites/README.md](fonctionnalites/README.md)** |
 | **Audit UI/UX front (Pro Max × Jakob, fusionné)** | **[AUDIT_UI_UX_FRONT.md](AUDIT_UI_UX_FRONT.md)** |
 | **Flows UX (loi de Jakob)** | **[DESIGN_JAKOB_FLOWS.md](DESIGN_JAKOB_FLOWS.md)** |
+| **Notifications push & badge icône** | **[PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md)** |
 | Déployer sur Contabo (IP sans domaine) | [PROD_SANS_DOMAINE.md](PROD_SANS_DOMAINE.md) |
 | API prod `api.odos-api.com` (HTTPS) | [PROD_API_DOMAINE.md](PROD_API_DOMAINE.md) |
 | Comprendre la CI/CD | [CI_CD_V2_2026.md](CI_CD_V2_2026.md) |
@@ -59,6 +60,7 @@ Docker : `docker-compose.yml`, `docker-compose.prod.yml`, `docker-compose.wazuh.
 | Fiches fonctionnalités | [fonctionnalites/](fonctionnalites/) (parcours, communauté, profil…) |
 | Audit UI/UX (fusionné) | [AUDIT_UI_UX_FRONT.md](AUDIT_UI_UX_FRONT.md) |
 | Flows Jakob | [DESIGN_JAKOB_FLOWS.md](DESIGN_JAKOB_FLOWS.md) |
+| Notifications push | [PUSH_NOTIFICATIONS.md](PUSH_NOTIFICATIONS.md) |
 | Soutenance jury RNCP | [JURY_RNCP.md](JURY_RNCP.md) |
 | Idées LLM, trajets, forum (à juger) | [IDEES_POTENTIELLES.md](IDEES_POTENTIELLES.md) |
 
