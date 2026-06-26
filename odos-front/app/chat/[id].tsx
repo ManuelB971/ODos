@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Platform,
@@ -19,6 +18,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useChatMessages, useChatMutations, useConversations } from '@/hooks/useChat';
 import { useContentReport } from '@/hooks/useContentReport';
 import { useOdosColors } from '@/context/ThemeContext';
+import { odosAlert } from '@/context/OdosModalContext';
 import { FontFamily } from '@/constants/theme';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { tapHaptic } from '@/utils/haptics';
@@ -71,7 +71,7 @@ export default function ChatScreen() {
       { conversationId, content },
       {
         onError: () =>
-          Alert.alert('Message non envoyé', 'Vérifiez votre connexion.', [
+          odosAlert('Message non envoyé', 'Vérifiez votre connexion.', [
             { text: 'Annuler', style: 'cancel' },
             { text: 'Réessayer', onPress: () => submitMessage(content) },
           ]),
@@ -277,11 +277,11 @@ export default function ChatScreen() {
             {
               onSuccess: () => {
                 setReportMessageId(null);
-                Alert.alert('Merci', 'Votre signalement a été transmis à notre équipe.');
+                odosAlert('Merci', 'Votre signalement a été transmis à notre équipe.');
               },
               onError: () => {
                 setReportMessageId(null);
-                Alert.alert('Signalement', 'Impossible d’envoyer le signalement pour le moment.');
+                odosAlert('Signalement', 'Impossible d’envoyer le signalement pour le moment.');
               },
             },
           );

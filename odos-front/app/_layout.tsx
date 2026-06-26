@@ -21,6 +21,7 @@ import { CityProvider } from '@/context/CityContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { ThemeProvider } from '@/context/ThemeContext';
+import { OdosModalProvider } from '@/context/OdosModalContext';
 import { ThemedStatusBar } from '@/components/ThemedStatusBar';
 import { BadgeUnlockProvider, useBadgeUnlock } from '@/context/BadgeUnlockContext';
 import { BadgeUnlockModal } from '@/components/badges/BadgeUnlockModal';
@@ -68,6 +69,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <LanguageProvider>
           <ThemeProvider>
+          <OdosModalProvider>
           <AuthProvider>
             <BadgeUnlockProvider>
               <InterestProvider>
@@ -95,6 +97,7 @@ export default function RootLayout() {
               </InterestProvider>
             </BadgeUnlockProvider>
           </AuthProvider>
+          </OdosModalProvider>
           </ThemeProvider>
           </LanguageProvider>
         </QueryClientProvider>
