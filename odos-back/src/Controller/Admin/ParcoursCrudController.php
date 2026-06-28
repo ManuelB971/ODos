@@ -18,6 +18,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
@@ -74,6 +75,8 @@ class ParcoursCrudController extends AbstractCrudController
         return $actions
             ->disable(Action::NEW)
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_INDEX, Action::EDIT)
+            ->add(Crud::PAGE_DETAIL, Action::EDIT)
             ->add(Crud::PAGE_INDEX, $makePrivate)
             ->add(Crud::PAGE_DETAIL, $makePrivate);
     }
@@ -104,9 +107,12 @@ class ParcoursCrudController extends AbstractCrudController
         yield TextareaField::new('description', 'Description')
             ->setRequired(false)
             ->hideOnIndex();
-        yield UrlField::new('coverImageUrl', 'Pochette')
+        yield UrlField::new('coverImageUrl', 'Pochette (URL)')
             ->setRequired(false)
-            ->onlyOnDetail();
+            ->onlyOnForms();
+        yield ImageField::new('coverImageUrl', 'Pochette')
+            ->setBasePath('/')
+            ->hideOnForm();
 
         yield ChoiceField::new('visibility', 'Visibilité')
             ->setChoices([

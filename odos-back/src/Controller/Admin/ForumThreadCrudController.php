@@ -48,8 +48,12 @@ class ForumThreadCrudController extends AbstractCrudController
     {
         return $actions
             ->disable(Action::NEW)
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_DETAIL, Action::EDIT)
             ->add(Crud::PAGE_INDEX, Action::new('lock', 'Verrouiller')->linkToCrudAction('lockThread'))
-            ->add(Crud::PAGE_INDEX, Action::new('unlock', 'Déverrouiller')->linkToCrudAction('unlockThread'));
+            ->add(Crud::PAGE_INDEX, Action::new('unlock', 'Déverrouiller')->linkToCrudAction('unlockThread'))
+            ->add(Crud::PAGE_DETAIL, Action::new('lock', 'Verrouiller')->linkToCrudAction('lockThread'))
+            ->add(Crud::PAGE_DETAIL, Action::new('unlock', 'Déverrouiller')->linkToCrudAction('unlockThread'));
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -64,7 +68,9 @@ class ForumThreadCrudController extends AbstractCrudController
     {
         yield IdField::new('id')->onlyOnIndex();
         yield TextField::new('title');
-        yield TextareaField::new('content')->onlyOnDetail();
+        yield TextareaField::new('content')
+            ->hideOnIndex()
+            ->setNumOfRows(8);
         yield AssociationField::new('author');
         yield AssociationField::new('activity');
         yield AssociationField::new('category');
