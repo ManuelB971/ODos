@@ -67,9 +67,12 @@ jobs:
             git pull --ff-only origin main
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
             docker compose exec -T php php bin/console doctrine:migrations:migrate --no-interaction --env=prod
-            # Régénère le cache prod et rend var/ inscriptible par php-fpm (www-data),
-            # sinon EasyAdmin/Symfony renvoie un 500 "Permission denied" au runtime.
-            docker compose exec -T php sh -lc 'php bin/console cache:clear --env=prod && php bin/console cache:warmup --env=prod && chown -R www-data:www-data var'
+            # Régénère le cache prod (sinon EasyAdmin renvoie un 500 "Permission denied" au runtime).
+            docker compose exec -T php php bin/console cache:clear --env=prod
+            docker compose exec -T php php bin/console cache:warmup --env=prod
+            # Best-effort : rend var/ inscriptible par www-data. Non bloquant car php-fpm
+            # écrit déjà dans var/cache au démarrage → un chown -R peut courir contre lui.
+            docker compose exec -T php sh -lc 'chown -R www-data:www-data var || true'
             HEALTHCHECK_URL="${{ vars.PROD_HEALTHCHECK_URL }}"
             HEALTHCHECK_RETRIES="${{ vars.PROD_HEALTHCHECK_RETRIES || '12' }}"
             HEALTHCHECK_DELAY="${{ vars.PROD_HEALTHCHECK_DELAY_SECONDS || '5' }}"
