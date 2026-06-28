@@ -5,6 +5,8 @@ namespace App\Controller\Admin;
 use App\Entity\Activity;
 use App\Service\ActivityPhotoUploader;
 use Doctrine\ORM\EntityManagerInterface;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Filters;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
@@ -15,7 +17,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\MoneyField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\NumberField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\UrlField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
@@ -47,10 +49,21 @@ class ActivityCrudController extends AbstractCrudController
     public function configureCrud(Crud $crud): Crud
     {
         return $crud
+            ->setEntityLabelInSingular('Activité')
+            ->setEntityLabelInPlural('Activités')
+            ->setSearchFields(['name', 'city', 'description'])
+            ->setDefaultSort(['id' => 'DESC'])
             ->setFormOptions(
                 ['attr' => ['enctype' => 'multipart/form-data']],
                 ['attr' => ['enctype' => 'multipart/form-data']],
             );
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_DETAIL, Action::EDIT);
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -64,7 +77,9 @@ class ActivityCrudController extends AbstractCrudController
         return [
             IdField::new('id')->hideOnForm(),
             TextField::new('name', 'Nom'),
-            TextEditorField::new('description'),
+            TextareaField::new('description', 'Description')
+                ->setNumOfRows(6)
+                ->setHelp('Texte brut affiché dans l\'app mobile (pas de HTML).'),
             TextField::new('city', 'Ville'),
             NumberField::new('latitude')->setNumDecimals(6),
             NumberField::new('longitude')->setNumDecimals(6),
@@ -73,7 +88,7 @@ class ActivityCrudController extends AbstractCrudController
 
             ImageField::new('imageUrl', 'Photo actuelle')
                 ->setBasePath('/')
-                ->onlyOnIndex(),
+                ->hideOnForm(),
             UrlField::new('imageUrl', 'Image (URL)')
                 ->setRequired(false)
                 ->onlyOnForms()

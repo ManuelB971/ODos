@@ -44,7 +44,9 @@ class ForumReplyCrudController extends AbstractCrudController
     {
         return $actions
             ->disable(Action::NEW)
-            ->add(Crud::PAGE_INDEX, Action::new('hide', 'Masquer')->linkToCrudAction('hideReply'));
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_INDEX, Action::new('hide', 'Masquer')->linkToCrudAction('hideReply'))
+            ->add(Crud::PAGE_DETAIL, Action::new('hide', 'Masquer')->linkToCrudAction('hideReply'));
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -55,7 +57,9 @@ class ForumReplyCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->onlyOnIndex();
-        yield TextareaField::new('content');
+        yield TextareaField::new('content')
+            ->hideOnIndex()
+            ->setNumOfRows(6);
         yield AssociationField::new('author');
         yield AssociationField::new('thread');
         yield BooleanField::new('isHidden');

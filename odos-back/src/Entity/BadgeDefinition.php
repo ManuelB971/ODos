@@ -6,6 +6,7 @@ namespace App\Entity;
 
 use App\Enum\BadgeRuleType;
 use App\Repository\BadgeDefinitionRepository;
+use App\Service\BadgeDescriptionSanitizer;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
@@ -108,12 +109,16 @@ class BadgeDefinition
 
     public function getDescription(): ?string
     {
-        return $this->description;
+        if (null === $this->description || '' === $this->description) {
+            return $this->description;
+        }
+
+        return (new BadgeDescriptionSanitizer())->toPlainText($this->description);
     }
 
     public function setDescription(string $description): static
     {
-        $this->description = $description;
+        $this->description = (new BadgeDescriptionSanitizer())->toPlainText($description);
 
         return $this;
     }

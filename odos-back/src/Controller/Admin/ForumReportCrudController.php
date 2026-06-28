@@ -49,8 +49,11 @@ class ForumReportCrudController extends AbstractCrudController
     {
         return $actions
             ->disable(Action::NEW, Action::DELETE)
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, Action::new('hideReply', 'Masquer réponse')->linkToCrudAction('hideReply'))
-            ->add(Crud::PAGE_INDEX, Action::new('lockThread', 'Verrouiller fil')->linkToCrudAction('lockThread'));
+            ->add(Crud::PAGE_INDEX, Action::new('lockThread', 'Verrouiller fil')->linkToCrudAction('lockThread'))
+            ->add(Crud::PAGE_DETAIL, Action::new('hideReply', 'Masquer réponse')->linkToCrudAction('hideReply'))
+            ->add(Crud::PAGE_DETAIL, Action::new('lockThread', 'Verrouiller fil')->linkToCrudAction('lockThread'));
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -70,7 +73,9 @@ class ForumReportCrudController extends AbstractCrudController
         yield TextField::new('targetType');
         yield IntegerField::new('targetId');
         yield TextField::new('reason');
-        yield TextareaField::new('details')->onlyOnDetail();
+        yield TextareaField::new('details')
+            ->hideOnIndex()
+            ->setNumOfRows(4);
         yield ChoiceField::new('status')->setChoices([
             'En attente' => ForumReportStatus::Pending,
             'Traité' => ForumReportStatus::Reviewed,

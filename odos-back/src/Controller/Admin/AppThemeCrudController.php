@@ -6,12 +6,14 @@ namespace App\Controller\Admin;
 
 use App\Entity\AppTheme;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\CodeEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 
 /** @extends AbstractCrudController<AppTheme> */
 class AppThemeCrudController extends AbstractCrudController
@@ -32,6 +34,13 @@ class AppThemeCrudController extends AbstractCrudController
                 'Le slug doit correspondre à une palette bundlée dans l\'app mobile (ex : "default", "ocean", "forest"). '
                 . 'Seuls les thèmes actifs sont envoyés aux utilisateurs via GET /api/themes.'
             );
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_DETAIL, Action::EDIT);
     }
 
     public function configureFields(string $pageName): iterable

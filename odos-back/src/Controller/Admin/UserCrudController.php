@@ -4,14 +4,19 @@ namespace App\Controller\Admin;
 
 use App\Entity\User;
 use Doctrine\ORM\EntityManagerInterface;
-use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Action;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Actions;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
+use EasyCorp\Bundle\EasyAdminBundle\Field\AssociationField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\DateTimeField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\EmailField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\FormField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
+use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 /**
@@ -28,14 +33,45 @@ class UserCrudController extends AbstractCrudController
         return User::class;
     }
 
+    public function configureCrud(Crud $crud): Crud
+    {
+        return $crud
+            ->setEntityLabelInSingular('Utilisateur')
+            ->setEntityLabelInPlural('Utilisateurs')
+            ->setSearchFields(['email', 'alias', 'homeCity'])
+            ->setDefaultSort(['id' => 'DESC']);
+    }
+
+    public function configureActions(Actions $actions): Actions
+    {
+        return $actions
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_DETAIL, Action::EDIT);
+    }
+
     public function configureFields(string $pageName): iterable
     {
         return [
             IdField::new('id')->hideOnForm(),
             EmailField::new('email'),
+            TextField::new('alias', 'Alias public')
+                ->setRequired(false)
+                ->setHelp('Pseudo affiché dans l\'app à la place de l\'email.'),
             TextField::new('phoneNumber', 'Téléphone (MFA SMS)')
                 ->setRequired(false)
                 ->setHelp('E.164 recommandé, ex. +33612345678'),
+            TextField::new('homeCity', 'Ville')
+                ->setRequired(false),
+            TextareaField::new('bio', 'Bio')
+                ->setRequired(false)
+                ->hideOnIndex()
+                ->setNumOfRows(4),
+            ImageField::new('avatarUrl', 'Avatar')
+                ->setBasePath('/')
+                ->onlyOnDetail(),
+            DateTimeField::new('consentedAt', 'Consentement CGU')
+                ->onlyOnDetail()
+                ->setDisabled(true),
             AssociationField::new('favorites', 'Favoris')
                 ->onlyOnDetail()
                 ->setHelp('Lecture seule : activités mises en favori par cet utilisateur.'),

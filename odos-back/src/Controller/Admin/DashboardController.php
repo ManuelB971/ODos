@@ -5,6 +5,7 @@ namespace App\Controller\Admin;
 use App\Repository\AdminAuditLogRepository;
 use App\Service\AdminAuditLogger;
 use App\Service\AdminDashboardStatsProvider;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
@@ -12,6 +13,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
+#[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 class DashboardController extends AbstractDashboardController
 {
     public function __construct(
@@ -20,7 +22,6 @@ class DashboardController extends AbstractDashboardController
     ) {
     }
 
-    #[Route('/admin', name: 'admin')]
     public function index(): Response
     {
         return $this->render('admin/dashboard.html.twig', [
@@ -87,7 +88,7 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::linkTo(UserCrudController::class, 'Utilisateurs', 'fas fa-users');
         yield MenuItem::linkTo(CategoryCrudController::class, 'Catégories', 'fas fa-list');
         yield MenuItem::linkTo(ActivityCrudController::class, 'Activités', 'fas fa-map-marker-alt');
-        yield MenuItem::linkTo(BadgeDefinitionCrudController::class, 'Badges', 'fas fa-award');
+        yield MenuItem::linkTo(BadgeDefinitionCrudController::class, 'Catalogue badges', 'fas fa-award');
         yield MenuItem::linkToRoute('Importer activités', 'fas fa-file-import', 'admin_activities_import');
         yield MenuItem::linkTo(AppThemeCrudController::class, 'Thèmes app', 'fas fa-palette');
         yield MenuItem::linkTo(CommentCrudController::class, 'Commentaires', 'fas fa-comments');

@@ -35,14 +35,18 @@ class ActivityGroupCrudController extends AbstractCrudController
 
     public function configureActions(Actions $actions): Actions
     {
-        return $actions->disable(Action::NEW, Action::EDIT);
+        return $actions
+            ->disable(Action::NEW, Action::EDIT)
+            ->add(Crud::PAGE_INDEX, Action::DETAIL);
     }
 
     public function configureFields(string $pageName): iterable
     {
         yield IdField::new('id')->onlyOnIndex();
         yield TextField::new('name');
-        yield TextareaField::new('description');
+        yield TextareaField::new('description')
+            ->hideOnIndex()
+            ->setNumOfRows(4);
         yield BooleanField::new('isPrivate');
         yield IntegerField::new('memberCount');
         yield AssociationField::new('createdBy');

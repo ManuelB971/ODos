@@ -100,7 +100,9 @@ export default function TabLayout() {
   // Spotify). Pastille pleine + léger soulèvement, distinct des icônes-traits.
   const renderParcoursIcon = () => function ParcoursTabIcon() {
     // Sur le rail vertical, on neutralise le soulèvement (-8) pensé pour la barre du bas.
-    const wrapStyle = railNav ? [styles.centerWrap, styles.centerWrapRail] : styles.centerWrap;
+    const wrapStyle = railNav
+      ? StyleSheet.flatten([styles.centerWrap, styles.centerWrapRail])
+      : styles.centerWrap;
     if (isMosaicPop) {
       return (
         <View style={styles.centerSlot}>

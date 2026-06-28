@@ -5,6 +5,7 @@ namespace App\Entity;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\GetCollection;
 use App\Repository\ActivityRepository;
+use App\Service\BadgeDescriptionSanitizer;
 use App\State\RecommendationStateProvider;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -140,12 +141,16 @@ class Activity
 
     public function getDescription(): ?string
     {
-        return $this->description;
+        if (null === $this->description || '' === $this->description) {
+            return $this->description;
+        }
+
+        return (new BadgeDescriptionSanitizer())->toPlainText($this->description);
     }
 
     public function setDescription(string $description): static
     {
-        $this->description = $description;
+        $this->description = (new BadgeDescriptionSanitizer())->toPlainText($description);
 
         return $this;
     }

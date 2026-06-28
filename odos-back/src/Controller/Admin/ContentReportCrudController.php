@@ -48,9 +48,13 @@ class ContentReportCrudController extends AbstractCrudController
     {
         return $actions
             ->disable(Action::NEW, Action::DELETE)
+            ->add(Crud::PAGE_INDEX, Action::DETAIL)
             ->add(Crud::PAGE_INDEX, Action::new('markReviewed', 'Marquer traité')->linkToCrudAction('markReviewed'))
             ->add(Crud::PAGE_INDEX, Action::new('markDismissed', 'Rejeter')->linkToCrudAction('markDismissed'))
-            ->add(Crud::PAGE_INDEX, Action::new('hideComment', 'Masquer commentaire')->linkToCrudAction('hideComment'));
+            ->add(Crud::PAGE_INDEX, Action::new('hideComment', 'Masquer commentaire')->linkToCrudAction('hideComment'))
+            ->add(Crud::PAGE_DETAIL, Action::new('markReviewed', 'Marquer traité')->linkToCrudAction('markReviewed'))
+            ->add(Crud::PAGE_DETAIL, Action::new('markDismissed', 'Rejeter')->linkToCrudAction('markDismissed'))
+            ->add(Crud::PAGE_DETAIL, Action::new('hideComment', 'Masquer commentaire')->linkToCrudAction('hideComment'));
     }
 
     public function configureFilters(Filters $filters): Filters
@@ -67,7 +71,9 @@ class ContentReportCrudController extends AbstractCrudController
         yield TextField::new('targetType');
         yield IntegerField::new('targetId');
         yield TextField::new('reason');
-        yield TextareaField::new('details')->onlyOnDetail();
+        yield TextareaField::new('details')
+            ->hideOnIndex()
+            ->setNumOfRows(4);
         yield ChoiceField::new('status')->setChoices($this->statusChoices());
         yield AssociationField::new('reportedUser')->onlyOnDetail();
         yield AssociationField::new('comment')->onlyOnDetail();
