@@ -2,6 +2,16 @@ name: Deploy Production
 
 on:
   workflow_dispatch:
+    inputs:
+      target:
+        description: "Composant à déployer (web = app.odos.world sans toucher l'API)"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - api
+          - web
   workflow_run:
     workflows: ["CI"]
     types: [completed]
@@ -19,11 +29,18 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     if: |
-      (github.event_name == 'workflow_dispatch' && vars.ENABLE_PROD_DEPLOY == 'true') ||
-      (github.event_name == 'workflow_run' &&
-       vars.ENABLE_PROD_DEPLOY == 'true' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'main')
+      (
+        (github.event_name == 'workflow_dispatch' && vars.ENABLE_PROD_DEPLOY == 'true') ||
+        (github.event_name == 'workflow_run' &&
+         vars.ENABLE_PROD_DEPLOY == 'true' &&
+         github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_branch == 'main')
+      ) &&
+      (
+        github.event_name == 'workflow_run' ||
+        github.event.inputs.target == 'all' ||
+        github.event.inputs.target == 'api'
+      )
     steps:
       - name: Preflight - ensure deploy secrets exist
         env:
@@ -70,12 +87,12 @@ jobs:
             # Régénère le cache prod (sinon EasyAdmin renvoie un 500 "Permission denied" au runtime).
             docker compose exec -T php php bin/console cache:clear --env=prod
             docker compose exec -T php php bin/console cache:warmup --env=prod
-            # Best-effort : rend var/ inscriptible par www-data. Non bloquant car php-fpm
-            # écrit déjà dans var/cache au démarrage → un chown -R peut courir contre lui.
-            docker compose exec -T php sh -lc 'chown -R www-data:www-data var || true'
+            # Best-effort : rend var/ inscriptible par www-data. Non bloquant (|| true sur exec).
+            docker compose exec -T php sh -lc 'chown -R www-data:www-data var || true' || true
             HEALTHCHECK_URL="${{ vars.PROD_HEALTHCHECK_URL }}"
             if [ -z "${HEALTHCHECK_URL}" ]; then
-              HEALTHCHECK_URL="https://api.odos-api.com/api/health"
+              # /api/categories existe déjà en prod ; /api/health après merge du HealthController.
+              HEALTHCHECK_URL="https://api.odos-api.com/api/categories"
             fi
             HEALTHCHECK_RETRIES="${{ vars.PROD_HEALTHCHECK_RETRIES || '12' }}"
             HEALTHCHECK_DELAY="${{ vars.PROD_HEALTHCHECK_DELAY_SECONDS || '5' }}"
@@ -107,11 +124,21 @@ jobs:
     environment: production
     needs: deploy
     if: |
-      (github.event_name == 'workflow_dispatch' && vars.ENABLE_PROD_DEPLOY == 'true') ||
-      (github.event_name == 'workflow_run' &&
-       vars.ENABLE_PROD_DEPLOY == 'true' &&
-       github.event.workflow_run.conclusion == 'success' &&
-       github.event.workflow_run.head_branch == 'main')
+      always() &&
+      !cancelled() &&
+      (needs.deploy.result == 'success' || needs.deploy.result == 'skipped') &&
+      (
+        (github.event_name == 'workflow_dispatch' && vars.ENABLE_PROD_DEPLOY == 'true') ||
+        (github.event_name == 'workflow_run' &&
+         vars.ENABLE_PROD_DEPLOY == 'true' &&
+         github.event.workflow_run.conclusion == 'success' &&
+         github.event.workflow_run.head_branch == 'main')
+      ) &&
+      (
+        github.event_name == 'workflow_run' ||
+        github.event.inputs.target == 'all' ||
+        github.event.inputs.target == 'web'
+      )
     steps:
       - name: Checkout (commit déployé)
         uses: actions/checkout@v4
