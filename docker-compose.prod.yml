@@ -2,6 +2,9 @@ services:
   php:
     build:
       target: prod
+      args:
+        # Optionnel : PAT GitHub (read:packages) pour éviter les 403/400 codeload sur le VPS.
+        COMPOSER_GITHUB_TOKEN: ${COMPOSER_GITHUB_TOKEN:-}
     env_file:
       - ${ODOS_CONFIG_DIR:-~/odos-config}/.env
     environment:

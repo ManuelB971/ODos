@@ -24,6 +24,10 @@ RUN apk add --no-cache \
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    COMPOSER_MEMORY_LIMIT=-1 \
+    COMPOSER_PROCESS_TIMEOUT=600
+
 WORKDIR /app
 
 # Symfony reads env from Docker / env_file; PHP-FPM defaults to clear_env=yes which strips them from workers.
@@ -37,7 +41,19 @@ RUN apk add --no-cache $PHPIZE_DEPS linux-headers \
     && docker-php-ext-enable xdebug
 
 COPY composer.json composer.lock ./
-RUN composer install --no-scripts --no-interaction --prefer-dist
+# Do not pass --prefer-dist: it disables git source fallback when codeload.github.com
+# returns HTTP 400 (common on VPS Docker builds / GitHub rate limits).
+ARG COMPOSER_GITHUB_TOKEN=
+RUN if [ -n "${COMPOSER_GITHUB_TOKEN}" ]; then \
+        composer config --global github-oauth.github.com "${COMPOSER_GITHUB_TOKEN}"; \
+    fi \
+    && for attempt in 1 2 3; do \
+        composer install --no-scripts --no-interaction --optimize-autoloader \
+        && break; \
+        if [ "${attempt}" -eq 3 ]; then exit 1; fi; \
+        echo "composer install failed (attempt ${attempt}/3), retrying in 20s..."; \
+        sleep 20; \
+    done
 
 COPY . .
 RUN composer run-script post-install-cmd || true
@@ -55,7 +71,17 @@ FROM base AS prod
 ENV APP_ENV=prod
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-interaction --prefer-dist --optimize-autoloader
+ARG COMPOSER_GITHUB_TOKEN=
+RUN if [ -n "${COMPOSER_GITHUB_TOKEN}" ]; then \
+        composer config --global github-oauth.github.com "${COMPOSER_GITHUB_TOKEN}"; \
+    fi \
+    && for attempt in 1 2 3; do \
+        composer install --no-dev --no-scripts --no-interaction --optimize-autoloader \
+        && break; \
+        if [ "${attempt}" -eq 3 ]; then exit 1; fi; \
+        echo "composer install failed (attempt ${attempt}/3), retrying in 20s..."; \
+        sleep 20; \
+    done
 
 COPY . .
 RUN composer run-script post-install-cmd || true \
