@@ -56,6 +56,7 @@ security:
         - { path: ^/api/token/refresh, roles: PUBLIC_ACCESS }
         - { path: ^/api/themes, methods: [GET], roles: PUBLIC_ACCESS }
         - { path: ^/api/docs, roles: PUBLIC_ACCESS }
+        - { path: ^/api/health, roles: PUBLIC_ACCESS }
         - { path: ^/api/users, methods: [POST], roles: PUBLIC_ACCESS }
         - { path: ^/api/categories, methods: [GET], roles: PUBLIC_ACCESS }
         - { path: ^/api/activities, methods: [GET], roles: PUBLIC_ACCESS }

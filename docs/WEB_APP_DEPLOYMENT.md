@@ -287,6 +287,14 @@ Ouvre `https://app.odos.world` et vérifie :
 Ajouter un job GitHub Actions (`.github/workflows/`) : `pnpm build:web` puis `rsync` vers le VPS
 (via secret SSH). Non requis pour la v1 — le déploiement manuel (étapes 4-5) suffit.
 
+### Dépannage deploy GitHub Actions
+
+| Symptôme | Cause | Correctif |
+|----------|-------|-----------|
+| Deploy échoue juste après `cache:warmup` | `PROD_HEALTHCHECK_URL` pointe vers `/api` (401) ; `curl --fail` considère ça comme une panne | Variable → `https://api.odos-api.com/api/health` ou `/api/categories` |
+| `/var/www/odos-web` ne contient que `index.html` | Job `deploy-web` n'a pas tourné (échec backend) ou ancien upload `dist/*` sans sous-dossiers | Merger le fix `deploy-prod.yml`, relancer le workflow ; vérif. `_expo/` et `assets/` |
+| API 401 sur `curl …/api` | Normal (JWT requis) | Tester `curl …/api/health` → 200 |
+
 ### Redéploiements futurs (résumé)
 
 Une fois l'infra en place, publier une nouvelle version = **étapes 4 + 5** uniquement :
