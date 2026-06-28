@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   FlatList,
   Modal,
@@ -13,32 +13,47 @@ import { Plus, Route, Shuffle, X } from 'lucide-react-native';
 import { useParcoursList, useParcoursMutations } from '@/hooks/useParcours';
 import { useActivities } from '@/hooks/useActivities';
 import { useOdosColors } from '@/context/ThemeContext';
+import type { OdosColorPalette } from '@/constants/themes/types';
 import { odosAlert } from '@/context/OdosModalContext';
-import { FontFamily } from '@/constants/theme';
+import { FontFamily, Fonts, Spacing } from '@/constants/theme';
 import { ParcoursCard } from '@/components/social/ParcoursCard';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { toAppError } from '@/utils/errorHandling';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import { useCity } from '@/context/CityContext';
 import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
+import { useResponsiveSheet } from '@/hooks/useResponsiveSheet';
 
 /** Nombre d'activités tirées pour un « Parcours surprise ». */
 const RANDOM_SIZE = 6;
 
+function ParcoursScreenHeader() {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
+    <View style={styles.header}>
+      <Text style={styles.subtitleEyebrow}>MES ITINÉRAIRES</Text>
+      <Text style={styles.pageTitle}>Mes parcours</Text>
+    </View>
+  );
+}
+
 export default function ParcoursLibraryScreen() {
   const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const isMosaicPop = useIsMosaicPop();
   const pop = usePopTokens();
   const { data, isLoading, refetch, isRefetching } = useParcoursList();
   const { create } = useParcoursMutations();
   const { data: activities } = useActivities();
   const { selectedCity } = useCity();
+  const sheetLayout = useResponsiveSheet();
 
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState('');
 
   const parcours = data?.member ?? [];
-  const ink = isMosaicPop ? pop.ink : colors.text;
 
   const onCreate = async () => {
     const name = title.trim();
@@ -82,10 +97,8 @@ export default function ParcoursLibraryScreen() {
     <View style={[styles.screen, { backgroundColor: isMosaicPop ? pop.paper : colors.background }]}>
       {/* Web : colonne centrée (cf. AUDIT_RESPONSIVE_WEB.md, Niveau 0). */}
       <ResponsiveShell>
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: ink, fontFamily: FontFamily.display }]} numberOfLines={1}>
-          Mes parcours
-        </Text>
+      <View style={styles.headerRow}>
+        <ParcoursScreenHeader />
         <View style={styles.headerActions}>
           <Pressable
             onPress={onRandom}
@@ -140,13 +153,13 @@ export default function ParcoursLibraryScreen() {
       </ResponsiveShell>
 
       <Modal visible={creating} transparent animationType="slide" onRequestClose={() => setCreating(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setCreating(false)}>
+        <Pressable style={[styles.backdrop, sheetLayout.backdrop]} onPress={() => setCreating(false)}>
           <Pressable
-            style={[styles.sheet, { backgroundColor: colors.elevated }]}
+            style={[styles.sheet, { backgroundColor: colors.elevated }, sheetLayout.sheet]}
             onPress={(e) => e.stopPropagation()}
           >
             <View style={styles.sheetHeader}>
-              <Text style={[styles.sheetTitle, { color: colors.text }]}>Nouveau parcours</Text>
+              <Text style={styles.sheetTitle}>Nouveau parcours</Text>
               <Pressable onPress={() => setCreating(false)} hitSlop={10} accessibilityLabel="Fermer">
                 <X size={22} color={colors.muted} />
               </Pressable>
@@ -181,18 +194,37 @@ export default function ParcoursLibraryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function createStyles(colors: OdosColorPalette) {
+  return StyleSheet.create({
   screen: { flex: 1 },
-  header: {
+  headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 56,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 28,
     paddingBottom: 12,
+    gap: 12,
   },
-  headerTitle: { fontSize: 28, flex: 1 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  header: {
+    flex: 1,
+    minWidth: 0,
+  },
+  subtitleEyebrow: {
+    fontSize: 11,
+    letterSpacing: 2,
+    color: colors.muted,
+    fontWeight: '700',
+    marginBottom: 4,
+    fontFamily: FontFamily.uiBold,
+  },
+  pageTitle: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: colors.text,
+    fontFamily: Fonts?.serif,
+  },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
   randomBtn: {
     width: 40,
     height: 40,
@@ -216,8 +248,9 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.45)' },
   sheet: { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, gap: 14 },
   sheetHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  sheetTitle: { fontFamily: FontFamily.display, fontSize: 20 },
+  sheetTitle: { fontFamily: FontFamily.display, fontSize: 20, color: colors.text },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, fontFamily: FontFamily.ui },
   createBtn: { borderRadius: 100, paddingVertical: 14, alignItems: 'center' },
   createBtnText: { fontFamily: FontFamily.uiBold, fontSize: 15 },
 });
+}
