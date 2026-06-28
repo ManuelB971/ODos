@@ -127,6 +127,9 @@ Règle ~80 % du ressenti pour un effort minime.
   lieux filtrés à gauche (380 px), carte à droite ; clic sur un résultat = **focus carte** (le flow
   pin → callout → fiche reste intact). `sidePanel = web && isDesktop`, contenu carte enveloppé dans
   `mapColumn` (overlays repositionnés relativement à la colonne) → mobile/natif inchangé.
+  Le **test de contrat UX** ([MapExperience.test.tsx](../odos-front/components/map/MapExperience.test.tsx))
+  a été mis à jour : il interdit toujours `BottomSheet`/`ActivityPinsLayer`, mais vérifie désormais que
+  la liste de résultats (`FlatList`) reste **gardée par `sidePanel`** (mobile = pins + callout).
 
 #### Niveau 3 — Raffinements DA & desktop (continu)
 

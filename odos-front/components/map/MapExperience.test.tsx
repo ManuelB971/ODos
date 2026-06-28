@@ -155,10 +155,20 @@ describe('MapExperience UX contract', () => {
   const sourcePath = path.join(__dirname, 'MapExperience.tsx');
   const source = fs.readFileSync(sourcePath, 'utf8');
 
-  it('does not reintroduce bottom sheet, GL pin layer or horizontal list', () => {
+  it('does not reintroduce bottom sheet or GL pin layer', () => {
     expect(source).not.toMatch(/BottomSheet/);
     expect(source).not.toMatch(/ActivityPinsLayer/);
-    expect(source).not.toMatch(/\bFlatList\b/);
+  });
+
+  it('keeps the results list desktop-only (mobile = pins + callout)', () => {
+    // Le panneau latéral de résultats (FlatList) est réservé au desktop web : sur mobile,
+    // l'expérience reste pins + callout au tap. Cf. AUDIT_RESPONSIVE_WEB.md (Niveau 2).
+    expect(source).toMatch(/const sidePanel = Platform\.OS === 'web' && isDesktop/);
+    // Toute FlatList doit être à l'intérieur du bloc desktop (gardé par `sidePanel ?`).
+    const sidePanelIdx = source.indexOf('sidePanel ? (');
+    const flatListIdx = source.indexOf('<FlatList');
+    expect(sidePanelIdx).toBeGreaterThan(-1);
+    expect(flatListIdx).toBeGreaterThan(sidePanelIdx);
   });
 
   it('renders MapPin inside MapLibre Marker for each geo activity', () => {

@@ -62,7 +62,9 @@ const CAMERA_EASE_MS = 380;
 
 /**
  * Carte plein écran : pins ODOS interactifs + callout sur sélection (tap pin).
- * Pas de bottom sheet / liste — l’activité s’affiche au tap sur le marqueur.
+ * Mobile : pas de bottom sheet — l’activité s’affiche au tap sur le marqueur.
+ * Desktop web : panneau latéral de résultats (liste verticale gardée par `sidePanel`),
+ * façon Maps/Airbnb — le flow pin → callout → fiche reste intact. Cf. AUDIT_RESPONSIVE_WEB.md.
  */
 export function MapExperience({ activities, loading = false, error = null }: MapExperienceProps) {
   const colors = useOdosColors();
