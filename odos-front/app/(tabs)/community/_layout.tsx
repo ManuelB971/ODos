@@ -13,6 +13,7 @@ import { FRIENDSHIPS_QUERY_KEY } from '@/hooks/useFriendships';
 import { SOCIAL_UNREAD_QUERY_KEY } from '@/hooks/useSocialUnreadCount';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 
 const { Navigator } = createMaterialTopTabNavigator();
 const MaterialTopTabs = withLayoutContext(Navigator);
@@ -123,6 +124,8 @@ export default function CommunityLayout() {
         edges={['top']}
         style={{ flex: 1, backgroundColor: isMosaicPop ? pop.paper : colors.background }}
       >
+      {/* Web : colonne Communauté centrée (onglets + listes) — cf. AUDIT_RESPONSIVE_WEB.md, Niveau 0. */}
+      <ResponsiveShell>
       <MaterialTopTabs
         screenOptions={{
           tabBarActiveTintColor: isMosaicPop ? pop.ink : colors.accent,
@@ -143,6 +146,7 @@ export default function CommunityLayout() {
         <MaterialTopTabs.Screen name="messages" options={{ title: 'Messages' }} />
         <MaterialTopTabs.Screen name="groups" options={{ title: 'Groupes' }} />
       </MaterialTopTabs>
+      </ResponsiveShell>
       </SafeAreaView>
     </SocialConsentGate>
   );

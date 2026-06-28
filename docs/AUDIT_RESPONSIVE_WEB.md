@@ -10,7 +10,9 @@
 > Date : 2026-06-28.
 >
 > **État (2026-06-28)** : correctifs **Favoris + Recherche livrés** (cf. Partie 3) ; hook
-> `useResponsive` créé. Reste le `ResponsiveShell` racine (Niveau 0) + Niveaux 1-2.
+> `useResponsive` créé ; **`ResponsiveShell` livré** et appliqué aux **colonnes de lecture**
+> (Accueil, Compte, Paramètres, Communauté, Parcours) — cf. Niveau 0 ci-dessous. Reste les
+> Niveaux 1-2 (nav desktop, grilles bento, editorial split détail).
 
 ---
 
@@ -74,11 +76,19 @@ Règle ~80 % du ressenti pour un effort minime.
 1. **Hook `useResponsive()`** ✅ **livré** ([hooks/useResponsive.ts](../odos-front/hooks/useResponsive.ts)) :
    s'appuie sur `useWindowDimensions` (re-render live au resize, SSR-safe en mode `single`). Expose
    `{ width, breakpoint, isPhone, isTablet, isDesktop, gridColumns }` avec seuils **600 / 1024 / 1440**.
-2. **`ResponsiveShell`** ([components/layout/ResponsiveShell.tsx] à créer) : conteneur **web-only**
-   qui **centre** le contenu et le cape à `maxWidth ≈ 760 px` (app « feed » centrée), avec **marges
-   chaudes** `bg.page` (#FDF8F2 / #171412) autour. Monté dans `app/_layout.tsx` (variante web).
+2. **`ResponsiveShell`** ✅ **livré** ([components/layout/ResponsiveShell.tsx](../odos-front/components/layout/ResponsiveShell.tsx)) :
+   conteneur **web-only** qui **centre** le contenu et le cape (`SHELL_MAX_WIDTH.reading = 760`),
+   avec **marges chaudes** `bg.page` (le fond du parent reste plein-cadre derrière). Natif =
+   passthrough strict (aucune `View` ajoutée → zéro impact). **Appliqué par écran** (pas en racine,
+   pour ne pas brider les grilles de découverte capées indépendamment) : Accueil
+   ([index.tsx](../odos-front/app/(tabs)/index.tsx)), Compte ([account.tsx](../odos-front/app/(tabs)/account.tsx)),
+   Paramètres ([settings.tsx](../odos-front/app/settings.tsx)), Communauté (au niveau du layout
+   [community/_layout.tsx](../odos-front/app/(tabs)/community/_layout.tsx) → couvre Forum/Amis/Messages/Groupes),
+   Parcours ([parcours.tsx](../odos-front/app/(tabs)/parcours.tsx)).
    → L'app devient une **colonne lisible centrée**, longueur de ligne maîtrisée, chrome minimal
    (conforme DA §10). C'est l'équivalent du « mobile-portrait centré » de Twitter/Threads web.
+   ⚠️ Ne **pas** caper les grilles favoris/recherche à 760 (elles veulent s'élargir) : leur passer
+   `SHELL_MAX_WIDTH.wide` ou les laisser gérer leurs colonnes via `useResponsive()`.
 
 #### Niveau 1 — Navigation desktop (~2–3 j)
 
@@ -108,14 +118,15 @@ Règle ~80 % du ressenti pour un effort minime.
 | Écran | Actuel (web large) | Cible responsive | Niveau |
 |-------|--------------------|--------------------|--------|
 | Auth (login/reset) | déjà capé 480 ✅ | OK, polish double-bezel | 3 |
-| Home / reco | colonne pleine largeur | shell centré → bento 2–3 col | 0 → 2 |
+| Home / reco | ✅ **shell centré** (760) | reste : bento 2–3 col (Niv. 2) | 0 ✅ → 2 |
 | Recherche (browse) | ✅ **cartes capées** (≤ 520 / ≤ 720), hero en `aspectRatio` | grille responsive complète | partiel |
 | Recherche / carte | carte plein écran | carte + panneau latéral résultats sur desktop | 1–2 |
 | Favoris | ✅ **colonnes responsives 2/3/4-5 + toggle Liste/Grille** | OK | ✅ fait |
-| Communauté (forum/groupes/amis) | listes pleines | shell centré → 2 col | 0 → 2 |
+| Communauté (forum/groupes/amis) | ✅ **shell centré** (layout) | reste : 2 col (Niv. 2) | 0 ✅ → 2 |
+| Parcours (bibliothèque) | ✅ **shell centré** (760) | OK | 0 ✅ |
 | Détail activité | colonne étirée | editorial split (photo / infos) | 2 |
 | Parcours `[id]` | carte + liste pleines | split carte / étapes | 2 |
-| Compte / réglages | colonne étirée | shell centré (≤ 760) | 0 |
+| Compte / réglages | ✅ **shell centré** (760) | OK | 0 ✅ |
 | Modales / sheets | sheet plein écran | **modale centrée** (≤ 480) sur desktop | 1 |
 
 ### Implémentation technique (résumé)

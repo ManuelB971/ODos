@@ -20,6 +20,7 @@ import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { toAppError } from '@/utils/errorHandling';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import { useCity } from '@/context/CityContext';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 
 /** Nombre d'activités tirées pour un « Parcours surprise ». */
 const RANDOM_SIZE = 6;
@@ -79,6 +80,8 @@ export default function ParcoursLibraryScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: isMosaicPop ? pop.paper : colors.background }]}>
+      {/* Web : colonne centrée (cf. AUDIT_RESPONSIVE_WEB.md, Niveau 0). */}
+      <ResponsiveShell>
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: ink, fontFamily: FontFamily.display }]} numberOfLines={1}>
           Mes parcours
@@ -134,6 +137,7 @@ export default function ParcoursLibraryScreen() {
           )
         }
       />
+      </ResponsiveShell>
 
       <Modal visible={creating} transparent animationType="slide" onRequestClose={() => setCreating(false)}>
         <Pressable style={styles.backdrop} onPress={() => setCreating(false)}>

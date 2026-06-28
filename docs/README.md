@@ -8,6 +8,7 @@ Index des docs du dépôt. Dernière passe : **juin 2026**.
 |----------|--------|
 | Lancer le projet en local | [README racine](../README.md) |
 | **Cartographie architecture & données** | **[ARCHITECTURE.md](ARCHITECTURE.md)** |
+| **Schémas Mermaid (archi + BDD complète)** | **[ARCHITECTURE_MERMAID.md](ARCHITECTURE_MERMAID.md)** |
 | **TODO badges, exploration, UX commentaires** | **[TODO_GAMIFICATION_BADGES.md](TODO_GAMIFICATION_BADGES.md)** · **[GAMIFICATION.md](GAMIFICATION.md)** |
 | **Fiches fonctionnalités (index complet)** | **[fonctionnalites/README.md](fonctionnalites/README.md)** |
 | **Audit UI/UX front (Pro Max × Jakob, fusionné)** | **[AUDIT_UI_UX_FRONT.md](AUDIT_UI_UX_FRONT.md)** |
