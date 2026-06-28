@@ -21,7 +21,6 @@ use EasyCorp\Bundle\EasyAdminBundle\Field\IdField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ImageField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\IntegerField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextareaField;
-use EasyCorp\Bundle\EasyAdminBundle\Field\TextEditorField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
 use EasyCorp\Bundle\EasyAdminBundle\Filter\ChoiceFilter;
@@ -73,7 +72,9 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
 
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
+            ->add(Crud::PAGE_INDEX, Action::EDIT)
             ->add(Crud::PAGE_INDEX, $award)
+            ->add(Crud::PAGE_DETAIL, Action::EDIT)
             ->add(Crud::PAGE_DETAIL, $award);
     }
 
@@ -100,8 +101,9 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
         yield TextField::new('code', 'Code (slug)')
             ->setHelp('Minuscules, chiffres, underscores. Ex. first_discovery');
         yield TextField::new('name', 'Nom affiché');
-        yield TextEditorField::new('description', 'Description')
-            ->setHelp('Visible dans l\'app et sur le profil utilisateur.');
+        yield TextareaField::new('description', 'Description')
+            ->setHelp('Visible dans l\'app et sur le profil utilisateur.')
+            ->setNumOfRows(4);
 
         yield ImageField::new('imageUrl', 'Image actuelle')
             ->setBasePath('/')
@@ -128,7 +130,8 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
 
         yield ChoiceField::new('ruleType', 'Règle d\'attribution')
             ->setChoices($ruleChoices)
-            ->renderExpanded(false);
+            ->renderExpanded(false)
+            ->formatValue(static fn (?BadgeRuleType $value): string => $value?->label() ?? '—');
         yield TextareaField::new('ruleConfig', 'Config JSON (règle)')
             ->onlyOnForms()
             ->setFormType(JsonArrayType::class)
@@ -142,7 +145,11 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
                     return '—';
                 }
 
-                return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                try {
+                    return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                } catch (\JsonException) {
+                    return 'Configuration JSON invalide en base.';
+                }
             });
 
         yield DateTimeField::new('createdAt')->hideOnForm();

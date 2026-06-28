@@ -151,14 +151,14 @@ export function MosaicPopCard({
   const onHeartPress = controlled ? onToggleFavorite : () => fav.toggleFavorite(item.id);
   const [pickerOpen, setPickerOpen] = useState(false);
 
+  const cardOuterStyle = StyleSheet.flatten([
+    styles.cardWrap,
+    isGrid ? styles.cardWrapGrid : isFeatured ? styles.cardWrapFeatured : styles.cardWrapCarousel,
+  ]);
+
   return (
     <Link href={`/activity/${item.id}`} asChild>
-      <Pressable
-        style={[
-          styles.cardWrap,
-          isGrid ? styles.cardWrapGrid : isFeatured ? styles.cardWrapFeatured : styles.cardWrapCarousel,
-        ]}
-      >
+      <Pressable style={cardOuterStyle}>
         {/* Ombre dure décalée (rendu net cross-platform via un calque encre) */}
         <View
           pointerEvents="none"
