@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -25,6 +26,8 @@ import { FontFamily, Spacing } from '@/constants/theme';
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
 import { regionToInitialCamera, type LatLngRegion } from '@/utils/mapViewport';
 import { ParcoursRouteLayer } from '@/components/map/ParcoursRouteLayer';
+import { useResponsive } from '@/hooks/useResponsive';
+import { useOdosStackScreenOptions } from '@/hooks/useOdosStackScreenOptions';
 import { ActivityPickerSheet } from '@/components/social/ActivityPickerSheet';
 import { ConversationPickerSheet } from '@/components/social/ConversationPickerSheet';
 import { ParcoursShareTargetSheet, type ParcoursShareTarget } from '@/components/social/ParcoursShareTargetSheet';
@@ -47,6 +50,11 @@ export default function ParcoursDetailScreen() {
   const colors = useOdosColors();
   const { colorScheme } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  // Desktop web : split **carte (gauche) / étapes (droite)** comme Google Maps trajets,
+  // au lieu d'empiler carte puis liste. Gardé derrière web+desktop → mobile/natif inchangé.
+  // Cf. docs/AUDIT_RESPONSIVE_WEB.md (Niveau 2).
+  const { isDesktop } = useResponsive();
+  const splitView = Platform.OS === 'web' && isDesktop;
 
   const { user } = useAuth();
   const { data, isLoading } = useParcoursDetail(parcoursId);
@@ -232,22 +240,22 @@ export default function ParcoursDetailScreen() {
 
   const canShare = !!user?.socialConsentedAt;
 
+  const stackOptions = useOdosStackScreenOptions({ title: 'Parcours' });
+
   if (isLoading && !parcours) {
     return (
       <View style={[styles.screen, styles.center]}>
-        <Stack.Screen options={{ title: 'Parcours', headerShown: true, headerBackTitle: 'Retour' }} />
+        <Stack.Screen options={stackOptions} />
         <ActivityIndicator color={colors.accent} />
       </View>
     );
   }
 
   return (
-    <View style={styles.screen}>
-      <Stack.Screen
-        options={{ title: parcours?.title ?? 'Parcours', headerShown: true, headerBackTitle: 'Retour' }}
-      />
+    <View style={[styles.screen, splitView && styles.screenSplit]}>
+      <Stack.Screen options={stackOptions} />
 
-      <View style={styles.mapBox}>
+      <View style={[styles.mapBox, splitView && styles.mapBoxSplit]}>
         <Map
           style={StyleSheet.absoluteFill}
           mapStyle={getOdosMaplibreStyleUrl(colorScheme)}
@@ -278,6 +286,7 @@ export default function ParcoursDetailScreen() {
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.id)}
+        style={splitView ? styles.listSplit : undefined}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <View style={styles.listHeader}>
@@ -526,6 +535,16 @@ export default function ParcoursDetailScreen() {
 function createStyles(colors: OdosColorPalette) {
   return StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.background },
+    // ── Split carte / étapes (desktop web) ──
+    screenSplit: { flexDirection: 'row' },
+    mapBoxSplit: { flex: 1, height: '100%' },
+    listSplit: {
+      flexGrow: 0,
+      width: 440,
+      maxWidth: '42%',
+      borderLeftWidth: 1,
+      borderLeftColor: colors.border,
+    },
     center: { alignItems: 'center', justifyContent: 'center' },
     mapBox: { height: 240, backgroundColor: colors.surface },
     numberPin: {

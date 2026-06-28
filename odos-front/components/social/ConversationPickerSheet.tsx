@@ -12,6 +12,7 @@ import { UserRound, X } from 'lucide-react-native';
 
 import { useFriendships } from '@/hooks/useFriendships';
 import { useOdosColors } from '@/context/ThemeContext';
+import { useResponsiveSheet } from '@/hooks/useResponsiveSheet';
 import { FontFamily } from '@/constants/theme';
 import { resolveImageUrl } from '@/utils/imageUrl';
 
@@ -30,12 +31,13 @@ type ConversationPickerSheetProps = {
 export function ConversationPickerSheet({ visible, onClose, onSelect, title }: ConversationPickerSheetProps) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const sheetLayout = useResponsiveSheet();
   const { friends } = useFriendships();
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+      <View style={[styles.backdrop, sheetLayout.backdrop]}>
+        <View style={[styles.sheet, sheetLayout.sheet]}>
           <View style={styles.header}>
             <Text style={styles.title}>{title ?? 'Partager avec…'}</Text>
             <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="Fermer">

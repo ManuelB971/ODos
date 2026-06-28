@@ -52,6 +52,7 @@ import { logError, toAppError } from '@/utils/errorHandling';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { InputField } from '@/components/ui/InputField';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 
 /**
  * Écran Paramètres — tout le self-service utilisateur est centralisé ici :
@@ -348,6 +349,8 @@ export default function SettingsScreen() {
         <View style={styles.headerBtn} />
       </View>
 
+      {/* Web : colonne de réglages centrée (cf. AUDIT_RESPONSIVE_WEB.md, Niveau 0). */}
+      <ResponsiveShell>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -617,6 +620,7 @@ export default function SettingsScreen() {
 
         <View style={{ height: 48 }} />
       </ScrollView>
+      </ResponsiveShell>
     </KeyboardAvoidingView>
   );
 }

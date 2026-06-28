@@ -14,6 +14,7 @@ import { MapPin, Search, X } from 'lucide-react-native';
 import { useActivities } from '@/hooks/useActivities';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useOdosColors } from '@/context/ThemeContext';
+import { useResponsiveSheet } from '@/hooks/useResponsiveSheet';
 import { FontFamily } from '@/constants/theme';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import type { ApiActivity } from '@/types';
@@ -36,6 +37,7 @@ type ActivityPickerSheetProps = {
 export function ActivityPickerSheet({ visible, onClose, onSelect, title }: ActivityPickerSheetProps) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const sheetLayout = useResponsiveSheet();
   const { favorites } = useFavorites();
   const { data: allActivities } = useActivities();
   const [query, setQuery] = useState('');
@@ -54,8 +56,8 @@ export function ActivityPickerSheet({ visible, onClose, onSelect, title }: Activ
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+      <View style={[styles.backdrop, sheetLayout.backdrop]}>
+        <View style={[styles.sheet, sheetLayout.sheet]}>
           <View style={styles.header}>
             <Text style={styles.title}>{title ?? 'Partager une activité'}</Text>
             <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="Fermer">

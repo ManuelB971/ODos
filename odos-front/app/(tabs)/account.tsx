@@ -36,6 +36,7 @@ import { resolveImageUrl } from '@/utils/imageUrl';
 import { PopSurface } from '@/components/pop/PopSurface';
 import { PopListItem } from '@/components/pop/PopListItem';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 
 /**
  * Écran profil — éditorial, low-visual-noise.
@@ -106,6 +107,8 @@ export default function AccountScreen() {
       imageStyle={{ opacity: sprayOpacity }}
       resizeMode="cover"
     >
+    {/* Web : colonne de lecture centrée (cf. AUDIT_RESPONSIVE_WEB.md, Niveau 0). */}
+    <ResponsiveShell>
     <ScrollView
       style={styles.screenInner}
       contentContainerStyle={styles.scrollContent}
@@ -338,6 +341,7 @@ export default function AccountScreen() {
 
       <Text style={styles.versionText}>ODOS · version 1.0</Text>
     </ScrollView>
+    </ResponsiveShell>
     </ImageBackground>
   );
 }

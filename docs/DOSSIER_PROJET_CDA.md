@@ -1,21 +1,28 @@
-# Dossier de Projet — Titre Professionnel
-# Concepteur Développeur d'Applications — Niveau 6 (CDA)
+# Dossier de Projet
+## Titre Professionnel CDA (niveau 6)
+### Concepteur Développeur d'Applications
 
 **Candidat :** Manuel  
-**Projet :** ODOS — Application mobile de découverte d'activités locales  
-**Date :** Juin 2026  
-**Code titre :** TP-01281 — Millésime 04
+**Projet :** ODOS, application mobile & web de découverte d'activités locales  
+**Date :** Juin 2026 (mise à jour : 28 juin 2026)  
+**Code titre :** TP-01281, millésime 04
+
+> Tous les diagrammes (architecture, flux, base de données) sont regroupés dans [ARCHITECTURE_MERMAID.md](ARCHITECTURE_MERMAID.md).
 
 ---
 
 ## Table des matières
 
+0. [Identité visuelle](#0-identité-visuelle)  
 1. [Liste des compétences mises en œuvre](#1-liste-des-compétences-mises-en-œuvre)  
 2. [Cahier des charges](#2-cahier-des-charges)  
 3. [Gestion du projet](#3-gestion-du-projet)  
 4. [Spécifications fonctionnelles](#4-spécifications-fonctionnelles)  
 5. [Contraintes et livrables](#5-contraintes-et-livrables)  
 6. [Architecture logicielle](#6-architecture-logicielle)  
+   - 6.5 [Algorithme de recommandation](#65-algorithme-de-recommandation)  
+   - 6.6 [Système de parcours collaboratifs](#66-système-de-parcours-collaboratifs)  
+   - 6.7 [Modularité et extensibilité](#67-modularité-et-extensibilité)  
 7. [Maquettes et enchaînement](#7-maquettes-et-enchaînement)  
 8. [Modèle de données](#8-modèle-de-données)  
 9. [Scripts SQL](#9-scripts-sql)  
@@ -27,38 +34,67 @@
 
 ---
 
+## 0. Identité visuelle
+
+### 0.1 Logo et icônes
+
+Le logo ODOS, c'est un **« O » stylisé** : une ellipse avec un tracé intérieur. Je l'ai codé en SVG (`AppLogo.tsx`) pour qu'il suive le thème de l'app : couleur d'accent à l'extérieur, contraste à l'intérieur, en clair comme en sombre.
+
+| Asset | Fichier | Usage |
+|-------|---------|--------|
+| Logo vectoriel (composant) | `odos-front/components/AppLogo.tsx` | Splash, login, écrans d'accueil |
+| Icône application | `odos-front/assets/images/icon.png` | Android / iOS / stores |
+| Splash | `odos-front/assets/images/splash-icon.png` | Écran de démarrage Expo |
+| Favicon web | `odos-front/assets/images/favicon.png` | `app.odos.world` |
+
+![Logo ODOS, icône application](../odos-front/assets/images/icon.png)
+
+*Figure 0.1. Icône application (`icon.png`).*
+
+![Splash ODOS](../odos-front/assets/images/splash-icon.png)
+
+*Figure 0.2. Icône splash.*
+
+Si les images ne s'affichent pas dans le PDF ou le preview, les fichiers sont dans `odos-front/assets/images/`. On peut aussi voir le logo en lançant l'app (composant `<AppLogo />`).
+
+### 0.2 Palette et thèmes dynamiques
+
+Au départ les couleurs étaient en dur dans le code. Aujourd'hui je peux en ajouter depuis le back-office : chaque thème (`AppTheme`) embarque une palette claire et une palette sombre en JSON. L'app les charge via `GET /api/themes`. En secours, des palettes locales restent dans `odos-front/constants/themes/`.
+
+---
+
 ## 1. Liste des compétences mises en œuvre
 
-Le projet ODOS mobilise l'ensemble des compétences du référentiel CDA (arrêté du 26/04/2023), réparties sur trois certificats de compétences professionnelles (CCP).
+Le projet ODOS couvre les compétences du référentiel CDA (arrêté du 26/04/2023), réparties sur les trois certificats ci-dessous.
 
-### CCP 1 — Développer une application sécurisée
+### CCP 1 : Développer une application sécurisée
 
 | Compétence | Mise en œuvre dans ODOS |
 |-----------|------------------------|
 | Développer des interfaces utilisateur | Écrans React Native / Expo Router : accueil, carte, recherche, favoris, compte, activité, paramètres, légal |
-| Développer des composants métier | `CollaborativeRecommendationEngine`, `LlmRankingService`, `GamificationService`, `CommentContentSanitizer`, `UserActionThrottleService` |
+| Développer des composants métier | `CollaborativeRecommendationEngine`, `LlmRankingService`, `ParcoursService`, `GamificationProfileService`, `PushNotificationService`, `CommentContentSanitizer` |
 | Contribuer à la gestion d'un projet informatique | Tickets Git, CI/CD GitHub Actions, migrations Doctrine versionnées |
 | Analyser les besoins et maquetter une application | Analyse fonctionnelle, maquettes fil-de-fer des 6 écrans principaux |
 | Définir l'architecture logicielle d'une application | Architecture hexagonale backend (Symfony), navigation par fichiers frontend (Expo Router) |
-| Concevoir et mettre en place une base de données relationnelle | Schéma PostgreSQL 16, 15 entités Doctrine, migrations versionnées |
+| Concevoir et mettre en place une base de données relationnelle | Schéma PostgreSQL 16, **31 entités Doctrine**, **34 tables** (dont 3 M2M), migrations versionnées |
 | Développer des composants d'accès aux données SQL | `ActivityRepository::findRecommendationCandidates()`, `findCoEngagedActivityIds()` |
 | Préparer et exécuter les plans de tests | PHPUnit 11 (tests unitaires sans DB), Jest / Testing Library (React Native) |
 
-### CCP 2 — Concevoir et développer une application sécurisée organisée en couches
+### CCP 2 : Concevoir et développer une application sécurisée organisée en couches
 
 | Compétence | Mise en œuvre dans ODOS |
 |-----------|------------------------|
 | Installer et configurer son environnement | Docker Compose (Nginx, PHP-FPM, PostgreSQL, Redis, Ollama), EAS Build (Expo) |
 | Interfaces métier | Composants `FavoriteCard`, `MapExperience`, `ActivityCommentsSection`, `CTAButton`, `BlobFrame` |
 | Analyser les besoins et maquetter une application | API design REST + JSON-LD (API Platform 4) |
-| Définir l'architecture logicielle d'une application | Isolation derrière `RecommendationEngineInterface`, séparation stricte couches API / Moteur / Repository |
+| Définir l'architecture logicielle d'une application | Isolation `RecommendationEngineInterface`, `ParcoursService`, thèmes dynamiques, split web/natif (Metro) |
 | Concevoir et mettre en place une base de données SQL et NoSQL | PostgreSQL (SQL) + Redis (cache LLM) |
 | Développer des composants d'accès aux données SQL | ORM Doctrine, `ActivityRepository`, `CommentRepository` |
 | Préparer et exécuter les plans de tests d'une application | 8 tests unitaires recommandation, 70 % de couverture Jest frontend |
 | Préparer et documenter le déploiement DevOps | Docker Compose multi-profils, `.env.example`, GitHub Actions CI, EAS Build Android/iOS |
 | Contribuer à la mise en production dans une démarche DevOps | Pipeline CI/CD : lint + tests backend + frontend à chaque PR |
 
-### CCP 3 — Préparer le déploiement d'une application sécurisée
+### CCP 3 : Préparer le déploiement d'une application sécurisée
 
 | Compétence | Mise en œuvre dans ODOS |
 |-----------|------------------------|
@@ -72,9 +108,9 @@ Le projet ODOS mobilise l'ensemble des compétences du référentiel CDA (arrêt
 
 ### 2.1 Présentation du contexte
 
-ODOS est une application mobile communautaire de découverte d'activités culturelles, sportives et de loisirs. Elle s'adresse aux habitants d'une ville souhaitant sortir, explorer leur territoire et recevoir des recommandations personnalisées.
+ODOS, c'est une app **mobile et web** pour découvrir des activités près de chez soi : culture, sport, sorties. L'idée : on indique une fois ce qui nous intéresse et sa ville, on reçoit des propositions qu'on n'aurait pas forcément cherchées. On peut aussi composer des **parcours** (plusieurs étapes), discuter avec d'autres utilisateurs, et affiner les suggestions grâce à ce que font les gens aux goûts proches.
 
-**Problème métier :** les plateformes existantes (Google Maps, Eventbrite, Shotgun) nécessitent que l'utilisateur sache déjà ce qu'il cherche. ODOS propose une approche inverse : l'utilisateur déclare ses intérêts une seule fois, et l'application lui soumet des suggestions inattendues et pertinentes, affinées par l'usage collectif.
+**Le problème visé :** sur Google Maps ou Eventbrite, il faut déjà savoir quoi taper. Ici c'est l'inverse : l'app propose, l'utilisateur explore.
 
 ### 2.2 Objectifs
 
@@ -91,15 +127,23 @@ ODOS est une application mobile communautaire de découverte d'activités cultur
 | Should | Algorithme de recommandation avec filtrage collaboratif |
 | Should | Re-ranking par LLM local (Ollama) |
 | Should | Export des données personnelles en PDF (art. 20 RGPD) |
-| Could | Gamification : badges et exploration carte GPS |
+| Must | Système de **parcours** collaboratifs (étapes, cover, visibilité publique/privée) |
+| Must | **Communauté** : amis, chat privé, groupes, forum, partage d'activités |
+| Should | Filtrage des recommandations par **ville** (`homeCity` + sélecteur) |
+| Should | **Thèmes** applicatifs dynamiques (palettes admin → mobile/web) |
+| Should | **Web app** responsive sur `app.odos.world` (react-native-web) |
+| Should | Notifications **push** (Expo) pour messages, invitations, partages |
+| Could | Gamification : badges, exploration carte GPS, vitrine profil |
 | Could | Connexion sociale Google / Apple |
+| Could | Stack **Wazuh** SIEM (logs centralisés, lien depuis le back-office) |
 
 ### 2.3 Périmètre fonctionnel
 
-L'application comprend **deux surfaces HTTP** distinctes :
+L'application comprend **trois surfaces** :
 
-- **`/api/*`** — API REST JSON stateless, consommée par l'application mobile, sécurisée par JWT.
-- **`/admin/*`** — Back-office EasyAdmin, sécurisé par session Symfony + MFA (TOTP, SMS, WebAuthn).
+- **`/api/*`** : API REST JSON stateless (mobile + web), sécurisée par JWT.
+- **`/admin/*`** : Back-office EasyAdmin, session + MFA (TOTP, SMS, WebAuthn).
+- **`app.odos.world`** : Web app statique (Expo export web), même codebase que le mobile.
 
 ### 2.4 Acteurs
 
@@ -126,9 +170,9 @@ L'application comprend **deux surfaces HTTP** distinctes :
 Le projet a été développé en solo (développeur full-stack) avec :
 
 - **Outils de suivi :** Git (branches par fonctionnalité, commits conventionnels), GitHub Issues
-- **Méthodologie :** Kanban — colonnes Backlog / In Progress / Review / Done
+- **Méthodologie :** Kanban : colonnes Backlog / In Progress / Review / Done
 - **Revue de code :** auto-revue assistée par analyse statique (PHPStan L8, ESLint)
-- **CI/CD :** GitHub Actions — tests + lint à chaque PR, build APK EAS à chaque tag
+- **CI/CD :** GitHub Actions : tests + lint à chaque PR, build APK EAS à chaque tag
 
 ### 3.2 Planning synthétique
 
@@ -142,8 +186,11 @@ Le projet a été développé en solo (développeur full-stack) avec :
 | Back-office & MFA | 1 semaine | EasyAdmin, TOTP, SMS, WebAuthn |
 | Collaborative filtering | 1 semaine | Visites, algorithme CF, interface isolation |
 | RGPD & export PDF | 1 semaine | Export données, legal.tsx, suppression compte |
-| Gamification & badges | 1 semaine | Badges, exploration carte GPS |
-| Tests & CI/CD | 1 semaine | Coverage 70 %, pipeline |
+| Gamification & badges | 1 semaine | Badges, exploration carte GPS, vitrine profil |
+| Communauté & parcours | 2 semaines | Amis, chat, groupes, forum, parcours collaboratifs |
+| Web app & responsive | 1 semaine | Export web, déploiement `app.odos.world`, breakpoints |
+| Thèmes & push | 1 semaine | `AppTheme` admin, notifications Expo |
+| Tests & CI/CD | 1 semaine | Coverage 70 %, pipeline deploy prod + web |
 
 ### 3.3 Objectifs de qualité
 
@@ -159,7 +206,7 @@ Le projet a été développé en solo (développeur full-stack) avec :
 
 ### 4.1 User Stories prioritaires
 
-#### US-01 — Inscription
+#### US-01 : Inscription
 > En tant que visiteur, je veux créer un compte avec mon email et un mot de passe fort, afin d'accéder aux fonctionnalités personnalisées.
 
 **Critères d'acceptation :**
@@ -168,7 +215,7 @@ Le projet a été développé en solo (développeur full-stack) avec :
 - Consentement CGU + politique de confidentialité enregistré (`consentedAt`)
 - Connexion automatique après inscription (JWT retourné)
 
-#### US-02 — Recommandations personnalisées
+#### US-02 : Recommandations personnalisées
 > En tant qu'utilisateur, je veux recevoir une liste d'activités adaptées à mes centres d'intérêt, afin de découvrir des lieux pertinents sans effort de recherche.
 
 **Critères d'acceptation :**
@@ -177,7 +224,7 @@ Le projet a été développé en solo (développeur full-stack) avec :
 - Ordre enrichi par le collaborative filtering si l'utilisateur a des signaux
 - Re-ranking optionnel par LLM si `LLM_ENABLED=true`
 
-#### US-03 — Favoris
+#### US-03 : Favoris
 > En tant qu'utilisateur, je veux ajouter ou retirer une activité de mes favoris, afin de la retrouver facilement et d'enrichir mes recommandations.
 
 **Critères d'acceptation :**
@@ -186,7 +233,7 @@ Le projet a été développé en solo (développeur full-stack) avec :
 - Rollback automatique en cas d'erreur serveur
 - Déblocage possible de badges (gamification)
 
-#### US-04 — « J'ai visité ce lieu »
+#### US-04 : « J'ai visité ce lieu »
 > En tant qu'utilisateur, je veux signaler que j'ai visité une activité, afin d'améliorer mes recommandations futures et celles des utilisateurs similaires.
 
 **Critères d'acceptation :**
@@ -196,7 +243,7 @@ Le projet a été développé en solo (développeur full-stack) avec :
 - Alimente le collaborative filtering (poids 2.0 vs 1.0 pour les favoris)
 - Réversible à tout moment
 
-#### US-05 — Carte interactive
+#### US-05 : Carte interactive
 > En tant qu'utilisateur, je veux voir les activités sur une carte, afin de planifier mes sorties géographiquement.
 
 **Critères d'acceptation :**
@@ -206,7 +253,7 @@ Le projet a été développé en solo (développeur full-stack) avec :
 - Mode sombre natif de la carte
 - Filtre par catégorie sur la carte
 
-#### US-06 — Notes et commentaires
+#### US-06 : Notes et commentaires
 > En tant qu'utilisateur connecté, je veux noter (1–5 étoiles) et commenter une activité, afin de partager mon expérience.
 
 **Critères d'acceptation :**
@@ -217,7 +264,7 @@ Le projet a été développé en solo (développeur full-stack) avec :
 - Sanitization du contenu (`CommentContentSanitizer`)
 - Rate limiting anti-spam (throttle 30 s entre deux commentaires)
 
-#### US-07 — Export RGPD en PDF
+#### US-07 : Export RGPD en PDF
 > En tant qu'utilisateur, je veux exporter toutes mes données personnelles en un PDF lisible, afin d'exercer mon droit de portabilité (art. 20 RGPD).
 
 **Critères d'acceptation :**
@@ -226,7 +273,17 @@ Le projet a été développé en solo (développeur full-stack) avec :
 - Inclut : profil, centres d'intérêt, favoris, visites, notes, commentaires, badges
 - Partageable via les apps natives (email, AirDrop, cloud…)
 
-#### US-08 — Suppression de compte
+#### US-09 : Parcours collaboratifs
+> En tant qu'utilisateur, je veux créer un parcours d'activités, l'enrichir avec des amis et le partager, afin d'organiser des sorties à plusieurs.
+
+**Critères d'acceptation :**
+- Création avec titre, description, visibilité publique/privée
+- Jusqu'à 50 étapes ordonnées (drag/reorder API)
+- Upload cover, collaborateurs parmi les amis acceptés
+- Affichage carte avec tracé et pins numérotés
+- Partage en chat/groupe via pièce jointe parcours
+
+#### US-08 : Suppression de compte
 > En tant qu'utilisateur, je veux pouvoir supprimer définitivement mon compte, afin d'exercer mon droit à l'effacement (art. 17 RGPD).
 
 **Critères d'acceptation :**
@@ -273,8 +330,9 @@ Le projet a été développé en solo (développeur full-stack) avec :
 | Code source | Monorepo Git (`odos-back/` + `odos-front/`) |
 | API REST | Endpoints JSON documentés (routes Symfony) |
 | Application Android | APK (EAS build preview) |
+| Web app | `app.odos.world` (export Expo statique) |
 | Back-office | Interface EasyAdmin `/admin` |
-| Documentation technique | `docs/` (RGPD, algo, architecture) |
+| Documentation technique | `docs/` (RGPD, algo, architecture, **ARCHITECTURE_MERMAID.md**) |
 | Tests | PHPUnit + Jest avec rapport de couverture |
 | Pipeline CI/CD | `.github/workflows/ci.yml` |
 
@@ -282,119 +340,379 @@ Le projet a été développé en solo (développeur full-stack) avec :
 
 ## 6. Architecture logicielle
 
+> Tous les diagrammes détaillés sont aussi dans [ARCHITECTURE_MERMAID.md](ARCHITECTURE_MERMAID.md).
+
 ### 6.1 Vue d'ensemble
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        ODOS — Monorepo                          │
-│                                                                 │
-│  ┌─────────────────────┐      ┌──────────────────────────────┐  │
-│  │    odos-front/      │      │         odos-back/           │  │
-│  │  Expo / React Native│◄────►│  Symfony 7 + API Platform 4  │  │
-│  │  Expo Router        │ JWT  │  REST JSON / JSON-LD         │  │
-│  └─────────────────────┘      └──────────────┬───────────────┘  │
-│                                              │                  │
-│                               ┌──────────────┼──────────────┐   │
-│                               │              │              │   │
-│                          PostgreSQL        Redis         Ollama  │
-│                          (données)        (cache)        (LLM)   │
-└─────────────────────────────────────────────────────────────────┘
-```
+```mermaid
+flowchart TB
+  subgraph clients["Clients"]
+    Mobile["App mobile\nExpo / React Native"]
+    Web["Web app\napp.odos.world"]
+    Admin["Back-office\nEasyAdmin /admin"]
+  end
 
-L'infrastructure s'exécute entièrement via Docker Compose avec les services : **Nginx** (reverse proxy), **PHP-FPM** (Symfony), **PostgreSQL** (base principale), **Redis** (cache LLM), **Ollama** (modèle de langue local).
+  subgraph edge["Entrée HTTP"]
+    NginxHost["Nginx hôte\nTLS + vhosts"]
+    NginxDocker["Nginx Docker :8000"]
+  end
 
-### 6.2 Architecture backend — couches
+  subgraph app["Application Symfony 7"]
+    PHP["PHP-FPM\nAPI Platform 4"]
+    API["REST /api/*\nJWT stateless"]
+    ADM["Session + MFA\n/admin"]
+  end
 
-```
-HTTP Request
-    │
-    ▼
-┌───────────────────────────────────────┐
-│  Nginx (reverse proxy, HTTPS, CORS)   │
-└───────────────────┬───────────────────┘
-                    │
-    ┌───────────────▼──────────────────┐
-    │  Symfony Security Layer           │
-    │  - JWT Authenticator (ROLE_USER) │
-    │  - Session MFA (ROLE_ADMIN)      │
-    └───────────────┬──────────────────┘
-                    │
-    ┌───────────────▼──────────────────┐
-    │  Couche API Platform / Controller │
-    │  - ApiResource endpoints         │
-    │  - Custom Controllers (REST)     │
-    └───────────────┬──────────────────┘
-                    │
-    ┌───────────────▼──────────────────┐
-    │  Couche Métier / Services        │
-    │  - RecommendationEngineInterface │
-    │  - CollaborativeRecommendation.. │
-    │  - LlmRankingService             │
-    │  - GamificationService           │
-    │  - UserActionThrottleService     │
-    │  - CommentContentSanitizer       │
-    └───────────────┬──────────────────┘
-                    │
-    ┌───────────────▼──────────────────┐
-    │  Couche Données / Repository     │
-    │  - ActivityRepository            │
-    │  - UserRepository                │
-    │  - CommentRepository             │
-    │  Doctrine ORM + PostgreSQL       │
-    └──────────────────────────────────┘
+  subgraph data["Données & cache"]
+    PG[(PostgreSQL 16)]
+    Redis[(Redis 7)]
+    FS["Fichiers\npublic/uploads/"]
+  end
+
+  subgraph optional["Optionnel"]
+    Ollama["Ollama\nre-ranking LLM"]
+    Wazuh["Wazuh SIEM\n:5601"]
+  end
+
+  Mobile -->|HTTPS JSON + JWT| NginxHost
+  Web -->|HTTPS statique + API| NginxHost
+  Admin -->|Cookie session| NginxHost
+  NginxHost -->|api.odos-api.com| NginxDocker
+  NginxHost -->|app.odos.world| FS
+  NginxDocker --> PHP
+  PHP --> API
+  PHP --> ADM
+  API --> PG
+  API --> Redis
+  API --> FS
+  ADM --> PG
+  PHP -.->|LLM_ENABLED| Ollama
 ```
 
-### 6.3 Architecture frontend — couches
+L'infrastructure s'exécute via **Docker Compose** : Nginx, PHP-FPM, PostgreSQL, Redis, Ollama (optionnel). En production, un **Nginx hôte** termine le TLS et proxifie l'API ; la web app est servie en statique depuis `/var/www/odos-web`.
+
+### 6.2 Architecture backend : couches
+
+```mermaid
+flowchart TB
+  subgraph http["Surfaces HTTP"]
+    API["/api/*\nAPI Platform + contrôleurs"]
+    Admin["/admin/*\nEasyAdmin CRUD"]
+  end
+
+  subgraph api_platform["API Platform"]
+    Entities["Entity #[ApiResource]"]
+    State["State/\nProviders & Processors"]
+  end
+
+  subgraph controllers["Contrôleurs dédiés"]
+    Social["Chat, Groupes, Amis, Forum, Parcours"]
+    Activity["Favoris, Notes, Commentaires, Visites"]
+    RGPD["Export / suppression compte"]
+  end
+
+  subgraph services["Services métier"]
+    Reco["CollaborativeRecommendationEngine"]
+    LLM["LlmRankingService"]
+    Parcours["ParcoursService"]
+    Push["PushNotificationService"]
+    Gamif["GamificationProfileService"]
+  end
+
+  subgraph infra["Infrastructure"]
+    ORM["Doctrine ORM"]
+    Security["Security / JWT / MFA"]
+  end
+
+  API --> Entities
+  API --> State
+  API --> controllers
+  Admin --> Entities
+  controllers --> services
+  State --> services
+  services --> ORM
+  Entities --> ORM
+  http --> Security
+```
+
+### 6.3 Architecture frontend : couches
+
+```mermaid
+flowchart LR
+  subgraph storage["Stockage local"]
+    SS["expo-secure-store\nJWT"]
+    LS["localStorage\nfallback web"]
+  end
+
+  subgraph state["État React"]
+    Auth["AuthContext"]
+    Interest["InterestContext"]
+    City["CityContext"]
+    Theme["ThemeContext"]
+    RQ["TanStack Query"]
+  end
+
+  subgraph network["Réseau"]
+    Axios["scripts/api.ts"]
+    API["Backend /api"]
+  end
+
+  SS <--> Axios
+  LS <--> Axios
+  Auth --> Axios
+  Axios --> API
+  RQ --> Axios
+```
 
 ```
-app/               ← Pages et navigation (Expo Router, file-based)
-  (tabs)/          ← Onglets : Accueil, Recherche, Compte
-  activity/[id]    ← Fiche activité
-  settings.tsx     ← Paramètres / RGPD
-  legal.tsx        ← Textes légaux
+app/               ← Pages Expo Router (mobile + web)
+  (tabs)/          ← Accueil, Recherche, Parcours, Communauté, Compte
+  parcours/[id]    ← Détail parcours (carte, étapes, collaborateurs)
+  chat/[id]        ← Messagerie privée
+  community/       ← Forum, amis, messages, groupes
 
-components/        ← Composants réutilisables
-  ui/              ← BlobFrame, CTAButton, DaIcon, Skeleton…
-  map/             ← MapExperience, ActivityCard, SearchBar
-  comments/        ← ActivityCommentsSection
-
-hooks/             ← Data fetching TanStack Query
-  useActivities    ← Catalogue + recherche
-  useFavorites     ← Favoris
-  useRecommendations ← Recommandations personnalisées
-  useMapExploration ← Exploration GPS
-
-context/           ← État global
-  AuthContext      ← JWT, utilisateur courant, logout
-  ThemeContext     ← Mode clair/sombre
-  InterestContext  ← Centres d'intérêt
-
-scripts/api.ts     ← Client Axios, intercepteur refresh JWT
-utils/             ← errorHandling, generateExportPdf, imageUrl
+components/        ← UI réutilisable (carte, commentaires, modales ODOS)
+hooks/             ← useActivities, useParcours, useChat, useRecommendations…
+context/           ← Auth, Theme, City, Interest
+scripts/api.ts     ← Axios + refresh JWT automatique
 ```
 
-### 6.4 Architecture du moteur de recommandation
+### 6.4 Architecture du moteur de recommandation (aperçu)
 
-Le moteur est **isolé derrière une interface** pour permettre le remplacement ou l'A-B test sans impact sur la couche API.
+```mermaid
+flowchart TB
+  API["GET /api/recommendations\n?city="]
+  Prov["RecommendationStateProvider"]
+  IFace["RecommendationEngineInterface"]
+  Engine["CollaborativeRecommendationEngine"]
+  Repo["ActivityRepository"]
+  LLM["LlmRankingService"]
+  Redis[(Redis cache)]
+  Ollama["Ollama"]
 
+  API --> Prov
+  Prov --> IFace
+  IFace --> Engine
+  Engine --> Repo
+  Engine --> LLM
+  LLM --> Redis
+  LLM -.-> Ollama
 ```
-RecommendationStateProvider   ← Adaptateur API Platform
-        │ délègue
-        ▼
-RecommendationEngineInterface ← Contrat (interface PHP)
-        │ implémenté par
-        ▼
-CollaborativeRecommendationEngine
-    ├── ActivityRepository::findRecommendationCandidates()
-    ├── ActivityRepository::findCoEngagedActivityIds()
-    └── LlmRankingService::rank()
-              └── Ollama API (optionnel, avec Redis cache)
-```
 
-**Pour remplacer l'algorithme** (ex. moteur ML) : une seule ligne dans `config/services.yaml` :
+Pour tester un autre moteur (A/B test ou futur ML), il suffit de changer l'alias dans `config/services.yaml` :
+
 ```yaml
 App\Recommendation\RecommendationEngineInterface: '@App\Recommendation\MlRecommendationEngine'
 ```
+
+---
+
+### 6.5 Algorithme de recommandation
+
+C'est probablement la partie la plus importante du projet côté métier : transformer ce que l'utilisateur aime (catégories, favoris, visites) en une liste d'activités **nouvelles** pour lui, dans **sa ville**, dans un ordre qui a du sens.
+
+#### 6.5.1 Pipeline en 4 étapes
+
+En résumé, ça se passe en quatre temps :
+
+```mermaid
+flowchart LR
+  S1["1. Signaux\nintérêts + favoris + visites"]
+  S2["2. Candidats DB\npubliés, par ville et catégories\nexcluant déjà connus"]
+  S3["3. Collaborative filtering\nco-engagement des voisins"]
+  S4["4. Re-ranking LLM\noptionnel, cache Redis"]
+
+  S1 --> S2 --> S3 --> S4
+```
+
+| Étape | Rôle | Détail technique |
+|-------|------|------------------|
+| **Signaux** | Graine du goût | `user.getInterests()`, `user_favorite_activity`, `user_visited_activity` |
+| **Candidats** | Pool initial | `ActivityRepository::findRecommendationCandidates($categoryIds, $excludeIds, $city)` |
+| **CF** | Boost social | `findCoEngagedActivityIds()` : voisins = users ayant liké/visité les mêmes lieux |
+| **LLM** | Affinage | `LlmRankingService::rank()` : prompt Ollama, TTL Redis, repli sur ordre CF |
+
+#### 6.5.2 Filtrage collaboratif (poids réglables)
+
+- **Visite** (poids 2 par défaut) : quelqu'un qui est allé sur place compte plus qu'un simple favori.
+- **Favori** (poids 1) : signale l'intention sans preuve de visite.
+- On ne repropose **jamais** un lieu déjà en favori ou déjà marqué « visité ».
+- Tout est filtré par **ville** (`?city=` ou ville enregistrée au profil). Sans ville, pas de reco (l'onboarding ville est obligatoire).
+
+#### 6.5.3 Séquence complète
+
+```mermaid
+sequenceDiagram
+  participant App as App mobile/web
+  participant API as GET /api/recommendations
+  participant Prov as RecommendationStateProvider
+  participant Eng as CollaborativeRecommendationEngine
+  participant DB as PostgreSQL
+  participant LLM as LlmRankingService
+  participant Redis as Redis
+
+  App->>API: JWT + ?city=Lyon
+  API->>Prov: provide()
+  Prov->>Eng: recommend(user, city)
+  Eng->>DB: findRecommendationCandidates
+  Eng->>DB: findCoEngagedActivityIds
+  Eng->>LLM: rank(interests, candidates, cacheKey)
+  LLM->>Redis: get/set ranked_ids
+  alt LLM_ENABLED et succès
+    LLM-->>Eng: ordre enrichi
+  else échec / désactivé
+    LLM-->>Eng: ordre CF/DB
+  end
+  Eng-->>App: Activity[] JSON
+```
+
+#### 6.5.4 Pourquoi ces choix ?
+
+| Ce qu'on voulait | Ce qu'on a fait | Pourquoi |
+|------------------|-----------------|----------|
+| Comprendre les résultats | Filtrage collaboratif + règles claires | Testable en PHPUnit, défendable devant le jury |
+| Respecter la vie privée | Ollama sur notre serveur | Pas d'email ni d'identité envoyés à un LLM cloud |
+| Rester réactif | Cache Redis sur le ranking LLM | Pas d'appel lourd à chaque pull-to-refresh |
+| Pouvoir changer d'algo plus tard | Interface `RecommendationEngineInterface` | Un alias Symfony suffit pour brancher un autre moteur |
+
+---
+
+### 6.6 Système de parcours collaboratifs
+
+Les **parcours**, c'est la deuxième grosse brique fonctionnelle : une sorte de playlist d'activités. On enchaîne des lieux (karting, resto, musée…), on peut inviter des amis à co-éditer, mettre une pochette, et partager le tout en message ou sur la carte.
+
+#### 6.6.1 Modèle fonctionnel
+
+```mermaid
+erDiagram
+  user ||--o{ parcours : owner_id
+  parcours ||--o{ parcours_item : steps
+  activity ||--o{ parcours_item : activity_id
+  parcours ||--o{ parcours_collaborator : editors
+  user ||--o{ parcours_collaborator : user_id
+
+  parcours {
+    int id PK
+    string title
+    string visibility "private | public"
+    string cover_image_url
+    int item_count
+  }
+
+  parcours_item {
+    int id PK
+    int position
+    string note
+    int parcours_id FK
+    int activity_id FK
+  }
+```
+
+#### 6.6.2 Règles d'accès (`ParcoursService`)
+
+| Action | Propriétaire | Collaborateur | Autre user (public) | Autre user (privé) |
+|--------|-------------|---------------|---------------------|-------------------|
+| Consulter | ✓ | ✓ | ✓ si `visibility=public` | ✗ |
+| Éditer (titre, étapes, cover) | ✓ | ✓ | ✗ | ✗ |
+| Ajouter collaborateur | ✓ | ✓ (amis uniquement) | ✗ | ✗ |
+| Supprimer le parcours | ✓ | ✗ | ✗ | ✗ |
+
+#### 6.6.3 API REST
+
+| Méthode | Route | Rôle |
+|---------|-------|------|
+| GET | `/api/parcours` | Liste (mes parcours + collaboratifs) |
+| POST | `/api/parcours` | Création |
+| GET/PATCH/DELETE | `/api/parcours/{id}` | Détail, mise à jour, suppression |
+| POST | `/api/parcours/{id}/items` | Ajouter une étape (activité + note) |
+| PATCH | `/api/parcours/{id}/items/reorder` | Réordonner |
+| DELETE | `/api/parcours/{id}/items/{itemId}` | Retirer une étape |
+| POST/DELETE | `/api/parcours/{id}/cover` | Pochette (upload image) |
+| POST/DELETE | `/api/parcours/{id}/collaborators/{userId}` | Gestion collaborateurs |
+
+#### 6.6.4 Intégration front
+
+- Onglet **Parcours** (`app/(tabs)/parcours.tsx`) : bibliothèque  
+- Écran **détail** (`app/parcours/[id].tsx`) : carte MapLibre, tracé, pins numérotés, partage  
+- Ajout depuis une **fiche activité** : bouton « Ajouter au parcours »  
+- Partage en **chat** ou **groupe** : pièce jointe `parcoursId` sur `ChatMessage` / `GroupMessage`
+
+```mermaid
+flowchart LR
+  Activity["Fiche activité"] -->|Ajouter| Parcours["Parcours\n(max 50 étapes)"]
+  Parcours -->|Partager| Chat["Chat / Groupe"]
+  Parcours -->|Carte| Map["MapLibre\nParcoursRouteLayer"]
+  Friend["Ami"] -->|Collaborateur| Parcours
+```
+
+---
+
+### 6.7 Modularité et extensibilité
+
+J'ai structuré le projet pour pouvoir faire évoluer chaque brique sans tout casser : changer l'algo de reco, ajouter un thème, déployer seulement la web app, etc.
+
+#### 6.7.1 Modularité backend
+
+```mermaid
+flowchart TB
+  subgraph contracts["Contrats / interfaces"]
+    RE["RecommendationEngineInterface"]
+    RPI["RecommendationEngineInterface alias\nservices.yaml"]
+  end
+
+  subgraph impl["Implémentations interchangeables"]
+    CF["CollaborativeRecommendationEngine"]
+    ML["MlRecommendationEngine\n(futur)"]
+  end
+
+  subgraph isolated["Services autonomes"]
+    PS["ParcoursService"]
+    GPS["GamificationProfileService"]
+    PNS["PushNotificationService"]
+    UDS["UserDeletionService"]
+  end
+
+  RE --> CF
+  RE -.-> ML
+  RPI --> RE
+```
+
+| Mécanisme | Exemple | Bénéfice |
+|-----------|---------|----------|
+| **Interface + alias DI** | `RecommendationEngineInterface` | Changer l'algo = 1 ligne YAML |
+| **State Provider API Platform** | `RecommendationStateProvider` | Zéro logique métier dans l'adaptateur HTTP |
+| **Enum + config env** | `RECO_VISIT_WEIGHT`, `LLM_ENABLED` | Réglage prod sans redéploiement code |
+| **Services découplés** | `SocialUnreadCountService` sans dépendance circulaire push | Testabilité, maintenance |
+| **Uploaders dédiés** | `ParcoursCoverUploader`, `ActivityPhotoUploader` | Règles fichiers centralisées |
+| **Migrations Doctrine** | `odos-back/migrations/` | Schéma versionné, reproductible |
+
+#### 6.7.2 Modularité frontend (mobile + web)
+
+| Mécanisme | Fichier / pattern | Bénéfice |
+|-----------|-------------------|----------|
+| **Resolver Metro** | `metro.config.js` | `@maplibre/maplibre-react-native` → `MapLibreWeb` sur web uniquement |
+| **Extensions `.web.ts`** | `use-color-scheme.web.ts` | Code web isolé |
+| **`Platform.OS`** | push, badges OS | Capacités natives neutralisées sur web |
+| **Hooks par domaine** | `useParcours.ts`, `useChat.ts` | Cache TanStack Query indépendant |
+| **Contextes fins** | `ThemeContext`, `CityContext` | État global minimal |
+| **Composants UI ODOS** | `OdosModalContext`, `BlobFrame` | Design system cohérent |
+| **Thèmes distants** | `useThemes` + palettes registry | Nouveau thème = données admin, pas de release app |
+
+#### 6.7.3 Modularité déploiement
+
+```mermaid
+flowchart LR
+  WF["deploy-prod.yml"]
+  WF -->|target: all| API["Deploy API"]
+  WF -->|target: web| Web["Deploy web seul"]
+  WF -->|target: api| API
+  API --> Health["Healthcheck\n/api/categories"]
+  Web --> Rsync["rsync dist/\n→ /var/www/odos-web"]
+```
+
+- **CI** : backend et frontend testés indépendamment  
+- **Deploy** : jobs `deploy` et `deploy-web` séparables (`workflow_dispatch`)  
+- **Docker profiles** : `llm`, `wazuh` optionnels sans impacter le cœur API  
 
 ---
 
@@ -409,13 +727,13 @@ App\Recommendation\RecommendationEngineInterface: '@App\Recommendation\MlRecomme
 ├─────────────────────────────────┤
 │ ┌─────────────────────────────┐ │
 │ │ [Image]  Karting Lyon       │ │
-│ │          ⭐ 4.3 — 12 avis   │ │
+│ │          ⭐ 4.3 / 12 avis   │ │
 │ │          🏷 Sport · Lyon    │ │
 │ │                    ❤ [  ]  │ │
 │ └─────────────────────────────┘ │
 │ ┌─────────────────────────────┐ │
 │ │ [Image]  Musée des Beaux-A. │ │
-│ │          ⭐ 4.7 — 89 avis   │ │
+│ │          ⭐ 4.7 / 89 avis   │ │
 │ │          🏷 Culturel · Lyon │ │
 │ │                    ❤ [✓]  │ │
 │ └─────────────────────────────┘ │
@@ -515,13 +833,20 @@ Splash ──► Onboarding ──► Inscription/Connexion
             Onglet Accueil           Onglet Carte
             (Recommandations)        (MapLibre)
                     │                        │
+            Onglet Parcours          Onglet Communauté
+            (Bibliothèque)           (Forum, Amis, Chat)
+                    │                        │
                     └───────────┬────────────┘
                                 │
                                 ▼
                     Fiche Activité [id]
                     ├── Note / Commentaire
                     ├── Toggle Favori
-                    └── Toggle Visité
+                    ├── Toggle Visité
+                    └── Ajouter au parcours
+                                │
+                                ▼
+                    Parcours [id] (carte, étapes, partage)
 
             Onglet Compte ──► Paramètres ──► Export PDF
                                          └── Suppression compte
@@ -531,69 +856,112 @@ Splash ──► Onboarding ──► Inscription/Connexion
 
 ## 8. Modèle de données
 
-### 8.1 Modèle Entités-Associations
+> **Schéma complet (34 tables, toutes colonnes)** : [ARCHITECTURE_MERMAID.md §10–18](ARCHITECTURE_MERMAID.md#10-base-de-données--vue-globale)
 
-```
-┌──────────┐     n    user_interest    n     ┌──────────┐
-│   USER   ├──────────────────────────────────┤ CATEGORY │
-│          │                                  │          │
-│ id (PK)  │     n  user_favorite_act  n     │ id (PK)  │
-│ email    ├────────────────────────────────  │ name     │
-│ password │                       │          └─────┬────┘
-│ alias    │     n  user_visited_act n         │    │
-│ bio      ├──────────────────────────         │  1 │
-│ roles    │                                   │    │ n
-│ avatarUrl│  1                                ▼    ▼
-│ ...      ├────────────────────────────  ┌──────────────┐
-└──────────┘                             │   ACTIVITY   │
-      │ 1                                │              │
-      │                                  │ id (PK)      │
-      │ n                                │ name         │
-      ▼                                  │ description  │
-┌──────────┐                             │ latitude     │
-│ COMMENT  │ n ──────────────────── 1   │ longitude    │
-│ id (PK)  │                             │ city         │
-│ content  │                             │ price        │
-│ isHidden │                             │ imageUrl     │
-│ createdAt│  n                          │ isPublished  │
-└──────────┘  │    ACTIVITY_RATING       │ ratingAvg    │
-              │    id (PK)               │ ratingCount  │
-              │    score                 └──────────────┘
-              │    createdAt
-              │    user_id (FK)
-              └─── activity_id (FK)
+### 8.1 Vue globale des entités
 
-USER ───< USER_BADGE >─── BADGE
-                          │ code (PK)
-                          │ name
-                          │ description
-                          │ imageUrl
-
-USER ───< USER_MAP_CELL
-          │ user_id (FK)
-          │ zone_key
-          │ cell_index
+```mermaid
+erDiagram
+  user ||--o{ comment : author
+  user ||--o{ activity_rating : scores
+  user ||--o{ user_badge : unlocks
+  user }o--o{ category : user_category
+  user }o--o{ activity : user_favorite_activity
+  user }o--o{ activity : user_visited_activity
+  category ||--o{ activity : classifies
+  activity ||--o{ comment : has
+  activity ||--o{ activity_rating : has
+  user ||--o{ parcours : owner
+  parcours ||--o{ parcours_item : steps
+  activity ||--o{ parcours_item : activity_id
+  parcours ||--o{ parcours_collaborator : editors
+  user ||--o{ friendship : sender
+  user ||--o{ conversation : user_one
+  conversation ||--o{ chat_message : messages
+  activity_group ||--o{ group_member : members
+  activity_group ||--o{ group_message : messages
+  forum_thread ||--o{ forum_reply : replies
+  badge_definition ||--o{ user_badge : definition
 ```
 
-### 8.2 Modèle physique (tables principales)
+### 8.2 Domaines fonctionnels
+
+```mermaid
+flowchart TB
+  subgraph catalog["Catalogue"]
+    user
+    category
+    activity
+    comments
+    activity_rating
+  end
+
+  subgraph reco["Recommandations"]
+    user_favorite_activity
+    user_visited_activity
+    user_activity_view
+  end
+
+  subgraph social["Social"]
+    friendship
+    conversation
+    chat_message
+    activity_group
+    group_message
+    shared_activity
+    forum_thread
+    forum_reply
+  end
+
+  subgraph parcours["Parcours"]
+    parcours
+    parcours_item
+    parcours_collaborator
+  end
+
+  subgraph gamif["Gamification"]
+    badge_definition
+    user_badge
+    user_badge_display
+    user_map_cell
+  end
+
+  subgraph system["Système"]
+    refresh_tokens
+    push_token
+    app_theme
+    admin_audit_log
+  end
+```
+
+### 8.3 Modèle physique : inventaire (34 tables)
+
+| Domaine | Tables |
+|---------|--------|
+| **Utilisateurs & catalogue** | `user`, `category`, `activity`, `comments`, `activity_rating`, `user_category`, `user_favorite_activity`, `user_visited_activity`, `user_activity_view` |
+| **Recommandations / exploration** | `user_map_cell` |
+| **Parcours** | `parcours`, `parcours_item`, `parcours_collaborator` |
+| **Social** | `friendship`, `conversation`, `chat_message`, `activity_group`, `group_member`, `group_invitation`, `group_message`, `shared_activity`, `content_report` |
+| **Forum** | `forum_thread`, `forum_reply`, `forum_reply_like`, `forum_report` |
+| **Gamification** | `badge_definition`, `user_badge`, `user_badge_display` |
+| **Thèmes & technique** | `app_theme`, `push_token`, `refresh_tokens`, `admin_audit_log`, `admin_webauthn_credential` |
+
+### 8.4 Tables cœur (extrait colonnes)
 
 | Table | Colonnes clés | Contraintes |
 |-------|-------------|-------------|
-| `user` | `id`, `email`, `password`, `alias`, `bio`, `avatar_url`, `roles`, `consented_at`, `map_exploration_enabled` | `UNIQUE(email)` |
-| `activity` | `id`, `name`, `description`, `latitude`, `longitude`, `city`, `price`, `image_url`, `is_published`, `rating_average`, `rating_count`, `category_id` | `FK category_id → category` |
-| `category` | `id`, `name` | `UNIQUE(name)` |
-| `user_interest` | `user_id`, `category_id` | `PK composite` |
-| `user_favorite_activity` | `user_id`, `activity_id` | `PK composite`, cascade delete |
-| `user_visited_activity` | `user_id`, `activity_id` | `PK composite`, cascade delete |
-| `comment` | `id`, `content`, `is_hidden`, `created_at`, `updated_at`, `user_id`, `activity_id` | `FK` cascade |
-| `activity_rating` | `id`, `score`, `created_at`, `updated_at`, `user_id`, `activity_id` | `UNIQUE(user_id, activity_id)` |
-| `badge` | `code`, `name`, `description`, `image_url`, `trigger_event`, `trigger_count` | `PK code` |
-| `user_badge` | `id`, `unlocked_at`, `seen_at`, `user_id`, `badge_code` | `FK` |
-| `user_map_cell` | `id`, `zone_key`, `cell_index`, `user_id` | `UNIQUE(user_id, zone_key, cell_index)` |
-| `refresh_tokens` | `id`, `refresh_token`, `username`, `valid` | Index `refresh_token` |
-| `admin_audit_log` | `id`, `action`, `admin_email_hash`, `target`, `created_at` | — |
+| `user` | `email`, `alias`, `home_city`, `password`, `roles`, `consented_at`, `social_consented_at`, `profile_public` | `UNIQUE(email)`, `UNIQUE(alias)` |
+| `activity` | `name`, `latitude`, `longitude`, `city`, `category_id`, `is_published`, `rating_average`, `rating_count` | `FK → category` |
+| `parcours` | `title`, `visibility`, `cover_image_url`, `item_count`, `owner_id` | `FK → user` |
+| `parcours_item` | `position`, `note`, `parcours_id`, `activity_id` | index `(parcours_id, position)` |
+| `badge_definition` | `code`, `name`, `rule_type`, `rule_config`, `is_active` | `UNIQUE(code)` |
+| `app_theme` | `slug`, `label`, `light_palette`, `dark_palette`, `is_active` | `UNIQUE(slug)` |
+| `user_favorite_activity` | `user_id`, `activity_id` | PK composite, CASCADE |
+| `user_visited_activity` | `user_id`, `activity_id` | PK composite, CASCADE |
+| `activity_rating` | `score`, `user_id`, `activity_id` | `UNIQUE(user_id, activity_id)` |
+| `refresh_tokens` | `refresh_token`, `username`, `valid` | `UNIQUE(refresh_token)` |
 
-### 8.3 Index de performance
+### 8.5 Index de performance
 
 ```sql
 -- Recommandations : filtrage par catégorie et publication
@@ -607,8 +975,10 @@ CREATE INDEX IDX_USER_FAV_USER         ON user_favorite_activity (user_id);
 CREATE INDEX IDX_USER_FAV_ACTIVITY     ON user_favorite_activity (activity_id);
 
 -- Commentaires par activité (pagination)
-CREATE INDEX idx_comment_activity_date
-    ON comment (activity_id, created_at DESC);
+CREATE INDEX idx_comment_activity_created ON comments (activity_id, created_at);
+
+-- Parcours : ordre des étapes
+CREATE INDEX idx_parcours_item_position ON parcours_item (parcours_id, position);
 ```
 
 ---
@@ -680,7 +1050,7 @@ ORDER BY score DESC
 LIMIT :limit;
 ```
 
-### 9.3 Export RGPD — consultation des données utilisateur
+### 9.3 Export RGPD : consultation des données utilisateur
 
 ```sql
 -- Vérification de cohérence : données d'un utilisateur avant export
@@ -923,7 +1293,7 @@ Client App       exportMyData()     API              expo-print    expo-sharing
 
 ### 12.1 Authentification et gestion des sessions
 
-**JWT (JSON Web Tokens) — Lexik JWT Bundle**
+**JWT (JSON Web Tokens) : Lexik JWT Bundle**
 
 - Access token : durée de vie **15 minutes** (`JWT_TOKEN_TTL=900`)
 - Algorithme : RS256 (clé privée / publique RSA)
@@ -932,7 +1302,7 @@ Client App       exportMyData()     API              expo-print    expo-sharing
 - Intercepteur Axios : renouvellement transparent du JWT à l'expiration (401 → refresh → retry)
 - Logout : invalidation du refresh token en BDD + purge du SecureStore
 
-**MFA Back-office — 3 facteurs disponibles**
+**MFA Back-office : 3 facteurs disponibles**
 
 | Facteur | Implémentation |
 |--------|---------------|
@@ -959,9 +1329,9 @@ Implémentation : `Symfony\Component\RateLimiter` (token bucket) + `UserActionTh
 **Backend (Symfony)**
 
 - Validation Symfony (`Assert\*`) sur toutes les entités
-- `alias` : regex `^[\p{L}\p{N}\s\-_'.]+$/u` — interdit les balises et caractères de contrôle
+- `alias` : regex `^[\p{L}\p{N}\s\-_'.]+$/u` : interdit les balises et caractères de contrôle
 - `bio` : `strip_tags()` dans le setter + regex interdit `<` et `>` (double protection XSS)
-- Commentaires : `CommentContentSanitizer` — suppression de toute balise HTML, normalisation des espaces
+- Commentaires : `CommentContentSanitizer` : suppression de toute balise HTML, normalisation des espaces
 - Mots de passe : hashés Argon2id (`SODIUM_CRYPTO_PWHASH_ALG_ARGON2ID13`)
 
 **Frontend (React Native)**
@@ -972,7 +1342,7 @@ Implémentation : `Symfony\Component\RateLimiter` (token bucket) + `UserActionTh
 
 ### 12.4 Protection des données sensibles
 
-- Mots de passe : jamais en clair dans les logs — `SensitiveDataProcessor` Monolog filtre les champs `password`, `token`, `refresh_token`
+- Mots de passe : jamais en clair dans les logs : `SensitiveDataProcessor` Monolog filtre les champs `password`, `token`, `refresh_token`
 - Emails admin : pseudonymisés dans les logs d'audit (`EmailPseudonymizer` → SHA-256)
 - Tokens JWT : non persistés côté serveur (stateless), sauf refresh tokens (BDD chiffrée)
 - Variables d'environnement : `.env.local` exclu du Git, `.env.example` fourni sans valeurs sensibles
@@ -986,18 +1356,18 @@ Implémentation : `Symfony\Component\RateLimiter` (token bucket) + `UserActionTh
 
 ### 12.6 Sécurité du LLM
 
-Le modèle Ollama (`qwen2.5:1.5b`) est auto-hébergé. Les données envoyées sont strictement limitées aux métadonnées d'activités (nom, catégorie, ville, note moyenne) et aux noms des intérêts de l'utilisateur — jamais d'email ni d'identité personnelle.
+Le modèle Ollama (`qwen2.5:1.5b`) est auto-hébergé. Les données envoyées sont strictement limitées aux métadonnées d'activités (nom, catégorie, ville, note moyenne) et aux noms des intérêts de l'utilisateur : jamais d'email ni d'identité personnelle.
 
 **Validations de sécurité sur la réponse LLM :**
 - Seuls les IDs présents dans la liste candidate initiale sont conservés
 - Les IDs inconnus / inventés par le modèle sont filtrés
-- Timeout 3 secondes — repli automatique sur l'ordre CF/DB en cas d'échec
+- Timeout 3 secondes : repli automatique sur l'ordre CF/DB en cas d'échec
 
 ---
 
 ## 13. Extraits de code significatifs
 
-### 13.1 Moteur de recommandation — CollaborativeRecommendationEngine
+### 13.1 Moteur de recommandation : CollaborativeRecommendationEngine
 
 **Fichier :** `odos-back/src/Recommendation/CollaborativeRecommendationEngine.php`
 
@@ -1083,7 +1453,7 @@ final class CollaborativeRecommendationEngine implements RecommendationEngineInt
 
 ---
 
-### 13.2 Interface d'isolation — RecommendationEngineInterface
+### 13.2 Interface d'isolation : RecommendationEngineInterface
 
 **Fichier :** `odos-back/src/Recommendation/RecommendationEngineInterface.php`
 
@@ -1096,7 +1466,7 @@ use App\Entity\User;
 interface RecommendationEngineInterface
 {
     /** @return array<Activity> */
-    public function recommend(User $user): array;
+    public function recommend(User $user, ?string $city = null): array;
 }
 ```
 
@@ -1104,7 +1474,7 @@ interface RecommendationEngineInterface
 
 ---
 
-### 13.3 Toggle « J'ai visité » — VisitedActivityController
+### 13.3 Toggle « J'ai visité » : VisitedActivityController
 
 **Fichier :** `odos-back/src/Controller/VisitedActivityController.php`
 
@@ -1151,7 +1521,7 @@ class VisitedActivityController extends AbstractController
 }
 ```
 
-**Argumentation :** La méthode `hasVisited()` sur l'entité `User` est idempotente — un double appel POST ne crée pas de doublon en BDD. La vérification `isPublished()` empêche d'interagir avec des activités retirées du catalogue (sécurité), sauf pour un admin qui peut tester ses brouillons.
+**Argumentation :** La méthode `hasVisited()` sur l'entité `User` est idempotente : un double appel POST ne crée pas de doublon en BDD. La vérification `isPublished()` empêche d'interagir avec des activités retirées du catalogue (sécurité), sauf pour un admin qui peut tester ses brouillons.
 
 ---
 
@@ -1208,7 +1578,7 @@ api.interceptors.response.use(
 
 ---
 
-### 13.5 Génération du PDF RGPD — generateExportPdf.ts (extrait)
+### 13.5 Génération du PDF RGPD : generateExportPdf.ts (extrait)
 
 **Fichier :** `odos-front/utils/generateExportPdf.ts`
 
@@ -1226,7 +1596,7 @@ export async function shareExportAsPdf(data: ExportData): Promise<void> {
 
     await Sharing.shareAsync(uri, {
         mimeType: 'application/pdf',
-        dialogTitle: `Export de mes données ODOS — ${data.profile?.displayName ?? ''}`,
+        dialogTitle: `Export de mes données ODOS : ${data.profile?.displayName ?? ''}`,
         UTI: 'com.adobe.pdf',
     });
 }
@@ -1243,7 +1613,7 @@ function buildHtml(data: ExportData): string {
 
 ---
 
-### 13.6 Sécurisation du setter Bio — Entity User
+### 13.6 Sécurisation du setter Bio : Entity User
 
 ```php
 public function setBio(?string $bio): static
@@ -1272,13 +1642,13 @@ public function setBio(?string $bio): static
 
 ## 14. Annexes
 
-### Annexe A — Captures d'écran et interfaces utilisateur
+### Annexe A : Captures d'écran et interfaces utilisateur
 
 #### A.1 Onglet Accueil (recommandations)
 
-L'écran affiche la liste des recommandations personnalisées. Chaque carte inclut l'image de l'activité, son nom, sa note moyenne, sa catégorie et un bouton favori. Le bouton cœur utilise un optimistic update — il se met à jour instantanément sans attendre la réponse serveur.
+L'écran affiche la liste des recommandations personnalisées. Chaque carte inclut l'image de l'activité, son nom, sa note moyenne, sa catégorie et un bouton favori. Le bouton cœur utilise un optimistic update : il se met à jour instantanément sans attendre la réponse serveur.
 
-**Code correspondant — composant FavoriteCard** (`odos-front/components/FavoriteCard.tsx`) :
+**Code correspondant : composant FavoriteCard** (`odos-front/components/FavoriteCard.tsx`) :
 
 ```typescript
 export function FavoriteCard({ activity, isFavorite, onToggle }: FavoriteCardProps) {
@@ -1309,7 +1679,7 @@ export function FavoriteCard({ activity, isFavorite, onToggle }: FavoriteCardPro
 }
 ```
 
-#### A.2 Fiche activité — bouton « J'ai visité »
+#### A.2 Fiche activité : bouton « J'ai visité »
 
 Le bouton est un pill (pill shape, `borderRadius: 100`) en bas de la section informations. À l'état inactif, fond `accentSoft` et texte violet ; à l'état actif, fond `accent` (violet plein) et texte blanc.
 
@@ -1360,9 +1730,9 @@ const renderTabIcon = (name: TabIconName, seed: number, label: string) =>
 
 ---
 
-### Annexe B — Extraits de code — Composants d'accès aux données
+### Annexe B : Extraits de code : Composants d'accès aux données
 
-#### B.1 findCoEngagedActivityIds — Collaborative Filtering (extrait)
+#### B.1 findCoEngagedActivityIds : Collaborative Filtering (extrait)
 
 **Fichier :** `odos-back/src/Repository/ActivityRepository.php`
 
@@ -1437,7 +1807,7 @@ public function findRecommendationCandidates(
 
 ---
 
-### Annexe C — Composants métier
+### Annexe C : Composants métier
 
 #### C.1 CommentContentSanitizer
 
@@ -1475,9 +1845,9 @@ Le service orchestre la suppression complète du compte :
 
 ---
 
-### Annexe D — Éléments de sécurité
+### Annexe D : Éléments de sécurité
 
-#### D.1 Analyse des vulnérabilités OWASP Top 10 — synthèse
+#### D.1 Analyse des vulnérabilités OWASP Top 10 : synthèse
 
 | Risque OWASP | Mesure mise en œuvre |
 |-------------|---------------------|
@@ -1501,18 +1871,18 @@ Le service orchestre la suppression complète du compte :
 | Symfony Security Advisories | À chaque release | CVE PHP/Symfony |
 | npm audit / Dependabot | Hebdomadaire (CI) | CVE dépendances JS |
 | Expo SDK Changelog | À chaque release | Sécurité mobile |
-| HaveIBeenPwned API | — | Référence pour politique mots de passe |
+| HaveIBeenPwned API | : | Référence pour politique mots de passe |
 
 ---
 
-### Annexe E — Plan de tests
+### Annexe E : Plan de tests
 
 #### E.1 Tests backend (PHPUnit 11)
 
 | Fichier de test | Type | Ce qui est testé |
 |----------------|-----|----------------|
 | `CollaborativeRecommendationEngineTest` | Unitaire (sans DB) | Boosting CF, exclusion known ids, pas de CF sans graine, liste vide |
-| `RecommendationTest` | Unitaire | LlmRankingService — validation des IDs, repli sur ordre initial |
+| `RecommendationTest` | Unitaire | LlmRankingService : validation des IDs, repli sur ordre initial |
 | `GamificationServiceTest` | Intégration | Attribution de badges (nécessite Postgres) |
 
 **Commandes :**
@@ -1535,7 +1905,7 @@ cd odos-front
 pnpm test:coverage  # Rapport HTML → coverage/lcov-report/
 ```
 
-#### E.3 Jeu d'essai — fonctionnalité « J'ai visité »
+#### E.3 Jeu d'essai : fonctionnalité « J'ai visité »
 
 **Scénario nominal :**
 1. Connexion avec un utilisateur ayant 3 favoris (catégorie Sport)
@@ -1546,7 +1916,7 @@ pnpm test:coverage  # Rapport HTML → coverage/lcov-report/
 6. Rappui sur le bouton → état inactif → l'activité réapparaît dans les recommandations
 
 **Scénario erreur réseau :**
-1. Appui sur « J'ai visité » — réseau coupé
+1. Appui sur « J'ai visité » : réseau coupé
 2. Mise à jour optimiste : bouton passe à l'état actif immédiatement
 3. Timeout Axios → erreur capturée → rollback du cache → bouton revient à l'état inactif
 4. Toast d'erreur affiché à l'utilisateur
@@ -1557,7 +1927,7 @@ pnpm test:coverage  # Rapport HTML → coverage/lcov-report/
 3. `curl -X POST https://api/activities/99/visited -H "Authorization: Bearer EXPIRED_TOKEN"`
 4. Réponse attendue : `401 Unauthorized` (le token expiré n'est pas renouvelé côté serveur)
 
-#### E.4 CI/CD — Pipeline GitHub Actions
+#### E.4 CI/CD : Pipeline GitHub Actions
 
 ```yaml
 # .github/workflows/ci.yml (extrait)
@@ -1577,7 +1947,7 @@ jobs:
 
 ---
 
-### Annexe F — Veille technologique
+### Annexe F : Veille technologique
 
 #### F.1 Innovations suivies et intégrées au projet
 
@@ -1589,7 +1959,7 @@ jobs:
 | **TanStack Query v5** | Release notes, RFC | `gcTime` (ex `cacheTime`), invalidation multiple simultanée |
 | **MapLibre GL Native** | GitHub Releases maplibre-react-native | Remplacement de Mapbox (licence), mode sombre natif |
 | **Expo Router v6** | Changelog Expo | Navigation file-based, typage statique des routes |
-| **RGPD — Délibérations CNIL** | Site cnil.fr, veille mensuelle | Mise à jour politique de confidentialité (visites, filtrage collaboratif, LLM) |
+| **RGPD : Délibérations CNIL** | Site cnil.fr, veille mensuelle | Mise à jour politique de confidentialité (visites, filtrage collaboratif, LLM) |
 
 #### F.2 Choix architecturaux motivés par la veille
 
@@ -1604,6 +1974,70 @@ Les alternatives (envoi JSON à un service tiers de génération PDF, bibliothè
 
 ---
 
-*Dossier de projet — Concepteur Développeur d'Applications (CDA) — Niveau 6*  
-*Candidat : Manuel — Juin 2026*  
-*Code titre : TP-01281 — SIGLE CDA*
+### Annexe G : Portage Web (web app responsive)
+
+*(Ajout juin 2026 : mise en ligne d'une version web de l'app sur `app.odos.world`.)*
+
+#### G.1 Bi-modularité : un seul code, deux runtimes
+
+L'app mobile (Expo / React Native) est portée en **web app** via **react-native-web**, **sans
+fork** : ~98 % du code (logique, état TanStack Query, contextes, écrans) est partagé. La divergence
+web ↔ natif est isolée par **4 coutures explicites** :
+
+| Mécanisme | Usage | Bénéfice |
+|-----------|-------|----------|
+| Résolution au bundling (resolver Metro) | `@maplibre/maplibre-react-native` → `MapLibreWeb` (maplibre-gl) sur web, natif sinon | `maplibre-gl` **jamais** dans le bundle Android (aucun surpoids APK) |
+| Split par extension `.web.ts` | `use-color-scheme.web.ts` | Code web isolé dans un fichier dédié |
+| Branchement runtime `Platform.OS` | push notifications gardées `!== 'web'` | Capacités natives neutralisées proprement sur web |
+| Import dynamique sous garde | `expo-notifications` chargé seulement sur natif | Dépendance native hors du chemin web |
+
+**Choix `web.output: "single"` (SPA)** : abandon du prerender SSR (`static`) qui entrait en conflit
+avec les librairies client-only (reanimated, carte) : erreurs « multiple renderers » et crashs
+d'hydratation. Le rendu 100 % client supprime cette classe de bugs.
+
+#### G.2 Déploiement web (extension du pipeline CI/CD)
+
+Le workflow `deploy-prod.yml` est étendu d'un job **`deploy-web`** : build statique
+(`expo export -p web`) sur le runner GitHub, puis publication par `rsync` vers le VPS. Côté serveur,
+un **vhost nginx** dédié (`app.odos.world`) sert les fichiers statiques avec **fallback SPA**
+(`try_files … /index.html`), **HTTPS** via certbot, et l'**origin CORS** ajouté à l'API. Le pipeline
+backend a été durci au passage (port nginx Docker, régénération du cache prod, healthcheck `/api/health`
+avec rollback). *Réf. : [WEB_APP_DEPLOYMENT.md](WEB_APP_DEPLOYMENT.md).*
+
+#### G.3 Responsivité (écrans larges)
+
+L'app étant **mobile-first**, le rendu web sur grand écran étirait les cartes plein viewport. Mise en
+place d'une stratégie **« mobile-first qui s'épanouit »** :
+
+- **Hook `useResponsive()`** : source unique des breakpoints (600 / 1024 / 1440 px) et du nombre de
+  colonnes recommandé : **règle : jamais de `numColumns` figé**.
+- **Favoris** : colonnes adaptatives (2 phone / 3 tablette / 4–5 desktop) + bascule **Grille / Liste**
+  (lignes compactes) pour scanner toute la collection.
+- **Recherche** : largeurs de cartes **bornées** (`maxWidth` + centrage), carte vedette en ratio fixe.
+- **Conformité design** : caps préservant la longueur de ligne (DA : 44–54 caractères) et le
+  photo-first ; patterns **familiers** au sens de la **loi de Jakob** (cœur toggle + liste dédiée,
+  toggle Grille/Liste type Pinterest) sans toucher à la navigation.
+- **Non-régression** : tout le spécifique desktop est conditionné (`Platform.OS === 'web'` /
+  breakpoints) → le natif est inchangé ; vérifié par `tsc` + `eslint`. *Réf. :
+  [AUDIT_RESPONSIVE_WEB.md](AUDIT_RESPONSIVE_WEB.md).*
+
+#### G.4 Compétences CDA couvertes
+
+| Compétence | Illustration |
+|------------|--------------|
+| Développer une interface **multi-supports** | Un code, cibles Android / iOS / Web (react-native-web) |
+| Adapter l'IHM aux **différents écrans** | Breakpoints responsives, grilles adaptatives, caps de largeur |
+| **Déployer** en intégration continue | Job `deploy-web`, vhost nginx, HTTPS, CORS, rollback |
+| **Sécuriser** le déploiement | CORS origin exact (pas de wildcard), HTTPS bout-en-bout, healthcheck |
+
+---
+
+### Annexe H. Schémas Mermaid
+
+Pour ne pas alourdir ce dossier, tous les diagrammes détaillés sont dans **[ARCHITECTURE_MERMAID.md](ARCHITECTURE_MERMAID.md)** (vue système, déploiement, auth, recommandations, push, et les 34 tables avec leurs colonnes).
+
+Pour les visualiser : preview GitHub, [mermaid.live](https://mermaid.live), ou l'extension « Markdown Preview Mermaid Support » dans VS Code.
+
+---
+
+*Dossier de projet CDA (niveau 6) · Manuel · juin 2026, dernière révision le 28/06/2026 · TP-01281*

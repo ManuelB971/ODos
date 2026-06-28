@@ -1,7 +1,7 @@
 import { Tabs, useRouter } from 'expo-router';
 
 import { MaterialIcons } from '@expo/vector-icons';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { useCity } from '@/context/CityContext';
 import { getOnboardingRoute, hasCompletedOnboarding, ONBOARDING_CITY_HREF } from '@/utils/onboardingRoute';
@@ -11,6 +11,7 @@ import { BlobFrame } from '@/components/ui/BlobFrame';
 import { HapticTab } from '@/components/HapticTab';
 import { useSocialUnreadCount } from '@/hooks/useSocialUnreadCount';
 import { useAppIconBadge } from '@/hooks/useAppIconBadge';
+import { useResponsive } from '@/hooks/useResponsive';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import React, { useEffect } from 'react';
 
@@ -23,6 +24,11 @@ export default function TabLayout() {
   const colors = useOdosColors();
   const isMosaicPop = useIsMosaicPop();
   const pop = usePopTokens();
+  const { isDesktop } = useResponsive();
+  // Desktop web : la bottom-tab devient un **rail latéral gauche** (idiome desktop,
+  // récupère l'espace horizontal). Gardé derrière `web + isDesktop` → natif (et
+  // tablette tactile) strictement inchangés. Cf. docs/AUDIT_RESPONSIVE_WEB.md (Niveau 1).
+  const railNav = Platform.OS === 'web' && isDesktop;
   const { data: unread } = useSocialUnreadCount();
   // Synchronise le badge sur l'icône de l'app avec les non-lus social.
   useAppIconBadge();
@@ -93,10 +99,12 @@ export default function TabLayout() {
   // Onglet central « Parcours » : bouton orange proéminent (playlist façon
   // Spotify). Pastille pleine + léger soulèvement, distinct des icônes-traits.
   const renderParcoursIcon = () => function ParcoursTabIcon() {
+    // Sur le rail vertical, on neutralise le soulèvement (-8) pensé pour la barre du bas.
+    const wrapStyle = railNav ? [styles.centerWrap, styles.centerWrapRail] : styles.centerWrap;
     if (isMosaicPop) {
       return (
         <View style={styles.centerSlot}>
-          <View style={styles.centerWrap}>
+          <View style={wrapStyle}>
             <View
               pointerEvents="none"
               style={[StyleSheet.absoluteFill, styles.centerShadow, { backgroundColor: pop.ink }]}
@@ -110,7 +118,7 @@ export default function TabLayout() {
     }
     return (
       <View style={styles.centerSlot}>
-        <View style={styles.centerWrap}>
+        <View style={wrapStyle}>
           <View style={[styles.centerBtn, { backgroundColor: colors.accent, borderColor: colors.background, borderWidth: 4 }]}>
             <MaterialIcons name="route" size={26} color={colors.onAccent} />
           </View>
@@ -139,7 +147,19 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
-        tabBarStyle: isMosaicPop
+        // Desktop web : rail à gauche ; sinon barre du bas (idiome mobile inchangé).
+        tabBarPosition: railNav ? 'left' : 'bottom',
+        tabBarStyle: railNav
+          ? {
+              backgroundColor: isMosaicPop ? pop.paper : colors.background,
+              borderRightColor: isMosaicPop ? pop.ink : colors.border,
+              borderRightWidth: isMosaicPop ? 2.5 : 1,
+              borderTopWidth: 0,
+              width: 108,
+              paddingTop: 24,
+              paddingBottom: 24,
+            }
+          : isMosaicPop
           ? {
               backgroundColor: pop.paper,
               borderTopColor: pop.ink,
@@ -155,9 +175,9 @@ export default function TabLayout() {
               paddingBottom: 8,
               paddingTop: 4,
             },
-        tabBarItemStyle: {
-          paddingVertical: 4,
-        },
+        tabBarItemStyle: railNav
+          ? { paddingVertical: 12 }
+          : { paddingVertical: 4 },
         tabBarLabelStyle: tabLabelStyle,
         tabBarActiveTintColor: isMosaicPop ? pop.ink : colors.accent,
         tabBarInactiveTintColor: isMosaicPop ? pop.muted : colors.muted,
@@ -244,6 +264,10 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     transform: [{ translateY: -8 }],
+  },
+  // Rail vertical (desktop) : pas de soulèvement, le bouton s'aligne aux autres.
+  centerWrapRail: {
+    transform: [{ translateY: 0 }],
   },
   centerShadow: {
     borderRadius: 100,

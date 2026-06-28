@@ -16,13 +16,17 @@ class DashboardController extends AbstractDashboardController
 {
     public function __construct(
         private readonly AdminDashboardStatsProvider $adminDashboardStatsProvider,
+        private readonly string $wazuhDashboardUrl,
     ) {
     }
 
     #[Route('/admin', name: 'admin')]
     public function index(): Response
     {
-        return $this->render('admin/dashboard.html.twig', $this->adminDashboardStatsProvider->getDashboardData());
+        return $this->render('admin/dashboard.html.twig', [
+            ...$this->adminDashboardStatsProvider->getDashboardData(),
+            'wazuh_dashboard_url' => $this->wazuhDashboardUrl,
+        ]);
     }
 
     #[Route('/admin/recommendations', name: 'admin_recommendations')]
@@ -97,6 +101,10 @@ class DashboardController extends AbstractDashboardController
         yield MenuItem::section('Gamification');
         yield MenuItem::linkTo(UserBadgeCrudController::class, 'Badges attribués', 'fas fa-medal');
         yield MenuItem::section('Système');
+        if ('' !== $this->wazuhDashboardUrl) {
+            yield MenuItem::linkToUrl('Wazuh SIEM', 'fas fa-shield-halved', $this->wazuhDashboardUrl)
+                ->setLinkTarget('_blank');
+        }
         yield MenuItem::linkTo(RefreshTokenCrudController::class, 'Jetons refresh (JWT)', 'fas fa-key');
         yield MenuItem::linkTo(AdminWebauthnCredentialCrudController::class, 'WebAuthn (admin)', 'fas fa-fingerprint');
         yield MenuItem::linkTo(AdminAuditLogCrudController::class, 'Logs admin', 'fas fa-clipboard-list');

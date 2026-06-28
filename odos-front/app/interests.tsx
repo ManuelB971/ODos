@@ -22,6 +22,7 @@ import { BrandBaseline } from '@/components/BrandBaseline';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { SprayBackground } from '@/components/ui/SprayBackground';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 import { logError, toAppError } from '@/utils/errorHandling';
 import { ONBOARDING_CITY_HREF } from '@/utils/onboardingRoute';
 
@@ -133,6 +134,7 @@ const InterestsScreen = () => {
         <View style={styles.backBtn} />
       </View>
 
+      <ResponsiveShell>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -253,6 +255,7 @@ const InterestsScreen = () => {
           fullWidth
         />
       </View>
+      </ResponsiveShell>
       </View>
     </SprayBackground>
   );

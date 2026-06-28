@@ -7,6 +7,7 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Platform,
   Pressable,
   StyleSheet,
@@ -22,6 +23,8 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query';
 
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
+import { FontFamily } from '@/constants/theme';
+import { useResponsive } from '@/hooks/useResponsive';
 import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useMapExploration } from '@/hooks/useMapExploration';
@@ -59,12 +62,19 @@ const CAMERA_EASE_MS = 380;
 
 /**
  * Carte plein écran : pins ODOS interactifs + callout sur sélection (tap pin).
- * Pas de bottom sheet / liste — l’activité s’affiche au tap sur le marqueur.
+ * Mobile : pas de bottom sheet — l’activité s’affiche au tap sur le marqueur.
+ * Desktop web : panneau latéral de résultats (liste verticale gardée par `sidePanel`),
+ * façon Maps/Airbnb — le flow pin → callout → fiche reste intact. Cf. AUDIT_RESPONSIVE_WEB.md.
  */
 export function MapExperience({ activities, loading = false, error = null }: MapExperienceProps) {
   const colors = useOdosColors();
   const { colorScheme } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isDesktop } = useResponsive();
+  // Desktop web : carte + **panneau latéral de résultats** (façon Maps/Airbnb),
+  // au lieu du seul callout au tap. Gardé derrière web+desktop → mobile/natif inchangé.
+  // Cf. docs/AUDIT_RESPONSIVE_WEB.md (Niveau 2).
+  const sidePanel = Platform.OS === 'web' && isDesktop;
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isAuthenticated, user, setUser } = useAuth();
@@ -303,7 +313,39 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   const showEmpty = !loading && !error && filtered.length === 0;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, sidePanel && styles.rootRow]}>
+      {sidePanel ? (
+        <View style={styles.panel}>
+          <View style={styles.panelHeader}>
+            <Text style={styles.panelTitle}>Résultats</Text>
+            <Text style={styles.panelCount}>
+              {filtered.length} lieu{filtered.length > 1 ? 'x' : ''}
+            </Text>
+          </View>
+          <FlatList
+            data={filtered}
+            keyExtractor={(a) => String(a.id)}
+            contentContainerStyle={styles.panelListContent}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <ActivityCard
+                activity={item}
+                active={item.id === selectedId}
+                fullWidth
+                onPress={() => focusActivity(item)}
+              />
+            )}
+            ListEmptyComponent={
+              loading ? null : (
+                <Text style={styles.panelEmpty}>
+                  Aucun lieu trouvé. Essaie un autre filtre ou élargis ta recherche.
+                </Text>
+              )
+            }
+          />
+        </View>
+      ) : null}
+      <View style={styles.mapColumn}>
       <View style={styles.mapStage}>
         <Map
           style={styles.map}
@@ -431,6 +473,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
           setShowConsentModal(false);
         }}
       />
+      </View>
     </View>
   );
 }
@@ -440,6 +483,49 @@ function createStyles(colors: OdosColorPalette) {
   root: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  // ── Desktop web : carte + panneau latéral de résultats ──
+  rootRow: {
+    flexDirection: 'row',
+  },
+  mapColumn: {
+    flex: 1,
+    position: 'relative',
+  },
+  panel: {
+    width: 380,
+    backgroundColor: colors.background,
+    borderRightWidth: 1,
+    borderRightColor: colors.border,
+  },
+  panelHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  panelTitle: {
+    fontFamily: FontFamily.display,
+    fontSize: 22,
+    color: colors.text,
+  },
+  panelCount: {
+    marginTop: 2,
+    fontSize: 13,
+    fontFamily: FontFamily.ui,
+    color: colors.muted,
+  },
+  panelListContent: {
+    padding: 12,
+    gap: 10,
+  },
+  panelEmpty: {
+    padding: 24,
+    fontSize: 14,
+    fontFamily: FontFamily.ui,
+    color: colors.muted,
+    textAlign: 'center',
   },
   mapStage: {
     ...StyleSheet.absoluteFillObject,

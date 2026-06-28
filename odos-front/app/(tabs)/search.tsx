@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Dimensions,
   FlatList,
   Platform,
   Pressable,
@@ -161,6 +160,10 @@ export default function SearchScreen() {
     paddingTop: insets.top + 12,
     paddingBottom: insets.bottom + 88,
     paddingHorizontal: horizontalPad,
+    // Liste de résultats centrée et bornée sur grand écran (web).
+    width: '100%' as const,
+    maxWidth: 720,
+    alignSelf: 'center' as const,
   };
 
   // Mosaïque pop + recherche active : FlatList virtualisée (évite N× SVG en ScrollView).
@@ -434,7 +437,6 @@ function SearchResultRow({ item, onPress }: { item: ApiActivity; onPress: () => 
   );
 }
 
-const winW = Dimensions.get('window').width;
 const horizontalPad = 20;
 
 function createStyles(colors: OdosColorPalette) {
@@ -540,8 +542,11 @@ function createStyles(colors: OdosColorPalette) {
     color: colors.elevated,
   },
   heroCard: {
-    width: winW - horizontalPad * 2,
-    height: Math.round((winW - horizontalPad * 2) * 0.58),
+    // Largeur fluide bornée (web) + ratio constant — l'image est en absoluteFill.
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+    aspectRatio: 1 / 0.58,
     borderRadius: 28,
     overflow: 'hidden',
     marginBottom: 16,
@@ -613,12 +618,19 @@ function createStyles(colors: OdosColorPalette) {
     flexDirection: 'row',
     gap: 12,
     marginBottom: 16,
+    // Anti-ballon web : la rangée 2 col ne s'étire pas au-delà → cartes bornées.
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
   },
   gridSpacer: {
     flex: 1,
   },
   mosaicFeaturedWrap: {
     marginBottom: 16,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   mosaicBrowseHint: {
     fontFamily: sans,
@@ -725,6 +737,9 @@ function createStyles(colors: OdosColorPalette) {
   },
   searchResultsBlock: {
     paddingBottom: 24,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
   },
   resultRow: {
     flexDirection: 'row',

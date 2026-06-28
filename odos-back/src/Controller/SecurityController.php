@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Security\AdminIntendedPathResolver;
 use App\Security\AdminMfaService;
 use App\Security\AdminSmsOtpService;
 use App\Service\AdminAuditLogger;
@@ -9,6 +10,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 
 class SecurityController extends AbstractController
@@ -26,14 +28,18 @@ class SecurityController extends AbstractController
     private const LOCK_DURATION_SECONDS = 900;
 
     #[Route(path: '/login', name: 'app_login')]
-    public function login(AuthenticationUtils $authenticationUtils): Response
-    {
+    public function login(
+        Request $request,
+        AuthenticationUtils $authenticationUtils,
+        AdminIntendedPathResolver $intendedPathResolver,
+        UrlGeneratorInterface $urlGenerator,
+    ): Response {
         if ($this->getUser()) {
             if ($this->isGranted('ROLE_ADMIN') && !$this->getSessionFlag()) {
                 return $this->redirectToRoute('app_admin_mfa');
             }
 
-            return $this->redirectToRoute('admin');
+            return $this->redirect($intendedPathResolver->resolve($request, $urlGenerator));
         }
 
         // get the login error if there is one
@@ -50,6 +56,8 @@ class SecurityController extends AbstractController
         AdminMfaService $adminMfaService,
         AdminSmsOtpService $smsOtpService,
         AdminAuditLogger $adminAuditLogger,
+        AdminIntendedPathResolver $intendedPathResolver,
+        UrlGeneratorInterface $urlGenerator,
     ): Response
     {
         if (!$this->isGranted('ROLE_ADMIN')) {
@@ -58,7 +66,7 @@ class SecurityController extends AbstractController
 
         $session = $request->getSession();
         if ($session->get(self::SESSION_MFA_PASS_KEY, false)) {
-            return $this->redirectToRoute('admin');
+            return $this->redirect($intendedPathResolver->resolve($request, $urlGenerator));
         }
 
         $error = null;
@@ -175,7 +183,7 @@ class SecurityController extends AbstractController
                     $session->remove(self::SESSION_TOTP_LOCK_UNTIL_KEY);
                     $adminAuditLogger->log('MFA_SUCCESS', 'MFA', null, 'MFA admin validée (TOTP + SMS)', 'info');
 
-                    return $this->redirectToRoute('admin');
+                    return $this->redirect($intendedPathResolver->resolve($request, $urlGenerator));
                 }
             }
         }

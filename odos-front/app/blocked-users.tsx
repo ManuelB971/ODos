@@ -9,6 +9,7 @@ import { UserLink } from '@/components/social/UserLink';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { ThemedScreen } from '@/components/ui/ThemedScreen';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 
 export default function BlockedUsersScreen() {
   const colors = useOdosColors();
@@ -23,6 +24,7 @@ export default function BlockedUsersScreen() {
   return (
     <ThemedScreen noSafeArea>
       <Stack.Screen options={{ title: 'Utilisateurs bloqués', headerShown: true }} />
+      <ResponsiveShell>
       <FlatList
         data={blocked}
         keyExtractor={(item) => String(item.id)}
@@ -78,6 +80,7 @@ export default function BlockedUsersScreen() {
           </View>
         )}
       />
+      </ResponsiveShell>
     </ThemedScreen>
   );
 }

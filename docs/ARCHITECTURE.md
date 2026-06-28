@@ -449,6 +449,7 @@ Ces éléments ne sont pas des bugs documentés, mais des **choix à connaître*
 |-------|----------|
 | Démarrage local | [README racine](../README.md) |
 | Index documentation | [docs/README.md](README.md) |
+| **Schémas Mermaid (tous)** | [ARCHITECTURE_MERMAID.md](ARCHITECTURE_MERMAID.md) |
 | CI/CD | [CI_CD_V2_2026.md](CI_CD_V2_2026.md) |
 | RGPD | [RGPD_registre.md](RGPD_registre.md) · [RGPD_AUDIT_2026.md](RGPD_AUDIT_2026.md) |
 | Rétention données / logs | [LOG_RETENTION.md](LOG_RETENTION.md) |

@@ -33,6 +33,7 @@ import { MosaicPopCard, MosaicPopRow } from '@/components/cards/MosaicPopCard';
 import { MosaicPopMap } from '@/components/cards/MosaicPopMap';
 import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 
 /** Helper: get the category display name from the API response */
 const getCategoryName = (cat: ApiActivity['category']): string => {
@@ -218,6 +219,8 @@ export default function HomeScreen() {
       imageStyle={[styles.bgSpray, { opacity: sprayOpacity }]}
       resizeMode="cover"
     >
+      {/* Web : feed centré en colonne lisible (cf. AUDIT_RESPONSIVE_WEB.md, Niveau 0). */}
+      <ResponsiveShell>
       <FlatList
         data={homeActivities}
         keyExtractor={(item) => String(item.id)}
@@ -416,6 +419,7 @@ export default function HomeScreen() {
         }
         contentContainerStyle={styles.scrollContent}
       />
+      </ResponsiveShell>
     </ImageBackground>
   );
 }

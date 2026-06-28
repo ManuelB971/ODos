@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PopSurface } from '@/components/pop/PopSurface';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import { FontFamily, Radius, Spacing } from '@/constants/theme';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { useResponsive } from '@/hooks/useResponsive';
+import { SHEET_MAX_WIDTH } from '@/hooks/useResponsiveSheet';
 import type { OdosActionSheetPayload } from '@/components/ui/odosModalTypes';
 
 type Props = OdosActionSheetPayload & {
@@ -27,6 +29,10 @@ export function OdosActionSheetView({
   const isMosaicPop = useIsMosaicPop();
   const pop = usePopTokens();
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useResponsive();
+  // Desktop web : la feuille d'actions glissant du bas devient une **modale centrée**.
+  // Cf. docs/AUDIT_RESPONSIVE_WEB.md (Niveau 1).
+  const centered = Platform.OS === 'web' && isDesktop;
   const styles = useMemo(
     () => createStyles(colors, isMosaicPop ? pop : null),
     [colors, isMosaicPop, pop],
@@ -63,16 +69,16 @@ export function OdosActionSheetView({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.root}>
+      <View style={[styles.root, centered && styles.rootCentered]}>
         <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Fermer" />
-        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Spacing.md) }, centered && styles.footerCentered]}>
           {isMosaicPop ? (
             <PopSurface shadow={5} radius={Radius.card} contentStyle={styles.popSheet}>
               <View style={styles.handle} />
               {sheetBody}
             </PopSurface>
           ) : (
-            <View style={styles.sheet}>
+            <View style={[styles.sheet, centered && styles.sheetCentered]}>
               <View style={styles.handle} />
               {sheetBody}
             </View>
@@ -96,6 +102,21 @@ function createStyles(colors: OdosColorPalette, pop: ReturnType<typeof usePopTok
     root: {
       flex: 1,
       justifyContent: 'flex-end',
+    },
+    // ── Desktop web : modale centrée plutôt que feuille du bas ──
+    rootCentered: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 24,
+    },
+    footerCentered: {
+      width: '100%',
+      maxWidth: SHEET_MAX_WIDTH,
+      alignSelf: 'center',
+    },
+    sheetCentered: {
+      borderRadius: Radius.modal,
+      borderBottomWidth: 1,
     },
     backdrop: {
       ...StyleSheet.absoluteFillObject,

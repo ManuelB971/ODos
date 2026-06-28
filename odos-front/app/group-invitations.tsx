@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { useGroupInvitationMutations, useGroupInvitations } from '@/hooks/useGroups';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 
 export default function GroupInvitationsScreen() {
   const colors = useOdosColors();
@@ -14,6 +15,7 @@ export default function GroupInvitationsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ title: 'Invitations', headerShown: true }} />
+      <ResponsiveShell>
       <FlatList
         data={invitations}
         keyExtractor={(item) => String(item.id)}
@@ -49,6 +51,7 @@ export default function GroupInvitationsScreen() {
           </View>
         )}
       />
+      </ResponsiveShell>
     </View>
   );
 }
