@@ -197,18 +197,7 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
 
     private function handleUploadedPhoto(BadgeDefinition $badge): void
     {
-        $request = $this->requestStack->getCurrentRequest();
-        if (null === $request) {
-            return;
-        }
-
-        $files = $request->files->all();
-        $entityFormFiles = $files['BadgeDefinition'] ?? null;
-        if (!is_array($entityFormFiles)) {
-            return;
-        }
-
-        $uploaded = $entityFormFiles[self::PHOTO_FORM_FIELD] ?? null;
+        $uploaded = $this->findUploadedFile(self::PHOTO_FORM_FIELD);
         if (!$uploaded instanceof UploadedFile) {
             return;
         }
@@ -218,5 +207,26 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
         } catch (FileException $e) {
             throw new \RuntimeException($e->getMessage(), 0, $e);
         }
+    }
+
+    private function findUploadedFile(string $fieldName): ?UploadedFile
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        if (null === $request) {
+            return null;
+        }
+
+        foreach ($request->files->all() as $bag) {
+            if (!is_array($bag)) {
+                continue;
+            }
+
+            $uploaded = $bag[$fieldName] ?? null;
+            if ($uploaded instanceof UploadedFile) {
+                return $uploaded;
+            }
+        }
+
+        return null;
     }
 }

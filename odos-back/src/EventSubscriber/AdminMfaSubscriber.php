@@ -2,6 +2,7 @@
 
 namespace App\EventSubscriber;
 
+use App\Security\AdminIntendedPathResolver;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -14,6 +15,7 @@ class AdminMfaSubscriber implements EventSubscriberInterface
     public function __construct(
         private readonly Security $security,
         private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly AdminIntendedPathResolver $intendedPathResolver,
         private readonly bool $mfaEnabled = true,
     ) {
     }
@@ -56,6 +58,8 @@ class AdminMfaSubscriber implements EventSubscriberInterface
         if ($request->getSession()->get('admin_mfa_passed', false)) {
             return;
         }
+
+        $this->intendedPathResolver->rememberCurrentPath($request);
 
         $event->setResponse(new RedirectResponse($this->urlGenerator->generate('app_admin_mfa')));
     }
