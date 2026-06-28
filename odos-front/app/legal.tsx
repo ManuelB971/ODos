@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Spacing } from '@/constants/theme';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 
 type SectionKey = 'cgu' | 'privacy' | 'mentions';
 
@@ -139,9 +140,11 @@ export default function LegalScreen() {
         <View style={styles.headerSpacer} />
       </View>
 
+      <ResponsiveShell>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.body}>{body}</Text>
       </ScrollView>
+      </ResponsiveShell>
     </View>
   );
 }

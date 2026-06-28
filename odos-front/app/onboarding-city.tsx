@@ -20,6 +20,7 @@ import { BrandBaseline } from '@/components/BrandBaseline';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { SprayBackground } from '@/components/ui/SprayBackground';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 import { logError, toAppError } from '@/utils/errorHandling';
 
 export default function OnboardingCityScreen() {
@@ -82,6 +83,7 @@ export default function OnboardingCityScreen() {
           <View style={styles.backBtn} />
         </View>
 
+        <ResponsiveShell>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           <View style={styles.onboardingSteps} accessibilityRole="text" accessibilityLabel={t('onboarding.step2of2')}>
             <View style={styles.onboardingStep}>
@@ -169,6 +171,7 @@ export default function OnboardingCityScreen() {
             fullWidth
           />
         </View>
+        </ResponsiveShell>
       </View>
     </SprayBackground>
   );

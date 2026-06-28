@@ -21,6 +21,7 @@ import { useLanguage, type LanguagePreference } from '@/context/LanguageContext'
 import { useAvailableThemes } from '@/hooks/useThemes';
 import { FontFamily, Radius, Spacing } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 
 const LANGUAGE_OPTIONS: { value: LanguagePreference; labelKey: string }[] = [
   { value: 'system', labelKey: 'language.system' },
@@ -57,6 +58,8 @@ export default function AppearanceScreen() {
   const insets = useSafeAreaInsets();
 
   return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <ResponsiveShell>
     <ScrollView
       style={[styles.screen, { paddingTop: insets.top }]}
       contentContainerStyle={styles.content}
@@ -225,6 +228,8 @@ export default function AppearanceScreen() {
         })}
       </View>
     </ScrollView>
+    </ResponsiveShell>
+    </View>
   );
 }
 
