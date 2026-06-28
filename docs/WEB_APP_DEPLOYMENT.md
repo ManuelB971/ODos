@@ -284,8 +284,24 @@ Ouvre `https://app.odos.world` et vérifie :
 
 ### (Optionnel) Étape 9 — Automatiser le déploiement
 
-Ajouter un job GitHub Actions (`.github/workflows/`) : `pnpm build:web` puis `rsync` vers le VPS
-(via secret SSH). Non requis pour la v1 — le déploiement manuel (étapes 4-5) suffit.
+Le job **`Build & deploy web app`** est dans `.github/workflows/deploy-prod.yml`.
+
+**Déployer uniquement la web app** (sans repasser par l'API) :
+
+1. GitHub → **Actions** → **Deploy Production** → **Run workflow**
+2. Choisir **`target: web`**
+3. Le job backend est ignoré ; seul `deploy-web` build et publie vers `/var/www/odos-web`
+
+Pour un déploiement complet (API + web), laisser **`target: all`** (déclenché aussi automatiquement après CI sur `main`).
+
+### Dépannage deploy GitHub Actions
+
+| Symptôme | Cause | Correctif |
+|----------|-------|-----------|
+| Deploy échoue ~4 s après `cache:warmup` | Healthcheck sur URL invalide (`/api` → 401, `/api/health` → 404 si pas encore mergé) ou `chown` bloquant | GitHub → Variables : `PROD_HEALTHCHECK_URL` = `https://api.odos-api.com/api/categories` ; merger `HealthController` + fix workflow sur `main` |
+| Job `Build & deploy web app` ne démarre pas | `needs: deploy` et le job backend a échoué | Relancer avec **`target: web`** ou corriger le healthcheck backend |
+| `/var/www/odos-web` ne contient que `index.html` | Job `deploy-web` n'a pas tourné (échec backend) ou ancien upload `dist/*` sans sous-dossiers | Merger le fix `deploy-prod.yml`, relancer avec `target: web` ; vérif. `_expo/` et `assets/` |
+| API 401 sur `curl …/api` | Normal (JWT requis) | Tester `curl …/api/categories` ou `…/api/health` → 200 |
 
 ### Redéploiements futurs (résumé)
 
