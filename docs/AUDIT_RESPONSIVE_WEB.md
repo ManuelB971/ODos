@@ -11,8 +11,13 @@
 >
 > **État (2026-06-28)** : correctifs **Favoris + Recherche livrés** (cf. Partie 3) ; hook
 > `useResponsive` créé ; **`ResponsiveShell` livré** et appliqué aux **colonnes de lecture**
-> (Accueil, Compte, Paramètres, Communauté, Parcours) — cf. Niveau 0 ci-dessous. Reste les
-> Niveaux 1-2 (nav desktop, grilles bento, editorial split détail).
+> (Accueil, Compte, Paramètres, Communauté, Parcours) — cf. Niveau 0. **Niveau 1 livré** :
+> bottom-tab → **rail latéral gauche** sur desktop + **bottom sheets recentrées** (≤ 480) via
+> `useResponsiveSheet`. **Niveau 2 avancé** : **editorial split** (détail activité), **split
+> carte/étapes** (`parcours/[id]`) et **carte + panneau latéral de résultats** (recherche). Reste
+> (Niveau 2) : bento home, grille communauté 2 col.
+>
+> **→ Revue code complète + gaps précis : voir [Partie 4 — Audit de conformité](#partie-4--audit-de-conformité-revue-code-2026-06-28).**
 
 ---
 
@@ -90,11 +95,18 @@ Règle ~80 % du ressenti pour un effort minime.
    ⚠️ Ne **pas** caper les grilles favoris/recherche à 760 (elles veulent s'élargir) : leur passer
    `SHELL_MAX_WIDTH.wide` ou les laisser gérer leurs colonnes via `useResponsive()`.
 
-#### Niveau 1 — Navigation desktop (~2–3 j)
+#### Niveau 1 — Navigation desktop ✅ livré
 
-- **Tab bar → rail latéral** sur desktop : transformer la bottom-tab en **sidebar gauche** (ou top
-  nav en **pill verre**, cf. DA §6 « header verre `backdrop-filter` »). La bottom bar reste sur
-  phone/tablette. Idiome desktop correct + récupère l'espace horizontal.
+- **Tab bar → rail latéral** ✅ ([app/(tabs)/_layout.tsx](../odos-front/app/(tabs)/_layout.tsx)) :
+  sur desktop web la bottom-tab passe en **rail gauche** via `tabBarPosition: 'left'` (prop native
+  React Navigation v7 — **pas de tab bar réinventée**), largeur 108, bordure droite, bouton central
+  « Parcours » sans soulèvement. Gardé derrière `Platform.OS === 'web' && isDesktop` → la bottom bar
+  reste sur phone/tablette **et tout le natif est inchangé**.
+- **Bottom sheets → modale centrée** ✅ : hook `useResponsiveSheet`
+  ([hooks/useResponsiveSheet.ts](../odos-front/hooks/useResponsiveSheet.ts)) — source unique qui, sur
+  desktop web, recentre le backdrop et borne la feuille à `maxWidth 480` (tous coins arrondis).
+  Adopté par les feuilles sociales (Activity/Conversation/Parcours pickers, partage parcours, Share,
+  signalement) et la création de parcours. Natif / web mobile = comportement bottom-sheet inchangé.
 
 #### Niveau 2 — Densification multi-colonnes (~3–5 j, écran par écran)
 
@@ -102,8 +114,19 @@ Règle ~80 % du ressenti pour un effort minime.
   via un composant `ResponsiveGrid` (1 col phone / 2 tablette / 3 desktop, `flexWrap` + largeur de
   colonne calculée). Pour la **home**, appliquer l'archétype **Asymmetrical Bento** du skill
   (cartes de tailles variées) avec la palette chaude.
-- **Détail activité** → archétype **Editorial Split** sur desktop (photo à gauche `w-1/2`, infos +
-  CTA pill à droite) au lieu d'une colonne étirée. Photo-first = cœur de la DA.
+- **Détail activité** ✅ → archétype **Editorial Split** sur desktop
+  ([app/activity/[id].tsx](../odos-front/app/activity/[id].tsx)) : photo à gauche (`flex:1`, 560 px,
+  coins arrondis) / infos + notation + description + commentaires à droite, le tout dans une rangée
+  centrée `maxWidth 1180`. Gardé derrière `web + isDesktop` → mobile/natif inchangé. Photo-first = cœur de la DA.
+- **Parcours `[id]`** ✅ → **split carte / étapes** sur desktop
+  ([app/parcours/[id].tsx](../odos-front/app/parcours/[id].tsx)) : carte plein-hauteur à gauche
+  (`flex:1`), liste des étapes à droite (≤ 440 px, scroll indépendant, bordure de séparation), façon
+  Google Maps trajets. Idem gardé derrière `web + isDesktop`.
+- **Carte de recherche** ✅ → **carte + panneau latéral de résultats** sur desktop
+  ([components/map/MapExperience.tsx](../odos-front/components/map/MapExperience.tsx)) : liste des
+  lieux filtrés à gauche (380 px), carte à droite ; clic sur un résultat = **focus carte** (le flow
+  pin → callout → fiche reste intact). `sidePanel = web && isDesktop`, contenu carte enveloppé dans
+  `mapColumn` (overlays repositionnés relativement à la colonne) → mobile/natif inchangé.
 
 #### Niveau 3 — Raffinements DA & desktop (continu)
 
@@ -120,14 +143,15 @@ Règle ~80 % du ressenti pour un effort minime.
 | Auth (login/reset) | déjà capé 480 ✅ | OK, polish double-bezel | 3 |
 | Home / reco | ✅ **shell centré** (760) | reste : bento 2–3 col (Niv. 2) | 0 ✅ → 2 |
 | Recherche (browse) | ✅ **cartes capées** (≤ 520 / ≤ 720), hero en `aspectRatio` | grille responsive complète | partiel |
-| Recherche / carte | carte plein écran | carte + panneau latéral résultats sur desktop | 1–2 |
+| Recherche / carte | ✅ **carte + panneau latéral résultats** desktop | OK | 2 ✅ |
 | Favoris | ✅ **colonnes responsives 2/3/4-5 + toggle Liste/Grille** | OK | ✅ fait |
 | Communauté (forum/groupes/amis) | ✅ **shell centré** (layout) | reste : 2 col (Niv. 2) | 0 ✅ → 2 |
 | Parcours (bibliothèque) | ✅ **shell centré** (760) | OK | 0 ✅ |
-| Détail activité | colonne étirée | editorial split (photo / infos) | 2 |
-| Parcours `[id]` | carte + liste pleines | split carte / étapes | 2 |
+| Détail activité | ✅ **editorial split** (photo / infos) desktop | OK | 2 ✅ |
+| Parcours `[id]` | ✅ **split carte / étapes** desktop | OK | 2 ✅ |
 | Compte / réglages | ✅ **shell centré** (760) | OK | 0 ✅ |
-| Modales / sheets | sheet plein écran | **modale centrée** (≤ 480) sur desktop | 1 |
+| Navigation | ✅ **rail latéral** desktop (`tabBarPosition`) | OK | 1 ✅ |
+| Modales / sheets | ✅ **modale centrée** (≤ 480) desktop (`useResponsiveSheet`) | OK | 1 ✅ |
 
 ### Implémentation technique (résumé)
 
@@ -212,6 +236,55 @@ est déjà codé**, il suffit de le réutiliser en Favoris.
 - Colonnes responsives : **améliore aussi le natif** (3 col en tablette) **sans dégrader le phone** (2).
 - Caps `maxWidth` + mode liste : **neutres sur phone** (largeur < seuils).
 - Toggle densité : pur ajout d'UI, **aucune logique métier** ni flow touché.
+
+---
+
+## Partie 4 — Audit de conformité (revue code, 2026-06-28)
+
+Audit de **vérification** de tout ce qui a été livré (Niveaux 0→2), par lecture du code, avec la
+liste précise de ce qui **reste**. Méthode : recherche des primitives + de leurs usages réels,
+classification des faux positifs.
+
+### 4.1 Livré & vérifié dans le code ✅
+
+| Brique | Primitive | Appliqué à (vérifié) |
+|--------|-----------|----------------------|
+| **Hook breakpoints** | [hooks/useResponsive.ts](../odos-front/hooks/useResponsive.ts) | seuils 600/1024/1440, `gridColumns` 2/3/4/5 |
+| **Shell centré (Niv. 0)** | [components/layout/ResponsiveShell.tsx](../odos-front/components/layout/ResponsiveShell.tsx) | `index`, `account`, `settings`, `community/_layout` (⇒ forum/amis/messages/groupes), `parcours` **+ écrans secondaires** : `interests`, `onboarding-city`, `badges`, `legal`, `blocked-users`, `appearance`, `group-invitations` |
+| **Grilles capées (Niv. 0/partiel)** | `useResponsive` + `maxWidth` | `favorites.tsx` (`numColumns` responsive + toggle dense), `search.tsx` (5 caps `maxWidth` intacts) |
+| **Rail latéral (Niv. 1)** | `tabBarPosition: 'left'` natif RN-nav | [app/(tabs)/_layout.tsx](../odos-front/app/(tabs)/_layout.tsx) — `railNav = web && isDesktop` |
+| **Sheets recentrés (Niv. 1)** | [hooks/useResponsiveSheet.ts](../odos-front/hooks/useResponsiveSheet.ts) (`SHEET_MAX_WIDTH`) | 7 feuilles : Activity/Conversation/Parcours pickers, ParcoursShare(Picker/Target), Share, Report + création parcours ; **+ action sheets globales** `OdosActionSheetView` (root/footer recentré) **+ chooser de pièces jointes** `group-chat/[id]` |
+| **Editorial split (Niv. 2)** | styles `*Split` + `splitView` | [activity/[id].tsx](../odos-front/app/activity/[id].tsx) (photo ‖ infos) · [parcours/[id].tsx](../odos-front/app/parcours/[id].tsx) (carte ‖ étapes) |
+| **Carte + panneau (Niv. 2)** | `sidePanel` + `mapColumn`/`panel` | [components/map/MapExperience.tsx](../odos-front/components/map/MapExperience.tsx) — liste de résultats à gauche, clic = focus carte (flow pin→callout→fiche préservé) |
+
+**Non-régression (vérifiée)** : `tsc` = **0 nouvelle erreur** (les erreurs restantes — `appearance.tsx`,
+`useThemes.ts`, `OdosModalContext.tsx`, `ThemeContext.tsx`, `authSession.ts` — sont **préexistantes**
+et hors périmètre) ; `eslint` clean sur les fichiers touchés. Tout le desktop est derrière
+`Platform.OS === 'web' && isDesktop` (ou passthrough natif du shell) → **natif strictement inchangé**.
+
+### 4.2 Reste à faire (gaps identifiés)
+
+| Prio | Gap | Détail | Effort |
+|------|-----|--------|--------|
+| ✅ ~~P1~~ | ~~7 écrans de lecture non centrés~~ | **Fait** : `interests`, `onboarding-city`, `badges`, `legal`, `blocked-users`, `appearance`, `group-invitations` enveloppés dans `ResponsiveShell` (les écrans à CTA collant — `interests`, `onboarding-city` — capent **scroll + barre sticky** ensemble ; `appearance`, racine `ScrollView`, reçoit un fond `bg.page` plein-cadre). | — |
+| ✅ ~~P2~~ | ~~2 vraies feuilles non recentrées~~ | **Fait** : `OdosActionSheetView` recentré sur desktop (`root` centré, `footer` capé `SHEET_MAX_WIDTH`, carte d'actions à coins pleins) ; chooser `group-chat/[id]` migré sur `useResponsiveSheet`. | — |
+| 🟢 P3 | **Niveau 2 restant** | **bento** home, **grille 2 col** communauté. *(Panneau latéral carte ✅ fait.)* | élevé |
+
+### 4.3 Faux positifs écartés (ne pas re-signaler)
+
+- `OdosDialogView` : **déjà centré** (`backdrop` `justifyContent:'center'`, `maxWidth: 400`) — conforme, rien à faire.
+- `ActivityCommentsSection`, `chat/[id]`, `group/[id]` : les `flex-end` détectés sont l'**alignement des
+  bulles de chat / barres d'action**, pas des bottom-sheets → hors périmètre.
+- `favorites.tsx` : `numColumns={numColumns}` est **piloté par `useResponsive`** (`dense ? 1 : gridColumns`),
+  ce n'est **pas** un `numColumns` figé → conforme à la convention.
+
+### 4.4 Verdict
+
+**🟢 Cœur responsive livré et sain** : les 3 niveaux ont leurs briques en place, factorisées
+(2 hooks + 1 composant + 1 prop native), gardées derrière le desktop, sans régression native.
+**Niveaux 0 et 1 complets** (P1 : tous les écrans de lecture centrés ; P2 : toutes les feuilles
+recentrées). **Niveau 2 bien avancé** : 3 écrans denses livrés (détail activité, parcours `[id]`,
+carte de recherche). **🟡 Reste** : **bento** home et **grille 2 col** communauté.
 
 ---
 

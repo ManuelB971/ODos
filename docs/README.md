@@ -20,6 +20,7 @@ Index des docs du dépôt. Dernière passe : **juin 2026**.
 | Voir où on en est côté RGPD | [RGPD_AUDIT_2026.md](RGPD_AUDIT_2026.md) |
 | Le registre art. 30 | [RGPD_registre.md](RGPD_registre.md) |
 | **Soutenance jury RNCP (démo + tests)** | **[JURY_RNCP.md](JURY_RNCP.md)** |
+| **Dossier projet CDA (soutenance titre pro)** | **[DOSSIER_PROJET_CDA.md](DOSSIER_PROJET_CDA.md)** |
 
 ---
 
