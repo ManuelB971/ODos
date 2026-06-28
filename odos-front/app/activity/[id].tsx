@@ -49,6 +49,7 @@ import { InlineToast, InlineToastVariant } from '@/components/InlineToast';
 import { ShareModal } from '@/components/social/ShareModal';
 import { ParcoursPickerSheet } from '@/components/social/ParcoursPickerSheet';
 import { useKeyboardComposerMotion } from '@/hooks/useKeyboardComposerMotion';
+import { useResponsive } from '@/hooks/useResponsive';
 
 function routeParamToString(param: string | string[] | undefined): string | undefined {
   if (param === undefined) return undefined;
@@ -122,6 +123,11 @@ export default function ActivityDetails() {
     () => createStyles(colors, isMosaicPop ? pop : null),
     [colors, isMosaicPop, pop],
   );
+  // Desktop web : fiche en **editorial split** (photo à gauche, infos/CTA à droite)
+  // — photo-first DA. Gardé derrière web+desktop → mobile/natif inchangé.
+  // Cf. docs/AUDIT_RESPONSIVE_WEB.md (Niveau 2).
+  const { isDesktop } = useResponsive();
+  const splitView = Platform.OS === 'web' && isDesktop;
   const { id } = useLocalSearchParams();
   const { isAuthenticated, user } = useAuth();
   const [activity, setActivity] = useState<ApiActivity | null>(null);
@@ -527,7 +533,8 @@ export default function ActivityDetails() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
       >
-        <View style={styles.heroWrap}>
+        <View style={splitView ? styles.splitRow : undefined}>
+        <View style={[styles.heroWrap, splitView && styles.heroWrapSplit]}>
           {heroImage ? (
             <Image source={{ uri: heroImage }} style={styles.heroImage} resizeMode="cover" />
           ) : (
@@ -567,7 +574,7 @@ export default function ActivityDetails() {
           </View>
         </View>
 
-        <View style={styles.content}>
+        <View style={[styles.content, splitView && styles.contentSplit]}>
           <View style={styles.titleRow}>
             <Text style={styles.title}>{activity.name}</Text>
             {typeof activity.price === 'number' ? (
@@ -716,6 +723,7 @@ export default function ActivityDetails() {
             }}
           />
         </View>
+        </View>
       </ScrollView>
 
       {activity.latitude != null && activity.longitude != null ? (
@@ -770,6 +778,27 @@ function createStyles(colors: OdosColorPalette, pop: PopTokens | null = null) {
     position: 'relative',
     width: '100%',
     height: 280,
+  },
+  // ── Editorial split (desktop web) ──
+  splitRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 28,
+    width: '100%',
+    maxWidth: 1180,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 24,
+  },
+  heroWrapSplit: {
+    flex: 1,
+    height: 560,
+    borderRadius: 24,
+    overflow: 'hidden',
+  },
+  contentSplit: {
+    flex: 1.15,
+    paddingTop: 4,
   },
   heroImage: {
     width: '100%',
