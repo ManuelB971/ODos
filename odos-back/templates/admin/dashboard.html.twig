@@ -3,6 +3,15 @@
 {% block content_title %}Tableau de bord ODos{% endblock %}
 
 {% block main %}
+    {% if wazuh_dashboard_url is not empty %}
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            <a class="btn btn-outline-dark" href="{{ wazuh_dashboard_url }}" target="_blank" rel="noopener noreferrer">
+                <i class="fas fa-shield-halved me-1"></i>
+                Ouvrir Wazuh SIEM
+            </a>
+        </div>
+    {% endif %}
+
     <div class="row g-3 mb-4">
         <div class="col-md-4 col-lg-2">
             <div class="card border-0 shadow-sm h-100">

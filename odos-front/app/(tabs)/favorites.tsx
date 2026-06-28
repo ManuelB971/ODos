@@ -1,22 +1,24 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
+  Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Compass, Heart } from 'lucide-react-native';
+import { Compass, Heart, LayoutGrid, List } from 'lucide-react-native';
 
 import { useFavorites } from '@/hooks/useFavorites';
+import { useResponsive } from '@/hooks/useResponsive';
 import { useAuth } from '@/context/AuthContext';
 import { Fonts, FontFamily, Spacing } from '@/constants/theme';
 import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
 import { toAppError } from '@/utils/errorHandling';
 import { toggleFavoriteActivity } from '@/scripts/api';
 import { FavoriteCard } from '@/components/FavoriteCard';
-import { MosaicPopCard } from '@/components/cards/MosaicPopCard';
+import { MosaicPopCard, MosaicPopRow } from '@/components/cards/MosaicPopCard';
 import { SkeletonFavoriteCard } from '@/components/ui/Skeleton';
 import { CTAButton } from '@/components/ui/CTAButton';
 
@@ -37,6 +39,12 @@ export default function FavoritesScreen() {
   const { isAuthenticated } = useAuth();
   const { cardStyle } = useTheme();
   const { favorites, isLoading, error, refetch } = useFavorites();
+  // Colonnes adaptées à la largeur (2 phone / 3 tablette / 4-5 desktop) : évite
+  // les cartes géantes sur web. Mode "liste" (1 col, lignes compactes) pour voir
+  // un maximum de favoris d'un coup. Voir docs/AUDIT_RESPONSIVE_WEB.md.
+  const { gridColumns } = useResponsive();
+  const [dense, setDense] = useState(false);
+  const numColumns = dense ? 1 : gridColumns;
 
   const errorMessage = error
     ? toAppError(error, 'Impossible de charger vos favoris.').userMessage
@@ -159,13 +167,22 @@ export default function FavoritesScreen() {
     <View style={styles.container}>
       <FlatList
         data={favorites}
+        // `key` force le remount quand le nb de colonnes change (exigence FlatList).
+        key={`fav-${dense ? 'list' : numColumns}`}
         keyExtractor={(item) => String(item.id)}
-        numColumns={2}
-        columnWrapperStyle={styles.row}
+        numColumns={numColumns}
+        columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
         contentContainerStyle={styles.gridContent}
-        ListHeaderComponent={<Header count={favorites.length} />}
+        ListHeaderComponent={
+          <>
+            <Header count={favorites.length} />
+            <DensityToggle dense={dense} onChange={setDense} />
+          </>
+        }
         renderItem={({ item }) =>
-          cardStyle === 'mosaicPop' ? (
+          dense ? (
+            <MosaicPopRow item={item} />
+          ) : cardStyle === 'mosaicPop' ? (
             <MosaicPopCard
               item={item}
               variant="grid"
@@ -183,6 +200,32 @@ export default function FavoritesScreen() {
           )
         }
       />
+    </View>
+  );
+}
+
+/** Bascule grille (cartes) ↔ liste (lignes compactes, plus dense). */
+function DensityToggle({ dense, onChange }: { dense: boolean; onChange: (v: boolean) => void }) {
+  const colors = useOdosColors();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  return (
+    <View style={styles.densityRow}>
+      <Pressable
+        onPress={() => onChange(false)}
+        style={[styles.densityBtn, !dense && styles.densityBtnActive]}
+        accessibilityRole="button"
+        accessibilityLabel="Affichage en grille"
+      >
+        <LayoutGrid size={16} color={!dense ? colors.onAccent : colors.muted} />
+      </Pressable>
+      <Pressable
+        onPress={() => onChange(true)}
+        style={[styles.densityBtn, dense && styles.densityBtnActive]}
+        accessibilityRole="button"
+        accessibilityLabel="Affichage en liste"
+      >
+        <List size={16} color={dense ? colors.onAccent : colors.muted} />
+      </Pressable>
     </View>
   );
 }
@@ -244,6 +287,27 @@ function createStyles(colors: OdosColorPalette) {
   },
   row: {
     gap: 14,
+  },
+  densityRow: {
+    flexDirection: 'row',
+    alignSelf: 'flex-end',
+    gap: 6,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: 12,
+  },
+  densityBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  densityBtnActive: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
   },
   emptyState: {
     flex: 1,

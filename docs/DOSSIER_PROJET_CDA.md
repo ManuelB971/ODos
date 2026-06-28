@@ -1604,6 +1604,64 @@ Les alternatives (envoi JSON à un service tiers de génération PDF, bibliothè
 
 ---
 
+### Annexe G — Portage Web (web app responsive)
+
+*(Ajout juin 2026 — mise en ligne d'une version web de l'app sur `app.odos.world`.)*
+
+#### G.1 Bi-modularité : un seul code, deux runtimes
+
+L'app mobile (Expo / React Native) est portée en **web app** via **react-native-web**, **sans
+fork** : ~98 % du code (logique, état TanStack Query, contextes, écrans) est partagé. La divergence
+web ↔ natif est isolée par **4 coutures explicites** :
+
+| Mécanisme | Usage | Bénéfice |
+|-----------|-------|----------|
+| Résolution au bundling (resolver Metro) | `@maplibre/maplibre-react-native` → `MapLibreWeb` (maplibre-gl) sur web, natif sinon | `maplibre-gl` **jamais** dans le bundle Android (aucun surpoids APK) |
+| Split par extension `.web.ts` | `use-color-scheme.web.ts` | Code web isolé dans un fichier dédié |
+| Branchement runtime `Platform.OS` | push notifications gardées `!== 'web'` | Capacités natives neutralisées proprement sur web |
+| Import dynamique sous garde | `expo-notifications` chargé seulement sur natif | Dépendance native hors du chemin web |
+
+**Choix `web.output: "single"` (SPA)** : abandon du prerender SSR (`static`) qui entrait en conflit
+avec les librairies client-only (reanimated, carte) — erreurs « multiple renderers » et crashs
+d'hydratation. Le rendu 100 % client supprime cette classe de bugs.
+
+#### G.2 Déploiement web (extension du pipeline CI/CD)
+
+Le workflow `deploy-prod.yml` est étendu d'un job **`deploy-web`** : build statique
+(`expo export -p web`) sur le runner GitHub, puis publication par `rsync` vers le VPS. Côté serveur,
+un **vhost nginx** dédié (`app.odos.world`) sert les fichiers statiques avec **fallback SPA**
+(`try_files … /index.html`), **HTTPS** via certbot, et l'**origin CORS** ajouté à l'API. Le pipeline
+backend a été durci au passage (port nginx Docker, régénération du cache prod, healthcheck `/api/health`
+avec rollback). *Réf. : [WEB_APP_DEPLOYMENT.md](WEB_APP_DEPLOYMENT.md).*
+
+#### G.3 Responsivité (écrans larges)
+
+L'app étant **mobile-first**, le rendu web sur grand écran étirait les cartes plein viewport. Mise en
+place d'une stratégie **« mobile-first qui s'épanouit »** :
+
+- **Hook `useResponsive()`** : source unique des breakpoints (600 / 1024 / 1440 px) et du nombre de
+  colonnes recommandé — **règle : jamais de `numColumns` figé**.
+- **Favoris** : colonnes adaptatives (2 phone / 3 tablette / 4–5 desktop) + bascule **Grille / Liste**
+  (lignes compactes) pour scanner toute la collection.
+- **Recherche** : largeurs de cartes **bornées** (`maxWidth` + centrage), carte vedette en ratio fixe.
+- **Conformité design** : caps préservant la longueur de ligne (DA : 44–54 caractères) et le
+  photo-first ; patterns **familiers** au sens de la **loi de Jakob** (cœur toggle + liste dédiée,
+  toggle Grille/Liste type Pinterest) sans toucher à la navigation.
+- **Non-régression** : tout le spécifique desktop est conditionné (`Platform.OS === 'web'` /
+  breakpoints) → le natif est inchangé ; vérifié par `tsc` + `eslint`. *Réf. :
+  [AUDIT_RESPONSIVE_WEB.md](AUDIT_RESPONSIVE_WEB.md).*
+
+#### G.4 Compétences CDA couvertes
+
+| Compétence | Illustration |
+|------------|--------------|
+| Développer une interface **multi-supports** | Un code, cibles Android / iOS / Web (react-native-web) |
+| Adapter l'IHM aux **différents écrans** | Breakpoints responsives, grilles adaptatives, caps de largeur |
+| **Déployer** en intégration continue | Job `deploy-web`, vhost nginx, HTTPS, CORS, rollback |
+| **Sécuriser** le déploiement | CORS origin exact (pas de wildcard), HTTPS bout-en-bout, healthcheck |
+
+---
+
 *Dossier de projet — Concepteur Développeur d'Applications (CDA) — Niveau 6*  
 *Candidat : Manuel — Juin 2026*  
 *Code titre : TP-01281 — SIGLE CDA*

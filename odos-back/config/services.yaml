@@ -37,6 +37,8 @@ parameters:
     app.mailer.from_default: 'ODos <noreply@odos.world>'
     app.mobile.scheme_default: 'odosfront'
     app.oauth.google_client_ids_default: ''
+    app.wazuh.dashboard_url_default: ''
+    app.wazuh.dashboard_url: '%env(default:app.wazuh.dashboard_url_default:WAZUH_DASHBOARD_URL)%'
 
 services:
     # default configuration for services in *this* file
@@ -133,6 +135,10 @@ services:
         arguments:
             $uploadDir: '%app.uploads.parcours.dir%'
             $publicPrefix: '%app.uploads.parcours.public_prefix%'
+
+    App\Controller\Admin\DashboardController:
+        arguments:
+            $wazuhDashboardUrl: '%app.wazuh.dashboard_url%'
 
     App\EventSubscriber\AdminMfaSubscriber:
         arguments:
