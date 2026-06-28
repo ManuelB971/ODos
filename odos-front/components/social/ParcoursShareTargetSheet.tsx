@@ -6,6 +6,7 @@ import { Users, UserRound, X } from 'lucide-react-native';
 import { useFriendships } from '@/hooks/useFriendships';
 import { useGroups } from '@/hooks/useGroups';
 import { useOdosColors } from '@/context/ThemeContext';
+import { useResponsiveSheet } from '@/hooks/useResponsiveSheet';
 import { FontFamily } from '@/constants/theme';
 import { resolveImageUrl } from '@/utils/imageUrl';
 
@@ -35,6 +36,7 @@ type ParcoursShareTargetSheetProps = {
 export function ParcoursShareTargetSheet({ visible, onClose, onSelect, title }: ParcoursShareTargetSheetProps) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const sheetLayout = useResponsiveSheet();
   const { friends } = useFriendships();
   const { data: groupsData } = useGroups('mine');
   const groups = useMemo(() => groupsData?.member ?? [], [groupsData]);
@@ -62,8 +64,8 @@ export function ParcoursShareTargetSheet({ visible, onClose, onSelect, title }: 
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+      <View style={[styles.backdrop, sheetLayout.backdrop]}>
+        <View style={[styles.sheet, sheetLayout.sheet]}>
           <View style={styles.header}>
             <Text style={styles.title}>{title ?? 'Partager le parcours'}</Text>
             <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="Fermer">

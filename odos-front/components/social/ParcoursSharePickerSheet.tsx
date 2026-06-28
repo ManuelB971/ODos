@@ -4,6 +4,7 @@ import { Route, X } from 'lucide-react-native';
 
 import { useParcoursList } from '@/hooks/useParcours';
 import { useOdosColors } from '@/context/ThemeContext';
+import { useResponsiveSheet } from '@/hooks/useResponsiveSheet';
 import { FontFamily } from '@/constants/theme';
 import type { ParcoursSummary } from '@/types';
 
@@ -23,13 +24,14 @@ type ParcoursSharePickerSheetProps = {
 export function ParcoursSharePickerSheet({ visible, onClose, onSelect, title }: ParcoursSharePickerSheetProps) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const sheetLayout = useResponsiveSheet();
   const { data, isLoading } = useParcoursList();
   const parcours = data?.member ?? [];
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+      <View style={[styles.backdrop, sheetLayout.backdrop]}>
+        <View style={[styles.sheet, sheetLayout.sheet]}>
           <View style={styles.header}>
             <Text style={styles.title}>{title ?? 'Partager un parcours'}</Text>
             <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="Fermer">

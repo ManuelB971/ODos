@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useOdosColors } from '@/context/ThemeContext';
+import { useResponsiveSheet } from '@/hooks/useResponsiveSheet';
 import { FontFamily } from '@/constants/theme';
 import type { ForumReportReason } from '@/types';
 
@@ -21,6 +22,7 @@ type ReportContentModalProps = {
 export function ReportContentModal({ visible, onClose, onSubmit, loading }: ReportContentModalProps) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const sheetLayout = useResponsiveSheet();
   const [reason, setReason] = useState<ForumReportReason>('spam');
   const [details, setDetails] = useState('');
 
@@ -32,8 +34,8 @@ export function ReportContentModal({ visible, onClose, onSubmit, loading }: Repo
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
+      <View style={[styles.backdrop, sheetLayout.backdrop]}>
+        <View style={[styles.card, sheetLayout.sheet]}>
           <Text style={styles.title}>Signaler ce contenu</Text>
           {REASONS.map((item) => (
             <Pressable key={item.value} onPress={() => setReason(item.value)} style={styles.reasonRow}>

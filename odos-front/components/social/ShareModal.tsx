@@ -13,6 +13,7 @@ import { useFriendships } from '@/hooks/useFriendships';
 import { useGroups } from '@/hooks/useGroups';
 import { shareActivity } from '@/scripts/api';
 import { useOdosColors } from '@/context/ThemeContext';
+import { useResponsiveSheet } from '@/hooks/useResponsiveSheet';
 import { FontFamily } from '@/constants/theme';
 import { toAppError } from '@/utils/errorHandling';
 
@@ -27,6 +28,7 @@ type ShareModalProps = {
 export function ShareModal({ visible, activityId, activityName, onClose, onSuccess }: ShareModalProps) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const sheetLayout = useResponsiveSheet();
   const { friends } = useFriendships();
   const { data: groupsData } = useGroups('mine');
   const groups = groupsData?.member ?? [];
@@ -88,8 +90,8 @@ export function ShareModal({ visible, activityId, activityName, onClose, onSucce
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.backdrop}>
-        <View style={styles.sheet}>
+      <View style={[styles.backdrop, sheetLayout.backdrop]}>
+        <View style={[styles.sheet, sheetLayout.sheet]}>
           <Text style={styles.title}>Partager cette activité</Text>
           <Text style={styles.subtitle} numberOfLines={1}>{activityName}</Text>
 

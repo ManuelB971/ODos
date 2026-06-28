@@ -20,6 +20,7 @@ import { useGroupDetail } from '@/hooks/useGroups';
 import { useContentReport } from '@/hooks/useContentReport';
 import { ReportContentModal } from '@/components/social/ReportContentModal';
 import { useOdosColors } from '@/context/ThemeContext';
+import { useResponsiveSheet } from '@/hooks/useResponsiveSheet';
 import { odosAlert } from '@/context/OdosModalContext';
 import { FontFamily } from '@/constants/theme';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
@@ -41,6 +42,7 @@ export default function GroupChatScreen() {
   const colors = useOdosColors();
   const isMosaicPop = useIsMosaicPop();
   const pop = usePopTokens();
+  const sheetLayout = useResponsiveSheet();
   const headerHeight = useHeaderHeight();
   const insets = useSafeAreaInsets();
   const { animatedStyle: composerAnimatedStyle } = useKeyboardComposerMotion();
@@ -269,8 +271,8 @@ export default function GroupChatScreen() {
 
       {/* Choix du type de partage */}
       <Modal visible={chooserOpen} transparent animationType="fade" onRequestClose={() => setChooserOpen(false)}>
-        <Pressable style={styles.chooserBackdrop} onPress={() => setChooserOpen(false)}>
-          <View style={[styles.chooserSheet, { backgroundColor: colors.elevated }]}>
+        <Pressable style={[styles.chooserBackdrop, sheetLayout.backdrop]} onPress={() => setChooserOpen(false)}>
+          <View style={[styles.chooserSheet, { backgroundColor: colors.elevated }, sheetLayout.sheet]}>
             <View style={styles.chooserHeader}>
               <Text style={[styles.chooserTitle, { color: colors.text }]}>Partager au groupe</Text>
               <Pressable onPress={() => setChooserOpen(false)} hitSlop={10} accessibilityLabel="Fermer">
