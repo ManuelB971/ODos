@@ -72,9 +72,7 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
 
         return $actions
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->add(Crud::PAGE_INDEX, Action::EDIT)
             ->add(Crud::PAGE_INDEX, $award)
-            ->add(Crud::PAGE_DETAIL, Action::EDIT)
             ->add(Crud::PAGE_DETAIL, $award);
     }
 
