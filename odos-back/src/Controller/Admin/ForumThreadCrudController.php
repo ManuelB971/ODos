@@ -49,7 +49,6 @@ class ForumThreadCrudController extends AbstractCrudController
         return $actions
             ->disable(Action::NEW)
             ->add(Crud::PAGE_INDEX, Action::DETAIL)
-            ->add(Crud::PAGE_DETAIL, Action::EDIT)
             ->add(Crud::PAGE_INDEX, Action::new('lock', 'Verrouiller')->linkToCrudAction('lockThread'))
             ->add(Crud::PAGE_INDEX, Action::new('unlock', 'Déverrouiller')->linkToCrudAction('unlockThread'))
             ->add(Crud::PAGE_DETAIL, Action::new('lock', 'Verrouiller')->linkToCrudAction('lockThread'))
