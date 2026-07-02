@@ -23,7 +23,15 @@ final class JsonArrayType extends AbstractType
                     return '';
                 }
 
-                return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                try {
+                    return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+                } catch (\JsonException $e) {
+                    throw new TransformationFailedException(
+                        'Impossible de sérialiser la configuration JSON en base.',
+                        $e->getCode(),
+                        $e,
+                    );
+                }
             },
             static function (?string $value): ?array {
                 if (null === $value || '' === trim($value)) {

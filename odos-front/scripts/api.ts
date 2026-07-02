@@ -1,5 +1,6 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
 
 import i18n from '@/i18n';
 import { isJwtExpired } from '@/utils/jwt';
@@ -396,29 +397,51 @@ export async function patchMapExplorationEnabled(enabled: boolean): Promise<MapE
     return response.data;
 }
 
+/** Fichier local sélectionné (typiquement via `expo-image-picker`). */
+type LocalFile = { uri: string; name: string; mimeType: string };
+
+/**
+ * Config axios pour un POST multipart.
+ *
+ * - **Natif** : on force `multipart/form-data` (RN gère le boundary en interne).
+ * - **Web** : on **n'écrase pas** l'en-tête → axios/navigateur pose
+ *   `multipart/form-data; boundary=…` lui-même. Le forcer sans boundary rendrait
+ *   le corps illisible côté serveur.
+ */
+const MULTIPART_CONFIG =
+    Platform.OS === 'web' ? undefined : { headers: { 'Content-Type': 'multipart/form-data' } };
+
+/**
+ * Construit un `FormData` multipart avec un fichier local, **de façon
+ * cross-platform**.
+ *
+ * - **Natif** (iOS/Android) : React Native attend la signature spécifique
+ *   `{ uri, name, type }` — il lit le fichier depuis l'URI `file://`.
+ * - **Web** : `FormData` est celui du navigateur ; l'objet `{ uri }` serait
+ *   stringifié en `"[object Object]"` et **aucun fichier ne serait envoyé**. On
+ *   récupère donc le contenu via `fetch(uri).blob()` (les URIs `blob:`/`data:`
+ *   rendus par `expo-image-picker` web sont lisibles) et on append un vrai `Blob`.
+ */
+async function buildFileFormData(field: string, file: LocalFile): Promise<FormData> {
+    const form = new FormData();
+    if (Platform.OS === 'web') {
+        const blob = await (await fetch(file.uri)).blob();
+        form.append(field, blob, file.name);
+    } else {
+        form.append(field, { uri: file.uri, name: file.name, type: file.mimeType } as unknown as Blob);
+    }
+    return form;
+}
+
 /**
  * Upload un avatar pour l'utilisateur courant (POST /api/me/avatar, multipart).
  *
  * @param file objet URI + nom + mimeType typiquement retourné par `expo-image-picker`
  * @returns la nouvelle URL publique de l'avatar
  */
-export async function uploadAvatar(file: {
-    uri: string;
-    name: string;
-    mimeType: string;
-}): Promise<{ avatarUrl: string }> {
-    const form = new FormData();
-    // React Native a une signature spécifique pour FormData.append avec un fichier local.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    form.append('file', {
-        uri: file.uri,
-        name: file.name,
-        type: file.mimeType,
-    } as any);
-
-    const response = await api.post('/api/me/avatar', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    });
+export async function uploadAvatar(file: LocalFile): Promise<{ avatarUrl: string }> {
+    const form = await buildFileFormData('file', file);
+    const response = await api.post('/api/me/avatar', form, MULTIPART_CONFIG);
     return { avatarUrl: response.data.avatarUrl };
 }
 
@@ -843,14 +866,10 @@ export async function updateParcours(
 
 export async function uploadParcoursCover(
     id: number,
-    file: { uri: string; name: string; mimeType: string },
+    file: LocalFile,
 ): Promise<{ parcours: import('@/types').ParcoursDetail }> {
-    const form = new FormData();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    form.append('file', { uri: file.uri, name: file.name, type: file.mimeType } as any);
-    const response = await api.post(`/api/parcours/${id}/cover`, form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-    });
+    const form = await buildFileFormData('file', file);
+    const response = await api.post(`/api/parcours/${id}/cover`, form, MULTIPART_CONFIG);
     return response.data;
 }
 

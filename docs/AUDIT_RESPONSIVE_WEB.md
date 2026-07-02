@@ -17,6 +17,10 @@
 > carte/étapes** (`parcours/[id]`) et **carte + panneau latéral de résultats** (recherche). Reste
 > (Niveau 2) : bento home, grille communauté 2 col.
 >
+> **État (2026-07-02)** : **Niveau 2 complet** (bento-lite home + grille 2 col communauté) et
+> **lot fonctionnel web** livré (uploads réparés, itinéraires web, clavier chat, hover/focus). 7 écrans
+> sociaux/formulaires oubliés désormais centrés. → **[Partie 5](#partie-5--audit-web--fonctionnel--finitions-2026-07-02)**.
+>
 > **→ Revue code complète + gaps précis : voir [Partie 4 — Audit de conformité](#partie-4--audit-de-conformité-revue-code-2026-06-28).**
 
 ---
@@ -144,11 +148,11 @@ Règle ~80 % du ressenti pour un effort minime.
 | Écran | Actuel (web large) | Cible responsive | Niveau |
 |-------|--------------------|--------------------|--------|
 | Auth (login/reset) | déjà capé 480 ✅ | OK, polish double-bezel | 3 |
-| Home / reco | ✅ **shell centré** (760) | reste : bento 2–3 col (Niv. 2) | 0 ✅ → 2 |
+| Home / reco | ✅ **shell centré** (760) + **carrousels → grilles enroulées** desktop | OK | 0 ✅ → 2 ✅ |
 | Recherche (browse) | ✅ **cartes capées** (≤ 520 / ≤ 720), hero en `aspectRatio` | grille responsive complète | partiel |
 | Recherche / carte | ✅ **carte + panneau latéral résultats** desktop | OK | 2 ✅ |
 | Favoris | ✅ **colonnes responsives 2/3/4-5 + toggle Liste/Grille** | OK | ✅ fait |
-| Communauté (forum/groupes/amis) | ✅ **shell centré** (layout) | reste : 2 col (Niv. 2) | 0 ✅ → 2 |
+| Communauté (forum/groupes/amis) | ✅ **shell centré** (layout) + **groupes 2 col** desktop | OK | 0 ✅ → 2 ✅ |
 | Parcours (bibliothèque) | ✅ **shell centré** (760) | OK | 0 ✅ |
 | Détail activité | ✅ **editorial split** (photo / infos) desktop | OK | 2 ✅ |
 | Parcours `[id]` | ✅ **split carte / étapes** desktop | OK | 2 ✅ |
@@ -271,7 +275,7 @@ et hors périmètre) ; `eslint` clean sur les fichiers touchés. Tout le desktop
 |------|-----|--------|--------|
 | ✅ ~~P1~~ | ~~7 écrans de lecture non centrés~~ | **Fait** : `interests`, `onboarding-city`, `badges`, `legal`, `blocked-users`, `appearance`, `group-invitations` enveloppés dans `ResponsiveShell` (les écrans à CTA collant — `interests`, `onboarding-city` — capent **scroll + barre sticky** ensemble ; `appearance`, racine `ScrollView`, reçoit un fond `bg.page` plein-cadre). | — |
 | ✅ ~~P2~~ | ~~2 vraies feuilles non recentrées~~ | **Fait** : `OdosActionSheetView` recentré sur desktop (`root` centré, `footer` capé `SHEET_MAX_WIDTH`, carte d'actions à coins pleins) ; chooser `group-chat/[id]` migré sur `useResponsiveSheet`. | — |
-| 🟢 P3 | **Niveau 2 restant** | **bento** home, **grille 2 col** communauté. *(Panneau latéral carte ✅ fait.)* | élevé |
+| ✅ ~~P3~~ | ~~Niveau 2 restant~~ | **Fait (2026-07-02)** : **bento-lite** home (carrousels → grilles enroulées desktop) + **grille 2 col** communauté (groupes). Détails en Partie 5. | — |
 
 ### 4.3 Faux positifs écartés (ne pas re-signaler)
 
@@ -286,8 +290,80 @@ et hors périmètre) ; `eslint` clean sur les fichiers touchés. Tout le desktop
 **🟢 Cœur responsive livré et sain** : les 3 niveaux ont leurs briques en place, factorisées
 (2 hooks + 1 composant + 1 prop native), gardées derrière le desktop, sans régression native.
 **Niveaux 0 et 1 complets** (P1 : tous les écrans de lecture centrés ; P2 : toutes les feuilles
-recentrées). **Niveau 2 bien avancé** : 3 écrans denses livrés (détail activité, parcours `[id]`,
-carte de recherche). **🟡 Reste** : **bento** home et **grille 2 col** communauté.
+recentrées). **Niveau 2 complet (2026-07-02)** : détail activité, parcours `[id]`, carte de
+recherche, **+ bento-lite home + grille 2 col communauté**. Voir **Partie 5** pour le lot
+fonctionnel web (uploads, clavier, itinéraires, hover/focus) livré à la même date.
+
+---
+
+## Partie 5 — Audit web « fonctionnel + finitions » (2026-07-02)
+
+Nouvelle passe **au-delà du responsive de layout** : recherche des écrans **non adaptés**
+(étirés desktop) **et** des pannes **fonctionnelles** propres au web (modules natifs, schémas
+d'URL, FormData). Tout est gardé `Platform.OS === 'web'` (ou passthrough natif) → **natif
+strictement inchangé** ; `tsc` = **0 nouvelle erreur** (mêmes 6 fichiers préexistants),
+`eslint` clean sur les fichiers touchés, tests `api` (9/9) et `MosaicPop` (5/5) verts.
+
+### 5.1 Bugs fonctionnels web corrigés (bloquants)
+
+| # | Bug | Cause | Correctif |
+|---|-----|-------|-----------|
+| B1 | **Upload avatar + pochette parcours cassés sur web** | `FormData.append('file', { uri,… })` (signature **RN**) → le navigateur stringifie l'objet en `"[object Object]"`, aucun fichier envoyé ; en plus `Content-Type: multipart/form-data` **sans boundary** forcé | Helper `buildFileFormData()` ([api.ts](../odos-front/scripts/api.ts)) : web → `fetch(uri).blob()` + vrai `Blob` ; `MULTIPART_CONFIG` n'écrase plus l'en-tête sur web (boundary auto). Appliqué à `uploadAvatar` **et** `uploadParcoursCover`. |
+| B2 | **CTA « Y aller » inopérant sur web** | URL construite avec `google.navigation:` (schéma **intent Android**) hors iOS → inutilisable en navigateur | [ActivityDirectionsFooter](../odos-front/components/activity/ActivityDirectionsFooter.tsx) : branche `web` → URL Google Maps universelle `https://`. |
+| B3 | **Clavier chat** (`KeyboardAvoidingView behavior='height'` sur web) | idiome Android appliqué au web → sauts de layout | `behavior` neutralisé (`undefined`) sur web dans [chat](../odos-front/app/chat/[id].tsx), [group-chat](../odos-front/app/group-chat/[id].tsx), [thread/[id]](../odos-front/app/thread/[id].tsx) ; natif inchangé. |
+
+### 5.2 Écrans « non adaptés » (étirés desktop) → centrés
+
+7 écrans **oubliés** par le chantier Niveau 0/2, sans `ResponsiveShell` ni cap, enveloppés
+(colonne centrée, fond plein-cadre derrière) : [thread/create](../odos-front/app/thread/create.tsx),
+[group/create](../odos-front/app/group/create.tsx), [profile/[id]](../odos-front/app/profile/[id].tsx),
+[group/[id]](../odos-front/app/group/[id].tsx), [thread/[id]](../odos-front/app/thread/[id].tsx),
+[chat/[id]](../odos-front/app/chat/[id].tsx), [group-chat/[id]](../odos-front/app/group-chat/[id].tsx).
+
+### 5.3 Niveau 2 restant → livré
+
+- **Grille 2 col communauté** ([groups.tsx](../odos-front/app/(tabs)/community/groups.tsx)) :
+  `numColumns` responsive (1 phone / 2 tablette+desktop) via `useResponsive`, `key` changée avec
+  les colonnes, dernier item impair non étiré (`maxWidth: '49%'` + `space-between`). Améliore aussi
+  le natif tablette.
+- **Bento-lite home** ([index.tsx](../odos-front/app/(tabs)/index.tsx)) : sur `web + isDesktop`, les
+  carrousels horizontaux (peu accessibles à la souris) deviennent des **grilles qui s'enroulent**
+  (`flexWrap`). Mobile/natif = carrousel inchangé.
+
+### 5.4 Niveau 3 (états pointer/focus) — démarré
+
+- Hook **`useHover`** ([hooks/useHover.ts](../odos-front/hooks/useHover.ts)) : `hovered`/`focused` +
+  `bind`, **web-only** (natif = `bind` vide, non-régression par construction).
+- Appliqué au **`CTAButton`** (survol = léger relief, focus clavier = anneau visible — DA §7/§8) et à
+  la **`MosaicPopCard`** (survol = carte soulevée). Transitions douces via props CSS react-native-web
+  (cast centralisé). ⚠️ `MosaicPopCard` est enfant d'un `<Link asChild>` → style **objet flatten**
+  conservé (jamais de tableau, sinon écran blanc web).
+
+### 5.5 Faux positifs vérifiés (ne pas re-signaler)
+
+- **Notifications / badge d'icône** : [usePushNotifications](../odos-front/hooks/usePushNotifications.ts),
+  [useAppIconBadge](../odos-front/hooks/useAppIconBadge.ts), [useNotificationResponse](../odos-front/hooks/useNotificationResponse.ts)
+  déjà gardés `Platform.OS === 'web'` + `import()` dynamique → jamais chargés sur web.
+- **`+not-found`** : déjà FR + tokens + `CTAButton` + centré.
+- **Build/prerender** : aucun accès top-level à `window`/`document` ; le `document.createElement`
+  de `MapLibreWeb` est dans un `useEffect` (client-only, web-only).
+- **`safeStorage` / `odosAlert` / `haptics`** : fallback `localStorage`, modal thémé, garde `EXPO_OS`.
+
+### 5.6 Reste (décisions assumées)
+
+- **Partage lien externe (« copier le lien »)** : **déféré**. C'est une *fonctionnalité produit*
+  (nécessite une URL/route publique — l'app est derrière login), pas un bug d'adaptation web. Le
+  `ShareModal` in-app (amis/groupes) fonctionne déjà sur web.
+- **Dettes TS préexistantes** (6 fichiers : `appearance`, `useThemes`, `OdosModalContext`,
+  `ThemeContext`, `authSession`, `useOdosStackScreenOptions`) : hors périmètre web, à assainir à part.
+- **Rollout hover/focus** : étendre `useHover` aux autres surfaces cliquables (rows sociales,
+  `ActivityCard`, chips) au fil de l'eau.
+
+### 5.7 Verdict Partie 5
+
+**🟢 Web fonctionnel et adapté.** Plus de bug web connu (uploads, itinéraires, clavier réglés),
+tous les écrans capés/centrés, densification desktop livrée (communauté + home), états pointer
+amorcés. Reste du **polish** continu (Niveau 3) et une *feature* (lien externe) hors périmètre.
 
 ---
 

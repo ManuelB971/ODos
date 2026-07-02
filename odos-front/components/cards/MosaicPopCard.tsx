@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Image,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -15,6 +16,7 @@ import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { ApiActivity } from '@/types';
 import { resolveImageUrl } from '@/utils/imageUrl';
+import { useHover } from '@/hooks/useHover';
 import { useFavoriteToggle } from '@/hooks/useFavoriteToggle';
 import { ParcoursPickerSheet } from '@/components/social/ParcoursPickerSheet';
 import { Meander, TesseraGrid } from './GreekMotifs';
@@ -150,15 +152,20 @@ export function MosaicPopCard({
   const favorite = controlled ? !!isFavorite : fav.isFavorite(item.id);
   const onHeartPress = controlled ? onToggleFavorite : () => fav.toggleFavorite(item.id);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const { hovered, bind } = useHover();
 
+  // ⚠️ Enfant d'un `<Link asChild>` → style **objet flatten** obligatoire (jamais
+  // un tableau, sinon écran blanc web). Le survol desktop soulève la carte.
   const cardOuterStyle = StyleSheet.flatten([
     styles.cardWrap,
     isGrid ? styles.cardWrapGrid : isFeatured ? styles.cardWrapFeatured : styles.cardWrapCarousel,
+    Platform.OS === 'web' && webCardInteractive,
+    Platform.OS === 'web' && hovered && styles.cardHover,
   ]);
 
   return (
     <Link href={`/activity/${item.id}`} asChild>
-      <Pressable style={cardOuterStyle}>
+      <Pressable {...bind} style={cardOuterStyle}>
         {/* Ombre dure décalée (rendu net cross-platform via un calque encre) */}
         <View
           pointerEvents="none"
@@ -330,10 +337,21 @@ export function MosaicPopRow({ item }: { item: ApiActivity }) {
   );
 }
 
+/** Curseur + transition douce (web only ; props CSS hors typage RN → cast). */
+const webCardInteractive = {
+  cursor: 'pointer',
+  transitionDuration: '160ms',
+  transitionProperty: 'transform',
+} as unknown as ViewStyle;
+
 const styles = StyleSheet.create({
   // ---- card ----
   cardWrap: {
     marginBottom: CARD_SHADOW + 4,
+  },
+  /** Survol desktop : la carte se soulève légèrement (DA §7). */
+  cardHover: {
+    transform: [{ translateY: -4 }],
   },
   cardWrapCarousel: {
     width: CARD_W,

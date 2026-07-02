@@ -2,6 +2,7 @@ import {
   View,
   Text,
   StyleSheet,
+  Platform,
   Pressable,
   FlatList,
   Image,
@@ -34,6 +35,7 @@ import { MosaicPopMap } from '@/components/cards/MosaicPopMap';
 import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
 import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
+import { useResponsive } from '@/hooks/useResponsive';
 
 /** Helper: get the category display name from the API response */
 const getCategoryName = (cat: ApiActivity['category']): string => {
@@ -152,6 +154,11 @@ export default function HomeScreen() {
   const { selectedCity } = useCity();
   const { recommendations, loading, error, refresh } = useRecommendations(interests, selectedCity);
   const activitiesQuery = useActivities();
+  // Desktop web : les carrousels horizontaux (peu accessibles à la souris)
+  // deviennent des grilles qui s'enroulent (densité type bento). Gardé
+  // `web + isDesktop` → mobile/natif inchangé. Cf. AUDIT_RESPONSIVE_WEB.md Niveau 2.
+  const { isDesktop } = useResponsive();
+  const gridMode = Platform.OS === 'web' && isDesktop;
   const rawActivities = useMemo(() => activitiesQuery.data ?? [], [activitiesQuery.data]);
   const activitiesError = activitiesQuery.error
     ? toAppError(activitiesQuery.error, 'Impossible de charger les activites.').userMessage
@@ -357,21 +364,26 @@ export default function HomeScreen() {
                   <CTAButton label="Choisir mes intérêts" size="sm" onPress={() => router.push('/interests')} />
                 </View>
               )}
-              {!loading && !error && recommendations.length > 0 && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.recoScroller}
-                >
-                  {recommendations.map((item) =>
-                    cardStyle === 'mosaicPop' ? (
-                      <MosaicPopCard key={`rec-${item.id}`} item={item} />
-                    ) : (
-                      <RecommendationCard key={`rec-${item.id}`} item={item} />
-                    )
-                  )}
-                </ScrollView>
-              )}
+              {!loading && !error && recommendations.length > 0 && (() => {
+                const cards = recommendations.map((item) =>
+                  cardStyle === 'mosaicPop' ? (
+                    <MosaicPopCard key={`rec-${item.id}`} item={item} />
+                  ) : (
+                    <RecommendationCard key={`rec-${item.id}`} item={item} />
+                  )
+                );
+                return gridMode ? (
+                  <View style={styles.recoGrid}>{cards}</View>
+                ) : (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.recoScroller}
+                  >
+                    {cards}
+                  </ScrollView>
+                );
+              })()}
             </View>
 
             {/* ── Activités les mieux notées (carrousel horizontal) ── */}
@@ -383,19 +395,26 @@ export default function HomeScreen() {
                     <Text style={styles.seeAllText}>VOIR TOUT</Text>
                   </Pressable>
                 </View>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.recoScroller}
-                >
-                  {topRated.map((item) =>
+                {(() => {
+                  const cards = topRated.map((item) =>
                     cardStyle === 'mosaicPop' ? (
                       <MosaicPopCard key={`top-${item.id}`} item={item} />
                     ) : (
                       <RecommendationCard key={`top-${item.id}`} item={item} />
                     )
-                  )}
-                </ScrollView>
+                  );
+                  return gridMode ? (
+                    <View style={styles.recoGrid}>{cards}</View>
+                  ) : (
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.recoScroller}
+                    >
+                      {cards}
+                    </ScrollView>
+                  );
+                })()}
               </View>
             ) : null}
 
@@ -599,6 +618,14 @@ function createStyles(colors: OdosColorPalette) {
   // ── Recommandation card (carrousel horizontal) ──
   recoScroller: {
     paddingRight: 8,
+    paddingTop: 4,
+    paddingBottom: 18,
+  },
+  /** Desktop web : grille de cartes qui s'enroule (remplace le carrousel). */
+  recoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14,
     paddingTop: 4,
     paddingBottom: 18,
   },

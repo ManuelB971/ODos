@@ -9,6 +9,7 @@ import { GroupCard } from '@/components/social/GroupCard';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
 import { PopBadge } from '@/components/pop/PopPill';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
+import { useResponsive } from '@/hooks/useResponsive';
 
 export default function GroupsScreen() {
   const colors = useOdosColors();
@@ -23,6 +24,12 @@ export default function GroupsScreen() {
   const groups = data?.member ?? [];
   const pendingInvitations = invitationsData?.member?.length ?? 0;
   const ink = isMosaicPop ? pop.ink : colors.text;
+
+  // Grille : 1 colonne sur phone, 2 dès tablette/desktop (les cartes de groupe
+  // sont width-agnostic → densité sans étirement). `key` change avec numColumns
+  // (exigence RN). Cf. AUDIT_RESPONSIVE_WEB.md (Niveau 2).
+  const { isPhone } = useResponsive();
+  const numColumns = isPhone ? 1 : 2;
 
   return (
     <View style={[styles.container, { backgroundColor: isMosaicPop ? pop.paper : colors.background }]}>
@@ -96,8 +103,11 @@ export default function GroupsScreen() {
       </View>
 
       <FlatList
+        key={`groups-${numColumns}`}
         data={groups}
         keyExtractor={(item) => String(item.id)}
+        numColumns={numColumns}
+        columnWrapperStyle={numColumns > 1 ? styles.gridRow : undefined}
         refreshing={isRefetching}
         onRefresh={() => refetch()}
         contentContainerStyle={styles.list}
@@ -121,11 +131,13 @@ export default function GroupsScreen() {
           )
         }
         renderItem={({ item }) => (
-          <GroupCard
-            group={item}
-            onJoin={tab === 'discover' && !item.isPrivate ? () => join.mutate(item.id) : undefined}
-            joining={join.isPending && join.variables === item.id}
-          />
+          <View style={numColumns > 1 ? styles.gridCell : undefined}>
+            <GroupCard
+              group={item}
+              onJoin={tab === 'discover' && !item.isPrivate ? () => join.mutate(item.id) : undefined}
+              joining={join.isPending && join.variables === item.id}
+            />
+          </View>
         )}
       />
     </View>
@@ -146,5 +158,7 @@ const styles = StyleSheet.create({
   tabs: { flexDirection: 'row', paddingHorizontal: 16, paddingTop: 12 },
   tab: { flex: 1, alignItems: 'center', paddingVertical: 10 },
   list: { padding: 16, gap: 10, flexGrow: 1 },
+  gridRow: { justifyContent: 'space-between' },
+  gridCell: { flex: 1, maxWidth: '49%' },
   empty: { textAlign: 'center', marginTop: 48, fontSize: 14, paddingHorizontal: 24, lineHeight: 20 },
 });

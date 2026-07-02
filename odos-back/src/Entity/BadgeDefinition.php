@@ -201,6 +201,23 @@ class BadgeDefinition
         return $this;
     }
 
+    /**
+     * Affichage admin (détail EasyAdmin) — évite un second champ mappé sur ruleConfig.
+     */
+    public function getRuleConfigDisplay(): string
+    {
+        $config = $this->ruleConfig;
+        if (null === $config || [] === $config) {
+            return '—';
+        }
+
+        try {
+            return json_encode($config, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return 'Configuration JSON invalide en base.';
+        }
+    }
+
     public function getCreatedAt(): ?\DateTimeImmutable
     {
         return $this->createdAt;

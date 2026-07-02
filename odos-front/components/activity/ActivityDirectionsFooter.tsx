@@ -90,10 +90,14 @@ export function ActivityDirectionsFooter({
     if (launching) return;
     setLaunching(true);
     const label = encodeURIComponent(name);
+    // Web : pas de schéma d'app natif (`google.navigation:` / `maps://` ne
+    // s'ouvrent pas en navigateur) → URL Google Maps universelle directe.
     const url =
       Platform.OS === 'ios'
         ? `http://maps.apple.com/?daddr=${latitude},${longitude}&q=${label}`
-        : `google.navigation:q=${latitude},${longitude}`;
+        : Platform.OS === 'web'
+          ? `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`
+          : `google.navigation:q=${latitude},${longitude}`;
     try {
       const supported = await Linking.canOpenURL(url);
       if (supported) {

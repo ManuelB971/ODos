@@ -20,6 +20,7 @@ import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import { FontFamily, Spacing } from '@/constants/theme';
 import { CTAButton } from '@/components/ui/CTAButton';
 import { InputField } from '@/components/ui/InputField';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 import { logError, toAppError } from '@/utils/errorHandling';
 
 const TITLE_MAX = 200;
@@ -69,6 +70,7 @@ export default function CreateThreadScreen() {
         style={[styles.screen, { backgroundColor: isMosaicPop ? pop.paper : colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
+        <ResponsiveShell>
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
@@ -136,6 +138,7 @@ export default function CreateThreadScreen() {
             fullWidth
           />
         </ScrollView>
+        </ResponsiveShell>
       </KeyboardAvoidingView>
     </>
   );

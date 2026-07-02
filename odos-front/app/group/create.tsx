@@ -11,6 +11,7 @@ import { Stack, useRouter } from 'expo-router';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { CTAButton } from '@/components/ui/CTAButton';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 import { useGroupMutations } from '@/hooks/useGroups';
 
 const NAME_MAX = 100;
@@ -50,8 +51,9 @@ export default function CreateGroupScreen() {
   return (
     <>
       <Stack.Screen options={{ title: 'Nouveau groupe', headerShown: true, presentation: 'modal' }} />
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ResponsiveShell>
       <ScrollView
-        style={{ backgroundColor: colors.background }}
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
@@ -99,6 +101,8 @@ export default function CreateGroupScreen() {
           style={styles.cta}
         />
       </ScrollView>
+      </ResponsiveShell>
+      </View>
     </>
   );
 }

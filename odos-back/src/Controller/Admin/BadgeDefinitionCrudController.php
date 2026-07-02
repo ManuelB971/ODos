@@ -136,19 +136,8 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
             ->setFormTypeOption('required', false)
             ->setHelp($this->ruleConfigHelpText())
             ->setNumOfRows(6);
-        yield TextareaField::new('ruleConfig', 'Config JSON (règle)')
-            ->onlyOnDetail()
-            ->formatValue(static function (?array $value): string {
-                if (null === $value || [] === $value) {
-                    return '—';
-                }
-
-                try {
-                    return json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
-                } catch (\JsonException) {
-                    return 'Configuration JSON invalide en base.';
-                }
-            });
+        yield TextField::new('ruleConfigDisplay', 'Config JSON (règle)')
+            ->onlyOnDetail();
 
         yield DateTimeField::new('createdAt')->hideOnForm();
         yield DateTimeField::new('updatedAt')->hideOnForm();
