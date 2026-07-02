@@ -21,6 +21,7 @@ import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { ReplyItem } from '@/components/forum/ReplyItem';
 import { ReportContentModal } from '@/components/social/ReportContentModal';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 import { useForumReport } from '@/hooks/useForumReport';
 import { useForumMutations } from '@/hooks/useForumMutations';
 import type { ForumReportReason } from '@/types';
@@ -102,10 +103,11 @@ export default function ThreadDetailScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: isMosaicPop ? pop.paper : colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'web' ? undefined : 'height'}
       keyboardVerticalOffset={headerHeight}
     >
       <Stack.Screen options={{ title: 'Discussion', headerShown: true, headerBackTitle: 'Retour' }} />
+      <ResponsiveShell>
       <FlatList
         data={replies}
         keyExtractor={(item) => String(item.id)}
@@ -181,6 +183,7 @@ export default function ThreadDetailScreen() {
         </View>
         </Animated.View>
       )}
+      </ResponsiveShell>
 
       <ReportContentModal
         visible={reportThreadOpen}

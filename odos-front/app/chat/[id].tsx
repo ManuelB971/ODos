@@ -23,6 +23,7 @@ import { FontFamily } from '@/constants/theme';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { tapHaptic } from '@/utils/haptics';
 import { PopEmptyState } from '@/components/pop/PopEmptyState';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 import { ActivityPickerSheet } from '@/components/social/ActivityPickerSheet';
 import { ReportContentModal } from '@/components/social/ReportContentModal';
 import { MessageActivityCard, MessageParcoursCard } from '@/components/social/MessageAttachmentCards';
@@ -106,9 +107,10 @@ export default function ChatScreen() {
       <Stack.Screen options={{ title, headerShown: true, headerBackTitle: 'Retour' }} />
       <KeyboardAvoidingView
         style={[styles.container, { backgroundColor: isMosaicPop ? pop.paper : colors.background }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'web' ? undefined : 'height'}
         keyboardVerticalOffset={headerHeight}
       >
+        <ResponsiveShell>
         <FlatList
           ref={listRef}
           data={messages}
@@ -257,6 +259,7 @@ export default function ChatScreen() {
           </Pressable>
         </View>
         </Animated.View>
+        </ResponsiveShell>
       </KeyboardAvoidingView>
 
       <ActivityPickerSheet

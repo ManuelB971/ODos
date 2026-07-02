@@ -19,6 +19,7 @@ import { useGroupChatMutations, useGroupMessages } from '@/hooks/useGroupChat';
 import { useGroupDetail } from '@/hooks/useGroups';
 import { useContentReport } from '@/hooks/useContentReport';
 import { ReportContentModal } from '@/components/social/ReportContentModal';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 import { useOdosColors } from '@/context/ThemeContext';
 import { useResponsiveSheet } from '@/hooks/useResponsiveSheet';
 import { odosAlert } from '@/context/OdosModalContext';
@@ -114,9 +115,10 @@ export default function GroupChatScreen() {
       <Stack.Screen options={{ title: detail?.group?.name ?? 'Discussion', headerShown: true }} />
       <KeyboardAvoidingView
         style={[styles.container, { backgroundColor: isMosaicPop ? pop.paper : colors.background }]}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'web' ? undefined : 'height'}
         keyboardVerticalOffset={headerHeight}
       >
+        <ResponsiveShell>
         <FlatList
           ref={listRef}
           data={messages}
@@ -267,6 +269,7 @@ export default function GroupChatScreen() {
           </Pressable>
         </View>
         </Animated.View>
+        </ResponsiveShell>
       </KeyboardAvoidingView>
 
       {/* Choix du type de partage */}

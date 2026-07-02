@@ -19,6 +19,7 @@ import { FontFamily } from '@/constants/theme';
 import { UserAvatar } from '@/components/social/UserAvatar';
 import { UserLink } from '@/components/social/UserLink';
 import { CTAButton } from '@/components/ui/CTAButton';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import type { GroupMemberItem, GroupRole } from '@/types';
 
@@ -123,7 +124,9 @@ export default function GroupDetailScreen() {
   return (
     <>
       <Stack.Screen options={{ title: group?.name ?? 'Groupe', headerShown: true }} />
-      <ScrollView style={{ backgroundColor: colors.background }} contentContainerStyle={styles.container}>
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ResponsiveShell>
+      <ScrollView contentContainerStyle={styles.container}>
         {isLoading ? (
           <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
         ) : !group ? (
@@ -308,6 +311,8 @@ export default function GroupDetailScreen() {
           </>
         )}
       </ScrollView>
+      </ResponsiveShell>
+      </View>
     </>
   );
 }

@@ -14,6 +14,7 @@ import { ReportContentModal } from '@/components/social/ReportContentModal';
 import { useOdosColors } from '@/context/ThemeContext';
 import { FontFamily } from '@/constants/theme';
 import { CTAButton } from '@/components/ui/CTAButton';
+import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { PopSurface } from '@/components/pop/PopSurface';
 import { UserAvatar } from '@/components/social/UserAvatar';
@@ -212,10 +213,9 @@ export default function PublicProfileScreen() {
           ),
         }}
       />
-      <ScrollView
-        style={{ backgroundColor: isMosaicPop ? pop.paper : colors.background }}
-        contentContainerStyle={styles.container}
-      >
+      <View style={{ flex: 1, backgroundColor: isMosaicPop ? pop.paper : colors.background }}>
+      <ResponsiveShell>
+      <ScrollView contentContainerStyle={styles.container}>
         {isLoading ? (
           <View style={styles.header}>
             <Skeleton width={96} height={96} radius={48} />
@@ -297,6 +297,8 @@ export default function PublicProfileScreen() {
           </Text>
         )}
       </ScrollView>
+      </ResponsiveShell>
+      </View>
 
       <ReportContentModal
         visible={reportOpen}
