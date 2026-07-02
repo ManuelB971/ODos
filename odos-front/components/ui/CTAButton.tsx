@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -18,6 +19,7 @@ import type { OdosColorPalette } from '@/constants/themes/types';
 import { FontFamily, Radius } from '@/constants/theme';
 import { useMotionConfig } from '@/constants/motion';
 import { useTheme } from '@/context/ThemeContext';
+import { useHover } from '@/hooks/useHover';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 
 export type CTAButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -60,6 +62,7 @@ export function CTAButton({
   );
   const pressProgress = useSharedValue(0);
   const isDisabled = disabled || loading;
+  const { hovered, focused, bind } = useHover();
 
   const labelOpacity = useSharedValue(1);
   useEffect(() => {
@@ -80,6 +83,7 @@ export function CTAButton({
   return (
     <Animated.View style={[animatedPressStyle, fullWidth && styles.fullWidth, style]}>
       <Pressable
+        {...bind}
         onPress={onPress}
         disabled={isDisabled}
         onPressIn={() => {
@@ -103,6 +107,10 @@ export function CTAButton({
             paddingHorizontal: sizeStyles.paddingH,
             minHeight: sizeStyles.minH,
           },
+          // Desktop web : survol (léger relief) + focus clavier visible (DA §7/§8).
+          Platform.OS === 'web' && webInteractiveStyle,
+          Platform.OS === 'web' && hovered && !isDisabled && styles.hovered,
+          Platform.OS === 'web' && focused && { outlineColor: activeVariant.border ?? colors.primary },
           isDisabled && !loading && styles.disabled,
         ]}
       >
@@ -179,6 +187,21 @@ const SIZE_STYLES: Record<
   lg: { paddingV: 16, paddingH: 24, fontSize: 16, minH: 56 },
 };
 
+/**
+ * Styles **web-only** : curseur, transitions douces et anneau de focus clavier.
+ * Props CSS supportées par react-native-web mais absentes du typage RN ViewStyle
+ * → cast unique et centralisé ici. Ignorées sur natif (jamais appliquées).
+ */
+const webInteractiveStyle = {
+  cursor: 'pointer',
+  transitionDuration: '150ms',
+  transitionProperty: 'transform, box-shadow, outline-color',
+  outlineWidth: 3,
+  outlineStyle: 'solid',
+  outlineColor: 'transparent',
+  outlineOffset: 2,
+} as unknown as ViewStyle;
+
 const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
@@ -186,6 +209,13 @@ const styles = StyleSheet.create({
     borderRadius: Radius.pill,
     position: 'relative',
     overflow: 'hidden',
+  },
+  hovered: {
+    transform: [{ scale: 1.02 }],
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
   contentRow: {
     flexDirection: 'row',
