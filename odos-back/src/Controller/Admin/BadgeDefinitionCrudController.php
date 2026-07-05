@@ -28,6 +28,7 @@ use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\HttpFoundation\File\Exception\FileException;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @extends AbstractCrudController<BadgeDefinition>
@@ -110,6 +111,13 @@ final class BadgeDefinitionCrudController extends AbstractCrudController
         yield TextField::new('imageUrl', 'Image (URL ou chemin)')
             ->onlyOnForms()
             ->setRequired(false)
+            // Whitelist défensive (cf. ActivityCrudController) : https:// ou /uploads/.
+            ->setFormTypeOption('constraints', [
+                new Assert\Regex(
+                    pattern: '#^(https://|/uploads/)#',
+                    message: "L'URL d'image doit commencer par https:// ou /uploads/.",
+                ),
+            ])
             ->setHelp('URL externe (https://…) ou chemin local (/uploads/badges/…). Laisser vide si vous téléversez ci-dessous.');
         yield TextField::new(self::PHOTO_FORM_FIELD, 'Image (téléversement)')
             ->setFormType(FileType::class)

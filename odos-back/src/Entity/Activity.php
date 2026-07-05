@@ -3,7 +3,12 @@
 namespace App\Entity;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Delete;
+use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Patch;
+use ApiPlatform\Metadata\Post;
+use ApiPlatform\Metadata\Put;
 use App\Repository\ActivityRepository;
 use App\Service\BadgeDescriptionSanitizer;
 use App\State\RecommendationStateProvider;
@@ -15,6 +20,21 @@ use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: ActivityRepository::class)]
 #[ApiResource(
+    operations: [
+        // Lecture publique (le catalogue est aussi servi hors connexion) : la
+        // règle firewall `^/api/activities, methods:[GET]` = PUBLIC_ACCESS s'applique.
+        new GetCollection(),
+        new Get(),
+        // Écritures réservées aux admins. Sans ce `security`, API Platform génère
+        // des opérations d'écriture SANS contrôle et le firewall ne demande que
+        // `IS_AUTHENTICATED_FULLY` sur `^/api` → tout ROLE_USER pourrait créer /
+        // modifier / supprimer une activité. La création réelle passe par
+        // l'admin (EasyAdmin) et l'import, jamais par l'app mobile.
+        new Post(security: "is_granted('ROLE_ADMIN')"),
+        new Put(security: "is_granted('ROLE_ADMIN')"),
+        new Patch(security: "is_granted('ROLE_ADMIN')"),
+        new Delete(security: "is_granted('ROLE_ADMIN')"),
+    ],
     normalizationContext: ['groups' => ['activity:read']],
     denormalizationContext: ['groups' => ['activity:write']]
 )]

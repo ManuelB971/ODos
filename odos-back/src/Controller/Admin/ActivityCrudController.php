@@ -24,6 +24,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Filter\BooleanFilter;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * @extends AbstractCrudController<Activity>
@@ -91,7 +92,16 @@ class ActivityCrudController extends AbstractCrudController
             UrlField::new('imageUrl', 'Image (URL)')
                 ->setRequired(false)
                 ->onlyOnForms()
-                ->setHelp('URL externe (laisser vide pour utiliser le téléversement ci-dessous).'),
+                // Whitelist défensive : seules les URLs https:// ou les chemins
+                // /uploads/ sont acceptés (bloque javascript:, data:, http:…).
+                // Le RegexValidator ignore null/'' → champ optionnel préservé.
+                ->setFormTypeOption('constraints', [
+                    new Assert\Regex(
+                        pattern: '#^(https://|/uploads/)#',
+                        message: "L'URL d'image doit commencer par https:// ou /uploads/.",
+                    ),
+                ])
+                ->setHelp('URL externe https:// ou chemin /uploads/ (laisser vide pour utiliser le téléversement ci-dessous).'),
 
             TextField::new(self::PHOTO_FORM_FIELD, 'Photo (téléversement)')
                 ->setFormType(FileType::class)
