@@ -159,6 +159,55 @@ describe('api helpers', () => {
     expect(await safeStorage.getItem('x')).toBe('token-1');
   });
 
+  it('request interceptor omits expired JWT on public GET routes', async () => {
+    const api = loadApiModule();
+    mockSecureStore.isAvailableAsync.mockResolvedValue(true);
+    // exp=1 → expiré depuis 1970
+    const expiredToken = `hdr.${Buffer.from(JSON.stringify({ exp: 1 })).toString('base64')}.sig`;
+    mockSecureStore.getItemAsync.mockResolvedValue(expiredToken);
+
+    const publicCfg = { url: '/api/activities', method: 'get', headers: {} as Record<string, string> };
+    const privateCfg = { url: '/api/me', method: 'get', headers: {} as Record<string, string> };
+
+    const publicResult = await requestInterceptor!(publicCfg);
+    const privateResult = await requestInterceptor!(privateCfg);
+
+    expect(publicResult.headers.Authorization).toBeUndefined();
+    expect(privateResult.headers.Authorization).toBe(`Bearer ${expiredToken}`);
+    expect(api.isPublicReadRequest('/api/activities/12/comments', 'GET')).toBe(true);
+    expect(api.isPublicReadRequest('/api/recommendations', 'GET')).toBe(false);
+  });
+
+  it('response interceptor retries public GET without auth on 401 instead of logging out', async () => {
+    const api = loadApiModule();
+    const listener = jest.fn();
+    const unsubscribe = api.onAuthError(listener);
+    mockSecureStore.isAvailableAsync.mockResolvedValue(true);
+    mockSecureStore.getItemAsync.mockResolvedValue(null);
+    mockApiInstance.mockResolvedValueOnce({ data: [{ id: 1 }] });
+
+    const error = {
+      response: { status: 401 },
+      config: {
+        url: '/api/activities',
+        method: 'get',
+        headers: { Authorization: 'Bearer stale' } as Record<string, string>,
+      },
+    };
+
+    const result = await responseErrorInterceptor!(error);
+    expect(result).toEqual({ data: [{ id: 1 }] });
+    expect(mockApiInstance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: '/api/activities',
+        headers: expect.not.objectContaining({ Authorization: expect.anything() }),
+      }),
+    );
+    expect(mockSecureStore.deleteItemAsync).not.toHaveBeenCalled();
+    expect(listener).not.toHaveBeenCalled();
+    unsubscribe();
+  });
+
   it('response interceptor handles 401 without refresh token and notifies listeners', async () => {
     const api = loadApiModule();
     const listener = jest.fn();

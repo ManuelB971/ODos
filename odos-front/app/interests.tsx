@@ -24,7 +24,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { SprayBackground } from '@/components/ui/SprayBackground';
 import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 import { logError, toAppError } from '@/utils/errorHandling';
-import { ONBOARDING_CITY_HREF } from '@/utils/onboardingRoute';
+import { ONBOARDING_CITY_HREF, hasCompletedOnboarding } from '@/utils/onboardingRoute';
 
 /**
  * Écran de sélection des centres d'intérêt.
@@ -45,7 +45,12 @@ const InterestsScreen = () => {
   const { t } = useTranslation();
   const router = useRouter();
   const { interests: storedNames, setInterests } = useInterests();
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
+
+  // Onboarding tant que le parcours n'est pas terminé (pas d'intérêts OU pas de
+  // ville). En mode onboarding : indicateur d'étapes + pas de retour piégeux.
+  // En édition depuis le compte (parcours terminé) : bouton retour classique.
+  const isOnboarding = !user || !hasCompletedOnboarding(user);
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -95,9 +100,8 @@ const InterestsScreen = () => {
   const handleContinue = async () => {
     if (!canContinue) return;
 
-    const selectedNames = categories
-      .filter((c) => selectedIds.includes(c.id))
-      .map((c) => c.name);
+    const selectedCategories = categories.filter((c) => selectedIds.includes(c.id));
+    const selectedNames = selectedCategories.map((c) => c.name);
     setInterests(selectedNames);
 
     if (user?.id) {
@@ -105,6 +109,11 @@ const InterestsScreen = () => {
       try {
         const iris = selectedIds.map((id) => `/api/categories/${id}`);
         await updateUserInterests(user.id, iris);
+        // Refléter la sélection dans le user d'auth. Sans ça, `user.interests`
+        // reste vide côté contexte : le garde d'onboarding (tabs/_layout) juge
+        // le parcours incomplet et renvoie l'utilisateur en boucle sur cet écran
+        // juste après avoir choisi sa ville → inscription impossible à terminer.
+        setUser({ ...user, interests: selectedCategories });
       } catch (err) {
         logError('Interests.updateUserInterests', err, { userId: user.id });
         setError(toAppError(err, t('interests.errorSave')).userMessage);
@@ -115,20 +124,27 @@ const InterestsScreen = () => {
       }
     }
 
-    router.replace(ONBOARDING_CITY_HREF);
+    // Onboarding → étape ville. Édition depuis le compte → retour à l'écran précédent
+    // (sinon un utilisateur déjà onboardé serait renvoyé sur l'onboarding ville).
+    if (isOnboarding) {
+      router.replace(ONBOARDING_CITY_HREF);
+    } else {
+      router.back();
+    }
   };
 
   return (
     <SprayBackground>
       <View style={styles.screen}>
-      {/* Header de navigation (back seulement si on a déjà un user ; sinon onboarding direct). */}
+      {/* Header de navigation : pas de retour pendant l'onboarding (éviterait de
+          revenir à l'écran login) ; retour classique en mode édition. */}
       <View style={styles.topBar}>
-        {user ? (
+        {isOnboarding ? (
+          <View style={styles.backBtn} />
+        ) : (
           <Pressable onPress={() => router.back()} hitSlop={8} style={styles.backBtn}>
             <ArrowLeft size={22} color={colors.text} />
           </Pressable>
-        ) : (
-          <View style={styles.backBtn} />
         )}
         <Text style={styles.topBarTitle}>{t('interests.topBarTitle')}</Text>
         <View style={styles.backBtn} />
@@ -139,7 +155,7 @@ const InterestsScreen = () => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {!user ? (
+        {isOnboarding ? (
           <View style={styles.onboardingSteps} accessibilityRole="text" accessibilityLabel={t('onboarding.step1of2')}>
             <View style={styles.onboardingStep}>
               <DaIcon

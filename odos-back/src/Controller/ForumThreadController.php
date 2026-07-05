@@ -115,6 +115,24 @@ final class ForumThreadController extends AbstractController
             return $this->json(['message' => 'Titre et contenu requis.'], Response::HTTP_BAD_REQUEST);
         }
 
+        // Borne la taille du contenu (aligné front `CONTENT_MAX = 4000` et sur la
+        // limite des réponses). Sans ça, un fil peut recevoir un contenu de
+        // plusieurs Mo (abus / DoS stockage). Violation de contrainte → 422.
+        $contentViolations = $this->validator->validate($content, [
+            new Assert\Length(
+                min: 2,
+                max: 4000,
+                minMessage: 'Le contenu doit contenir au moins {{ limit }} caractères.',
+                maxMessage: 'Le contenu ne peut pas dépasser {{ limit }} caractères.',
+            ),
+        ]);
+        if (count($contentViolations) > 0) {
+            return $this->json(
+                ['message' => (string) $contentViolations->get(0)->getMessage()],
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
+        }
+
         $activityId = isset($data['activityId']) ? (int) $data['activityId'] : null;
         $categoryId = isset($data['categoryId']) ? (int) $data['categoryId'] : null;
         $groupId = isset($data['groupId']) ? (int) $data['groupId'] : null;
