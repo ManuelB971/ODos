@@ -165,11 +165,35 @@ export async function ensureSessionReady(): Promise<boolean> {
     return false;
 }
 
+/**
+ * GET publics alignés sur `security.yaml` (PUBLIC_ACCESS). Un JWT expiré ou
+ * invalide dans `Authorization` fait échouer Lexik **avant** l'évaluation
+ * PUBLIC_ACCESS → 401 alors que le catalogue devrait rester lisible.
+ */
+function normalizeApiPath(url: string | undefined): string {
+    if (!url) return '';
+    return url.split('?')[0];
+}
+
+export function isPublicReadRequest(url: string | undefined, method?: string): boolean {
+    const verb = (method ?? 'get').toLowerCase();
+    if (verb !== 'get') return false;
+    const path = normalizeApiPath(url);
+    if (path === '/api/categories' || path === '/api/health') return true;
+    if (/^\/api\/themes(?:\/|$)/.test(path)) return true;
+    return /^\/api\/activities(?:\/\d+(?:\/(?:comments|rating))?)?$/.test(path);
+}
+
 // Intercepteur pour ajouter le token JWT à chaque requête
 api.interceptors.request.use(async (config) => {
     const token = await safeStorage.getItem('user_token');
     if (token && config.url !== '/api/token/refresh') {
-        config.headers.Authorization = `Bearer ${token}`;
+        const publicRead = isPublicReadRequest(config.url, config.method);
+        // Ne pas envoyer un JWT expiré sur les lectures publiques : évite un 401
+        // inutile et la cascade refresh / logout.
+        if (!publicRead || !isJwtExpired(token)) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
     }
     // Langue active → messages d'API localisés (backend lit Accept-Language).
     config.headers['Accept-Language'] = i18n.language;
@@ -201,6 +225,17 @@ api.interceptors.response.use(
                 return Promise.reject(error);
             }
 
+            // Jeton présent mais rejeté sur une route publique → retenter sans auth.
+            if (
+                isPublicReadRequest(originalRequest.url, originalRequest.method) &&
+                originalRequest.headers?.Authorization &&
+                !originalRequest._publicRetry
+            ) {
+                originalRequest._publicRetry = true;
+                delete originalRequest.headers.Authorization;
+                return api(originalRequest);
+            }
+
             if (isRefreshing) {
                 return new Promise(function(resolve, reject) {
                     failedQueue.push({ resolve, reject });
@@ -226,13 +261,21 @@ api.interceptors.response.use(
                 }
                 // null = le serveur a rejeté le refresh token (4xx) → session définitivement invalide
                 processQueue(error, null);
-                await safeStorage.deleteItem('user_token');
-                await safeStorage.deleteItem('refresh_token');
-                for (const listener of authErrorListeners) {
-                    try {
-                        listener(error);
-                    } catch {
-                        /* ignore */
+                const publicRead = isPublicReadRequest(
+                    originalRequest.url,
+                    originalRequest.method,
+                );
+                // Lecture publique : ne pas déconnecter l'utilisateur — le catalogue
+                // reste accessible ; les actions authentifiées échoueront seules.
+                if (!publicRead) {
+                    await safeStorage.deleteItem('user_token');
+                    await safeStorage.deleteItem('refresh_token');
+                    for (const listener of authErrorListeners) {
+                        try {
+                            listener(error);
+                        } catch {
+                            /* ignore */
+                        }
                     }
                 }
                 return Promise.reject(error);

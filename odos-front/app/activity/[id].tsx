@@ -523,7 +523,7 @@ export default function ActivityDetails() {
   return (
     <KeyboardAvoidingView
       style={[styles.screen, { backgroundColor: colors.background }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : Platform.OS === 'web' ? undefined : 'height'}
       keyboardVerticalOffset={88}
     >
       <ScrollView
