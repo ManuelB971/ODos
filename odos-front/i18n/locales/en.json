@@ -43,8 +43,8 @@
     "emailPlaceholder": "example@email.com",
     "emailError": "Check your email.",
     "passwordLabel": "Password",
-    "passwordPlaceholder": "At least 6 characters",
-    "passwordHint": "6 characters minimum.",
+    "passwordPlaceholder": "At least 8 characters",
+    "passwordHint": "8 characters min: 1 uppercase, 1 lowercase, 1 digit and 1 special character (@$!%*?&).",
     "forgot": "Forgot password?",
     "forgotA11y": "Forgot password",
     "ctaSignup": "Create my account",
@@ -56,6 +56,7 @@
     "errors": {
       "emailInvalid": "Invalid email.",
       "passwordTooShort": "The password must be at least 6 characters long.",
+      "passwordWeak": "The password must be at least 8 characters, with 1 uppercase, 1 lowercase, 1 digit and 1 special character (@$!%*?&).",
       "termsRequired": "Please accept the Terms and the Privacy Policy.",
       "loginFailed": "Login error.",
       "generic": "Something went wrong.",

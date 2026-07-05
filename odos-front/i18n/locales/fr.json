@@ -43,8 +43,8 @@
     "emailPlaceholder": "exemple@email.com",
     "emailError": "Vérifiez votre email.",
     "passwordLabel": "Mot de passe",
-    "passwordPlaceholder": "Au moins 6 caractères",
-    "passwordHint": "6 caractères minimum.",
+    "passwordPlaceholder": "Au moins 8 caractères",
+    "passwordHint": "8 caractères min. : 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&).",
     "forgot": "Mot de passe oublié ?",
     "forgotA11y": "Mot de passe oublié",
     "ctaSignup": "Créer mon compte",
@@ -56,6 +56,7 @@
     "errors": {
       "emailInvalid": "Email invalide.",
       "passwordTooShort": "Le mot de passe doit contenir au moins 6 caractères.",
+      "passwordWeak": "Le mot de passe doit contenir au moins 8 caractères, avec 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial (@$!%*?&).",
       "termsRequired": "Veuillez accepter les CGU et la politique de confidentialité.",
       "loginFailed": "Erreur de connexion.",
       "generic": "Une erreur est survenue.",

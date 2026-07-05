@@ -33,6 +33,16 @@ function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
+/**
+ * Politique mot de passe — DOIT rester alignée avec la contrainte backend
+ * (User::$plainPassword : min 8 + majuscule + minuscule + chiffre + caractère
+ * spécial). Sinon l'inscription est acceptée côté client puis rejetée en 422.
+ */
+const PASSWORD_POLICY = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&]).+$/;
+function isStrongPassword(password: string): boolean {
+  return password.length >= 8 && PASSWORD_POLICY.test(password);
+}
+
 export default function LoginScreen() {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
@@ -52,14 +62,19 @@ export default function LoginScreen() {
 
   const trimmedEmail = email.trim();
   const emailValid = isValidEmail(trimmedEmail);
-  const passwordValid = password.length >= 6;
+  // Login : les comptes existants ont déjà un mot de passe conforme, on reste
+  // permissif pour ne pas les bloquer. Inscription : on applique la politique
+  // backend pour éviter un 422 après coup.
+  const passwordValid = isLogin ? password.length >= 6 : isStrongPassword(password);
   const termsOk = isLogin || acceptTerms;
   const canSubmit = emailValid && passwordValid && termsOk && !loading;
 
   const handleAuth = async () => {
     if (!canSubmit) {
       if (!emailValid) setError(t('auth.errors.emailInvalid'));
-      else if (!passwordValid) setError(t('auth.errors.passwordTooShort'));
+      else if (!passwordValid) {
+        setError(isLogin ? t('auth.errors.passwordTooShort') : t('auth.errors.passwordWeak'));
+      }
       else if (!isLogin && !acceptTerms) {
         setError(t('auth.errors.termsRequired'));
       }
