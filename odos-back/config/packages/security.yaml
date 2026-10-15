@@ -43,6 +43,8 @@ security:
                 username_parameter: email
                 password_parameter: password
                 enable_csrf: true
+                # Sans page cible mémorisée, Symfony renvoie vers "/" (aucune route → 404).
+                default_target_path: admin
             logout:
                 path: app_logout
 

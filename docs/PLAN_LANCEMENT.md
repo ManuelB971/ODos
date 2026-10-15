@@ -42,7 +42,8 @@
   - `ADMIN_MFA_PIN` et `ADMIN_MFA_REQUIRE_BIOMETRIC` ne sont utilisés nulle part dans le flux (WebAuthn non implémenté)
   - la page de setup envoyait le secret à un service tiers (`api.qrserver.com`) pour dessiner le QR
   - [x] Code (15/10) : `ADMIN_MFA_SMS_ENABLED` (défaut 0 → TOTP seul), `ADMIN_MFA_TOTP_SETUP_ENABLED` (défaut 0 → page setup en 404), clé affichée en saisie manuelle au lieu du QR tiers, tests `tests/AdminMfaServiceTest.php` (vecteurs RFC 6238)
-  - [ ] Commit + déploiement du code
+  - [x] Commit `f4c36d7` poussé sur `main` le 15/10 (déploiement auto après CI)
+  - [ ] Vérifier que la CI et le déploiement sont passés (GitHub → Actions)
   - [ ] Activation en prod (en `odos`, fichiers de `deploy`) :
     1. Générer le secret : `head -c 20 /dev/urandom | base32 | tr -d '='`
     2. `sudo -u deploy nano /home/deploy/odos-config/.env` → `ADMIN_MFA_TOTP_SECRET=<nouveau>`, `ADMIN_MFA_SMS_ENABLED=0`, `ADMIN_MFA_TOTP_SETUP_ENABLED=1` (laisser `ADMIN_MFA_ENABLED=false`)
@@ -50,6 +51,7 @@
     4. Ouvrir `https://api.odos-api.com/admin/mfa/totp/setup`, saisir la clé dans Google Authenticator, vérifier un code
     5. Remettre `ADMIN_MFA_TOTP_SETUP_ENABLED=0` et passer `ADMIN_MFA_ENABLED=1`, relancer l'étape 3
     6. Tester `/admin` en navigation privée en gardant la session actuelle ouverte (retour arrière : `ADMIN_MFA_ENABLED=false` + étape 3)
+  - [x] Bug : après `POST /login`, redirection vers `/` (aucune route → 404) quand aucune page cible n'est mémorisée → `default_target_path: admin` dans `security.yaml` + `tests/SecurityConfigTest.php` (non commité)
   - [ ] Plus tard : secret TOTP par admin en base (ex. `scheb/2fa-bundle`) si plusieurs admins
 - [ ] **Redémarrage en attente depuis des mois** : noyau 6.8.0-106 en cours, 13 noyaux + `libc6` installés non appliqués. Correctif : reboot planifié (snapshot avant)
 
