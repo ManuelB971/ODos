@@ -19,6 +19,7 @@
                             <span class="badge text-bg-secondary ms-2">En attente</span>
                         {% endif %}
                     </li>
+                    {% if sms_enabled %}
                     <li>
                         SMS OTP
                         {% if totp_verified %}
@@ -27,14 +28,17 @@
                             <span class="badge text-bg-secondary ms-2" title="Disponible après validation TOTP">Bloqué</span>
                         {% endif %}
                     </li>
+                    {% endif %}
                 </ol>
             </div>
 
+            {% if totp_setup_enabled %}
             <div class="mb-3">
                 <a class="btn btn-sm btn-outline-dark" href="{{ path('app_admin_mfa_totp_setup') }}">
-                    Configurer Google Authenticator (QR)
+                    Configurer Google Authenticator
                 </a>
             </div>
+            {% endif %}
 
             {% if error %}
                 <div class="alert alert-danger" role="alert" id="mfa-error">{{ error }}</div>
@@ -73,6 +77,7 @@
                     </div>
                 {% endif %}
 
+                {% if sms_enabled %}
                 <div class="mt-3">
                     <label for="inputSmsCode" class="form-label">Code SMS</label>
                     <input type="text"
@@ -97,6 +102,7 @@
                         <div id="sms-blocked" class="form-text">Validez d'abord l'étape Google Authenticator pour activer le SMS.</div>
                     {% endif %}
                 </div>
+                {% endif %}
 
                 <div class="d-flex gap-2 mt-3 flex-wrap" role="group" aria-label="Actions MFA">
                     {% if not totp_verified %}
@@ -105,6 +111,7 @@
                         </button>
                     {% endif %}
 
+                    {% if sms_enabled %}
                     <button class="btn btn-outline-primary"
                             type="submit"
                             name="action"
@@ -120,6 +127,7 @@
                             {% if not totp_verified %}disabled aria-disabled="true" title="Validez d'abord le TOTP"{% endif %}>
                         Valider MFA admin
                     </button>
+                    {% endif %}
                 </div>
             </form>
         </div>

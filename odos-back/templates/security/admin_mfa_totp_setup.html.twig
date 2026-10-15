@@ -10,7 +10,7 @@
 
             <div class="alert alert-secondary" role="region" aria-labelledby="totp-setup-heading">
                 <ol class="mb-0 ps-3">
-                    <li>Scannez le QR avec Google Authenticator.</li>
+                    <li>Dans Google Authenticator : « + » → « Saisir une clé de configuration », type « Basé sur l'heure ».</li>
                     <li>Entrez le code à 6 chiffres pour vérifier la configuration.</li>
                 </ol>
             </div>
@@ -26,12 +26,9 @@
             {% if otpauth_uri %}
                 <div class="mb-3">
                     <p class="mb-2"><strong>Compte:</strong> {{ account }}</p>
-                    <img
-                        src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data={{ otpauth_uri|url_encode }}"
-                        alt="QR code TOTP"
-                        width="240"
-                        height="240"
-                    >
+                    {# Pas de QR via un service tiers : le secret ne doit pas quitter le serveur. #}
+                    <label for="totpSecret" class="form-label">Clé de configuration</label>
+                    <input type="text" id="totpSecret" class="form-control font-monospace" value="{{ totp_secret }}" readonly>
                 </div>
 
                 <div class="mb-3">

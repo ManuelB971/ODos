@@ -9,6 +9,7 @@ use App\Service\AdminAuditLogger;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
@@ -102,6 +103,11 @@ class SecurityController extends AbstractController
                             $error = sprintf('Code Google Authenticator invalide. Tentatives restantes: %d.', $remaining);
                             $adminAuditLogger->log('MFA_ATTEMPT', 'MFA', null, sprintf('Tentative TOTP invalide (restant: %d)', $remaining), 'warning');
                         }
+                    } elseif (!$adminMfaService->isSmsStepRequired()) {
+                        $this->markMfaPassed($session);
+                        $adminAuditLogger->log('MFA_SUCCESS', 'MFA', null, 'MFA admin validée (TOTP)', 'info');
+
+                        return $this->redirect($intendedPathResolver->resolve($request, $urlGenerator));
                     } else {
                         $session->set(self::SESSION_TOTP_OK_KEY, true);
                         $session->set(self::SESSION_TOTP_ATTEMPTS_KEY, 0);
@@ -111,6 +117,8 @@ class SecurityController extends AbstractController
                         $adminAuditLogger->log('MFA_SUCCESS', 'MFA', null, 'Étape TOTP validée', 'info');
                     }
                 }
+            } elseif (!$adminMfaService->isSmsStepRequired()) {
+                $error = 'Etape SMS desactivee. Validez avec Google Authenticator.';
             } elseif ($action === 'send_sms') {
                 if (!$totpVerified) {
                     $error = 'Validation Google Authenticator requise avant envoi SMS.';
@@ -173,14 +181,7 @@ class SecurityController extends AbstractController
                         $adminAuditLogger->log('MFA_ATTEMPT', 'MFA', null, sprintf('Code SMS invalide (restant: %d)', $remaining), 'warning');
                     }
                 } else {
-                    $session->set(self::SESSION_MFA_PASS_KEY, true);
-                    $session->remove(self::SESSION_TOTP_OK_KEY);
-                    $session->remove(self::SESSION_SMS_HASH_KEY);
-                    $session->remove(self::SESSION_SMS_EXPIRES_KEY);
-                    $session->remove(self::SESSION_SMS_ATTEMPTS_KEY);
-                    $session->remove(self::SESSION_SMS_LOCK_UNTIL_KEY);
-                    $session->remove(self::SESSION_TOTP_ATTEMPTS_KEY);
-                    $session->remove(self::SESSION_TOTP_LOCK_UNTIL_KEY);
+                    $this->markMfaPassed($session);
                     $adminAuditLogger->log('MFA_SUCCESS', 'MFA', null, 'MFA admin validée (TOTP + SMS)', 'info');
 
                     return $this->redirect($intendedPathResolver->resolve($request, $urlGenerator));
@@ -198,6 +199,8 @@ class SecurityController extends AbstractController
             'info' => $info,
             'totp_verified' => $totpVerified,
             'masked_phone' => $maskedPhone,
+            'sms_enabled' => $adminMfaService->isSmsStepRequired(),
+            'totp_setup_enabled' => $adminMfaService->isTotpSetupEnabled(),
         ]);
     }
 
@@ -206,6 +209,11 @@ class SecurityController extends AbstractController
     {
         if (!$this->isGranted('ROLE_ADMIN')) {
             return $this->redirectToRoute('app_login');
+        }
+
+        // Route exemptée de la MFA et affichant le secret : 404 tant que l'enrôlement n'est pas ouvert.
+        if (!$adminMfaService->isTotpSetupEnabled()) {
+            throw $this->createNotFoundException();
         }
 
         $error = null;
@@ -240,7 +248,20 @@ class SecurityController extends AbstractController
             'info' => $info,
             'account' => $account,
             'otpauth_uri' => $otpauthUri,
+            'totp_secret' => $otpauthUri !== '' ? trim(chunk_split($adminMfaService->getTotpSecret(), 4, ' ')) : '',
         ]);
+    }
+
+    private function markMfaPassed(SessionInterface $session): void
+    {
+        $session->set(self::SESSION_MFA_PASS_KEY, true);
+        $session->remove(self::SESSION_TOTP_OK_KEY);
+        $session->remove(self::SESSION_SMS_HASH_KEY);
+        $session->remove(self::SESSION_SMS_EXPIRES_KEY);
+        $session->remove(self::SESSION_SMS_ATTEMPTS_KEY);
+        $session->remove(self::SESSION_SMS_LOCK_UNTIL_KEY);
+        $session->remove(self::SESSION_TOTP_ATTEMPTS_KEY);
+        $session->remove(self::SESSION_TOTP_LOCK_UNTIL_KEY);
     }
 
     #[Route(path: '/logout', name: 'app_logout')]

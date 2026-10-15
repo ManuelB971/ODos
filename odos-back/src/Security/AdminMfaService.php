@@ -9,6 +9,23 @@ class AdminMfaService
         return '' !== $this->getPinFromEnv() && '' !== $this->getTotpSecretFromEnv();
     }
 
+    /**
+     * Étape SMS (Twilio) après le TOTP. Désactivée par défaut : le TOTP seul valide la MFA.
+     */
+    public function isSmsStepRequired(): bool
+    {
+        return $this->getBoolFromEnv('ADMIN_MFA_SMS_ENABLED');
+    }
+
+    /**
+     * Page d'enrôlement TOTP (affiche le secret). Exemptée de la MFA, donc fermée par défaut :
+     * l'ouvrir le temps de scanner, puis la refermer.
+     */
+    public function isTotpSetupEnabled(): bool
+    {
+        return $this->getBoolFromEnv('ADMIN_MFA_TOTP_SETUP_ENABLED');
+    }
+
     public function isBiometricRequired(): bool
     {
         return filter_var($_ENV['ADMIN_MFA_REQUIRE_BIOMETRIC'] ?? getenv('ADMIN_MFA_REQUIRE_BIOMETRIC') ?: '1', FILTER_VALIDATE_BOOL);
@@ -24,7 +41,7 @@ class AdminMfaService
         return hash_equals($expected, $pinInput);
     }
 
-    public function isTotpValid(string $code, int $window = 1): bool
+    public function isTotpValid(string $code, int $window = 1, ?int $timestamp = null): bool
     {
         $secret = $this->getTotpSecretFromEnv();
         if ('' === $secret) {
@@ -36,7 +53,7 @@ class AdminMfaService
             return false;
         }
 
-        $currentSlice = (int) floor(time() / 30);
+        $currentSlice = (int) floor(($timestamp ?? time()) / 30);
         for ($i = -$window; $i <= $window; ++$i) {
             if (hash_equals($this->totp($secret, $currentSlice + $i), $normalizedCode)) {
                 return true;
@@ -66,6 +83,18 @@ class AdminMfaService
             rawurlencode($secret),
             rawurlencode($issuer)
         );
+    }
+
+    public function getTotpSecret(): string
+    {
+        return $this->getTotpSecretFromEnv();
+    }
+
+    private function getBoolFromEnv(string $name): bool
+    {
+        $value = $_ENV[$name] ?? getenv($name) ?: '0';
+
+        return filter_var($value, FILTER_VALIDATE_BOOL);
     }
 
     private function getPinFromEnv(): string
