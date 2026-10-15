@@ -18,6 +18,11 @@ services:
       - odos_public_uploads:/app/public/uploads
 
   nginx:
+    # Uniquement en local : le nginx hôte (TLS) proxifie vers 127.0.0.1:8000.
+    # !override remplace la liste du compose de base au lieu de la compléter
+    # (sinon Docker publierait aussi 0.0.0.0:8000, en contournant UFW).
+    ports: !override
+      - "127.0.0.1:${APP_HTTP_PORT:-8000}:80"
     volumes:
       - odos_public_uploads:/app/public/uploads:ro
 

@@ -34,7 +34,10 @@
 ### 1.2 Constats de l'audit (par priorité)
 
 **🔴 Critique**
-- [ ] **Port 8000 exposé sur Internet** (nginx Docker en HTTP clair, contourne le nginx hôte/TLS ; Docker contourne aussi UFW). UFW l'autorise en plus explicitement (`8000/tcp ALLOW IN Anywhere`, v4 + v6). Correctif : publier `127.0.0.1:8000:80` dans `docker-compose.prod.yml` **et** `ufw delete allow 8000/tcp`
+- [ ] **Port 8000 exposé sur Internet** (nginx Docker en HTTP clair, contourne le nginx hôte/TLS ; Docker contourne aussi UFW). UFW l'autorise en plus explicitement (`8000/tcp ALLOW IN Anywhere`, v4 + v6).
+  - [x] `docker-compose.prod.yml` : `ports: !override` → `127.0.0.1:8000:80` (validé avec Compose v5.1.3 du VPS)
+  - [ ] Après déploiement : `sudo ufw delete allow 8000/tcp` (supprime v4 et v6), vérifier `sudo ufw status`
+  - [ ] Vérifier depuis l'extérieur que 8000 est fermé et que l'API répond toujours en HTTPS
 - [ ] **MFA admin désactivée en prod** (`ADMIN_MFA_ENABLED=false`) alors que `/admin` est public. Analyse du code (15/10) :
   - le flux impose TOTP **puis** SMS (Twilio non payé) → impossible de l'activer tel quel, d'où la désactivation
   - le secret TOTP de prod est **la valeur d'exemple publique** de `.env.example`
@@ -43,7 +46,7 @@
   - la page de setup envoyait le secret à un service tiers (`api.qrserver.com`) pour dessiner le QR
   - [x] Code (15/10) : `ADMIN_MFA_SMS_ENABLED` (défaut 0 → TOTP seul), `ADMIN_MFA_TOTP_SETUP_ENABLED` (défaut 0 → page setup en 404), clé affichée en saisie manuelle au lieu du QR tiers, tests `tests/AdminMfaServiceTest.php` (vecteurs RFC 6238)
   - [x] Commit `f4c36d7` poussé sur `main` le 15/10 (déploiement auto après CI)
-  - [ ] Vérifier que la CI et le déploiement sont passés (GitHub → Actions)
+  - [x] CI + Deploy Production OK pour `f4c36d7` et `f17623c` (vérifié via `gh` et sur le VPS)
   - [ ] Activation en prod (en `odos`, fichiers de `deploy`) :
     1. Générer le secret : `head -c 20 /dev/urandom | base32 | tr -d '='`
     2. `sudo -u deploy nano /home/deploy/odos-config/.env` → `ADMIN_MFA_TOTP_SECRET=<nouveau>`, `ADMIN_MFA_SMS_ENABLED=0`, `ADMIN_MFA_TOTP_SETUP_ENABLED=1` (laisser `ADMIN_MFA_ENABLED=false`)
@@ -51,11 +54,16 @@
     4. Ouvrir `https://api.odos-api.com/admin/mfa/totp/setup`, saisir la clé dans Google Authenticator, vérifier un code
     5. Remettre `ADMIN_MFA_TOTP_SETUP_ENABLED=0` et passer `ADMIN_MFA_ENABLED=1`, relancer l'étape 3
     6. Tester `/admin` en navigation privée en gardant la session actuelle ouverte (retour arrière : `ADMIN_MFA_ENABLED=false` + étape 3)
-  - [x] Bug : après `POST /login`, redirection vers `/` (aucune route → 404) quand aucune page cible n'est mémorisée → `default_target_path: admin` dans `security.yaml` + `tests/SecurityConfigTest.php` (non commité)
+  - [x] Bug : après `POST /login`, redirection vers `/` (aucune route → 404) quand aucune page cible n'est mémorisée → `default_target_path: admin` dans `security.yaml` + `tests/SecurityConfigTest.php` (commit `f17623c`, déployé)
   - [ ] Plus tard : secret TOTP par admin en base (ex. `scheb/2fa-bundle`) si plusieurs admins
 - [ ] **Redémarrage en attente depuis des mois** : noyau 6.8.0-106 en cours, 13 noyaux + `libc6` installés non appliqués. Correctif : reboot planifié (snapshot avant)
 
-- [ ] **Pas de vraie sauvegarde** : aucune sauvegarde planifiée depuis le 05/07/2026, rien hors du serveur, volume `odos_public_uploads` jamais sauvegardé. Correctif : dump Postgres + archive uploads quotidiens (cron/timer), rétention 7 j / 4 sem., copie hors VPS (stockage objet ou PC), **test de restauration**
+- [ ] **Pas de vraie sauvegarde** : aucune sauvegarde planifiée depuis le 05/07/2026, rien hors du serveur, volume `odos_public_uploads` jamais sauvegardé.
+  - [x] `scripts/prod-backup.sh` : dump Postgres + uploads + `odos-config` (secrets, clés JWT), vérif gzip + fin de dump, SHA256, rétention 7 quotidiennes / 4 hebdo (commandes testées sur le VPS le 15/10)
+  - [ ] Installer le cron de `deploy` (3 h 15) + lancer une 1re fois à la main
+  - [ ] Installer aussi le cron RGPD existant `scripts/prod-cron-purge.sh` (jamais installé : `deploy` n'a aucun crontab) avec `ODOS_APP_PATH=/home/deploy/ODos`
+  - [ ] Copie hors VPS (stockage objet ou PC)
+  - [ ] Test de restauration sur une base jetable
 
 **🟠 Important**
 - [ ] Mot de passe Postgres par défaut `odos_secret` (réseau interne Docker uniquement, mais à changer) → `.env` de `~/odos-config`
@@ -64,6 +72,11 @@
 - [ ] Fuite de versions : `X-Powered-By: PHP/8.2.32`, `Server: nginx/1.24.0` → `expose_php = Off`, `server_tokens off`
 - [ ] Pas de HSTS sur l'API / la web app → `Strict-Transport-Security` dans le nginx hôte
 - [ ] Redis sans mot de passe (interne uniquement) → `requirepass` (optionnel)
+
+- [ ] **Dépendances vulnérables** (Dependabot, 15/10) : 128 alertes ouvertes, dont 3 critiques. À traiter en priorité celles qui tournent en prod :
+  - Back (serveur) : `guzzlehttp/guzzle` (high + 8 medium), `guzzlehttp/psr7`, `easycorp/easyadmin-bundle` (high), `phpoffice/phpspreadsheet` (3 high) → `composer update` ciblé + tests
+  - Front (app + web) : `maplibre-gl` (**critique**), `axios` (high + 9 medium) → mise à jour + test carte
+  - Le reste (`@xmldom/xmldom`, `brace-expansion`, `tar`, `js-yaml`, `svgo`, `nanoid`…) = outillage de build Expo/Metro, risque faible en prod → `pnpm update` groupé
 
 **🟡 À planifier**
 - [ ] 10,6 Go de cache de build Docker récupérables (`docker builder prune`)
