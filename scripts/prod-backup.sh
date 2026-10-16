@@ -7,8 +7,9 @@
 # Restauration (depuis ~/ODos, avec COMPOSE_FILE comme ci-dessous) :
 #   zcat db.sql.gz | docker compose exec -T postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-odos}" "${POSTGRES_DB:-odos}"'
 #   docker compose exec -T php sh -c 'tar xzf - -C /app/public/uploads' < uploads.tar.gz
+#   config.tar.gz → ~/odos-config ; jwt.tar.gz → ~/odos-config/jwt (propriétaire 82:82, mode 640)
 
-set -euo pipefail
+set -Eeuo pipefail
 umask 077
 
 APP_PATH="${ODOS_APP_PATH:-${HOME}/ODos}"
@@ -24,20 +25,25 @@ STAMP="$(date +%Y%m%d-%H%M)"
 DEST="${BACKUP_ROOT}/daily/${STAMP}"
 mkdir -p "${DEST}" "${BACKUP_ROOT}/weekly"
 
+# Une sauvegarde incomplète ne doit pas compter dans la rétention.
+trap 'echo "[$(date -Is)] ERREUR : sauvegarde incomplète supprimée" >&2; rm -rf "${DEST}"' ERR
+
 echo "[$(date -Is)] Début sauvegarde -> ${DEST}"
 
 docker compose exec -T postgres sh -c 'pg_dump --clean --if-exists -U "${POSTGRES_USER:-odos}" "${POSTGRES_DB:-odos}"' \
   | gzip > "${DEST}/db.sql.gz"
 # nginx monte le volume des uploads en lecture seule : pas besoin d'image supplémentaire.
 docker compose exec -T nginx tar czf - -C /app/public/uploads . > "${DEST}/uploads.tar.gz"
-tar czf "${DEST}/config.tar.gz" -C "$(dirname "${CONFIG_DIR}")" "$(basename "${CONFIG_DIR}")"
+tar czf "${DEST}/config.tar.gz" -C "$(dirname "${CONFIG_DIR}")" --exclude="$(basename "${CONFIG_DIR}")/jwt" "$(basename "${CONFIG_DIR}")"
+# Les clés JWT appartiennent à www-data (uid 82, 640) : lues via le conteneur php qui les monte.
+docker compose exec -T php tar czf - -C /app/config/jwt private.pem public.pem > "${DEST}/jwt.tar.gz"
 
-for f in db.sql.gz uploads.tar.gz config.tar.gz; do
+for f in db.sql.gz uploads.tar.gz config.tar.gz jwt.tar.gz; do
   gzip -t "${DEST}/${f}"
 done
 if ! zcat "${DEST}/db.sql.gz" | tail -n 5 | grep -q "PostgreSQL database dump complete"; then
   echo "[$(date -Is)] ERREUR : dump Postgres incomplet" >&2
-  exit 1
+  false
 fi
 (cd "${DEST}" && sha256sum ./*.gz > SHA256SUMS)
 
