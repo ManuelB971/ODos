@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { AppState } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import * as Location from 'expo-location';
+import { watchForegroundPosition } from '@/utils/watchForegroundPosition';
 
 import { useAuth } from '@/context/AuthContext';
 import { useBadgeUnlock } from '@/context/BadgeUnlockContext';
@@ -187,34 +187,41 @@ export function useMapExploration(screenActive: boolean) {
     return () => sub.remove();
   }, []);
 
+  /** Réf vers le dernier `queueCell` : le suivi GPS n'a pas à redémarrer quand il change. */
+  const queueCellRef = useRef(queueCell);
+  queueCellRef.current = queueCell;
+
+  // Suivi de position : ne dépend que de « écran carte ouvert + exploration active ».
+  // Avant, `queueCell` changeait d'identité à chaque rendu (via `syncMutation`), donc
+  // le suivi était arrêté puis relancé en boucle.
+  const watchActive = screenActive && isAuthenticated && (query.data?.active ?? false);
   useEffect(() => {
-    if (!screenActive || !isAuthenticated || !query.data?.active) return;
+    if (!watchActive) return;
 
-    let subscription: Location.LocationSubscription | null = null;
+    let stop: (() => void) | null = null;
+    let cancelled = false;
 
-    (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-
-      subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.Balanced,
-          distanceInterval: LOCATION_DISTANCE_M,
-          timeInterval: 30_000,
-        },
-        (loc) => {
-          queueCell(loc.coords.latitude, loc.coords.longitude);
-        }
-      );
-    })();
+    void watchForegroundPosition(
+      (latitude, longitude) => queueCellRef.current(latitude, longitude),
+      { distanceInterval: LOCATION_DISTANCE_M, timeInterval: 30_000 }
+    ).then((stopWatching) => {
+      // Écran quitté pendant la demande d'autorisation : on arrête aussitôt.
+      if (cancelled) stopWatching?.();
+      else stop = stopWatching;
+    });
 
     return () => {
-      subscription?.remove();
+      cancelled = true;
+      try {
+        stop?.();
+      } catch {
+        // Un arrêt raté ne doit jamais faire tomber l'écran carte.
+      }
       // Quitter l'écran carte ne doit pas jeter la file accumulée depuis le
       // dernier sync : on force un dernier flush.
       void flushRef.current(true);
     };
-  }, [screenActive, isAuthenticated, query.data?.active, queueCell]);
+  }, [watchActive]);
 
   return {
     overview: query.data,
