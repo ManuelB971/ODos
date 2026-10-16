@@ -82,7 +82,7 @@ Le bouton « J'ai visité ce lieu » est un marquage manuel : il n'utilise pas v
 - Sécurité, prévention des abus, journaux du serveur : intérêt légitime.
 
 5. Durées de conservation
-- Compte et contenus : tant que le compte est actif ; effacement sous 30 jours après la suppression du compte (les commentaires publics sont anonymisés).
+- Compte et contenus : tant que le compte est utilisé ; un compte sans aucune connexion pendant 3 ans est supprimé automatiquement. Effacement sous 30 jours après la suppression du compte (les commentaires publics sont anonymisés).
 - Zones d'exploration : jusqu'au retrait de votre accord ou à la suppression du compte.
 - Session : jeton d'accès 15 minutes, jeton de rafraîchissement 30 jours.
 - Journaux du serveur : 30 jours (accès) à 90 jours (erreurs et application).
@@ -90,7 +90,7 @@ Le bouton « J'ai visité ce lieu » est un marquage manuel : il n'utilise pas v
 6. Destinataires et sous-traitants
 Vos données ne sont ni vendues ni utilisées pour de la publicité.
 - Hébergement de l'API et des données : Contabo GmbH (Allemagne, Union européenne).
-- Fonds de carte : OpenFreeMap (thème clair) et CARTO (thème sombre) servent les images de la carte. Ils reçoivent votre adresse IP et la zone affichée à l'écran, comme pour toute carte en ligne, mais jamais votre position GPS ni votre identité ODOS.
+- Fonds de carte : OpenFreeMap sert les images de la carte (thèmes clair et sombre). Il reçoit votre adresse IP et la zone affichée à l'écran, comme pour toute carte en ligne, mais jamais votre position GPS ni votre identité ODOS.
 - Notifications push : Expo (650 Industries, États-Unis), puis Apple ou Google, acheminent les notifications à partir du jeton de l'appareil. Ce transfert hors de l'Union européenne repose sur le cadre de protection des données UE–États-Unis ou sur des clauses contractuelles types.
 - Recommandations par IA : modèle de langage auto-hébergé, sans transfert à un tiers (voir l'article 9).
 

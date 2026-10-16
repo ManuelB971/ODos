@@ -34,6 +34,25 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     }
 
     /**
+     * Comptes sans activité depuis `$cutoff`. Un compte jamais vu (`lastActiveAt` nul)
+     * n'est pas retourné : on ne purge que sur une date connue.
+     *
+     * @return list<User>
+     */
+    public function findInactiveSince(\DateTimeImmutable $cutoff): array
+    {
+        /** @var list<User> $users */
+        $users = $this->createQueryBuilder('u')
+            ->andWhere('u.lastActiveAt IS NOT NULL')
+            ->andWhere('u.lastActiveAt < :cutoff')
+            ->setParameter('cutoff', $cutoff)
+            ->getQuery()
+            ->getResult();
+
+        return $users;
+    }
+
+    /**
      * @return User[]
      */
     public function searchDiscoverable(User $viewer, string $query, int $page, int $perPage): array

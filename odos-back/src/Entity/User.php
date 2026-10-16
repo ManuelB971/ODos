@@ -218,6 +218,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Groups(['user:read', 'user:write'])]
     private bool $hideBadgesOnProfile = false;
 
+    /**
+     * Dernière émission d'un jeton (connexion ou rafraîchissement), à la journée près.
+     * Sert uniquement à la purge des comptes inactifs (RGPD art. 5.1.e) ; non exposé.
+     */
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $lastActiveAt = null;
+
     /** Consentement RGPD pour le suivi GPS d'exploration carte (phase D). */
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $mapExplorationConsentAt = null;
@@ -662,6 +669,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setHideBadgesOnProfile(bool $hideBadgesOnProfile): static
     {
         $this->hideBadgesOnProfile = $hideBadgesOnProfile;
+
+        return $this;
+    }
+
+    public function getLastActiveAt(): ?\DateTimeImmutable
+    {
+        return $this->lastActiveAt;
+    }
+
+    public function setLastActiveAt(?\DateTimeImmutable $lastActiveAt): static
+    {
+        $this->lastActiveAt = $lastActiveAt;
 
         return $this;
     }

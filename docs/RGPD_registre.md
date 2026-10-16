@@ -10,11 +10,11 @@ Documents liés : [audit RGPD](RGPD_AUDIT_2026.md) · [rétention logs](LOG_RETE
 
 | ID | Traitement | Finalité | Base légale | Données | Durée | Destinataires |
 |----|---------|----------|-------------|---------|-------|---------------|
-| T1 | Compte utilisateur mobile | Compte, auth, profil | Consentement + contrat | Email, hash MDP, alias, bio, avatar, `consentedAt` | Tant que compte actif ; suppression sous 30 j après demande | Contabo |
+| T1 | Compte utilisateur mobile | Compte, auth, profil | Consentement + contrat | Email, hash MDP, alias, bio, avatar, `consentedAt`, date de dernière activité | Tant que compte actif ; suppression automatique après 36 mois sans connexion (`app:inactive-users:purge`) ; suppression sous 30 j après demande | Contabo |
 | T2 | Session JWT | Maintenir la session API | Contrat | JWT access + refresh | Access : 15 min ; refresh : 30 j + purge quotidienne | — |
 | T3 | Intérêts, favoris & visites | Personnalisation, reco | Contrat | Catégories, IDs favoris, IDs activités visitées | Jusqu'à suppression compte | — |
 | T4 | Commentaires & notes | Contenu communautaire | Contrat | Texte, note 1–5, métadonnées | Commentaires anonymisés à suppression ; notes supprimées | — |
-| T5 | Géoloc activités | Carte / recherche | Intérêt légitime | Coordonnées activités (pas de données user directes) | Durée de vie des fiches | Fonds de carte : OpenFreeMap, CARTO (reçoivent l’IP et la zone affichée, jamais la position utilisateur) |
+| T5 | Géoloc activités | Carte / recherche | Intérêt légitime | Coordonnées activités (pas de données user directes) | Durée de vie des fiches | Fond de carte : OpenFreeMap (reçoit l’IP et la zone affichée, jamais la position utilisateur) |
 | T6 | Administration | Gestion contenu, modération | Intérêt légitime / obligation | Email admin pseudonymisé, hash, IP | Logs admin : **90 j** | — |
 | T7 | MFA admin | Sécuriser le back-office | Intérêt légitime | Secret TOTP, téléphone admin (SMS) | Tant que compte admin actif | Twilio (si configuré) |
 | T8 | Recommandations (filtrage collaboratif + LLM) | Classement activités personnalisé | Consentement / intérêt légitime | Intérêts, IDs favoris, IDs visites, métadonnées activités (jamais d'email) | Cache Redis : `LLM_CACHE_TTL_SECONDS` — données source jusqu'à suppression compte | LLM self-hosted (Ollama) — pas de transfert à des tiers |
@@ -65,7 +65,7 @@ Détail : [RGPD_AUDIT_2026.md](RGPD_AUDIT_2026.md).
 
 Voir [LOG_RETENTION.md](LOG_RETENTION.md) et `scripts/prod-cron-purge.sh`.
 
-Commande agrégée : `app:data-retention:purge` (refresh tokens + audit admin 90 j).
+Commande agrégée : `app:data-retention:purge` (refresh tokens + audit admin 90 j + comptes inactifs 36 mois, option `--inactive-months`).
 
 ---
 
@@ -103,8 +103,7 @@ Voir [INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) — notification CNIL ≤ **72
 | Prestataire | Rôle | Données | Localisation | Contrat |
 |-------------|------|---------|--------------|---------|
 | Contabo GmbH | Hébergement VPS (API, BDD, web app) | Toutes | Allemagne (UE) | DPA à archiver |
-| OpenFreeMap | Fond de carte (thème clair) | IP, zone affichée | À vérifier (CDN) | Service gratuit, sans DPA — envisager l’auto-hébergement |
-| CARTO | Fond de carte (thème sombre) | IP, zone affichée | Espagne / CDN mondial, à vérifier | Conditions basemaps : usage non commercial |
+| OpenFreeMap | Fond de carte (thèmes clair et sombre) | IP, zone affichée | À vérifier (CDN) | Service gratuit, sans DPA — envisager l’auto-hébergement |
 | Expo (650 Industries) | Acheminement push / builds EAS | Jeton push, contenu de la notification | États-Unis | DPA + DPF à vérifier |
 | Apple / Google | Livraison des notifications (APNs / FCM) | Jeton d’appareil | États-Unis | Conditions plateformes |
 | Twilio | SMS OTP admin (si activé) | Téléphone admin | États-Unis | DPA à accepter si activé |

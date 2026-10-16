@@ -17,7 +17,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 #[AsCommand(
     name: 'app:data-retention:purge',
-    description: 'Purge les refresh tokens expirés et les logs admin au-delà de la rétention.',
+    description: 'Purge les refresh tokens expirés, les logs admin et les comptes inactifs au-delà de la rétention.',
 )]
 class DataRetentionPurgeCommand extends Command
 {
@@ -29,6 +29,13 @@ class DataRetentionPurgeCommand extends Command
             InputOption::VALUE_REQUIRED,
             'Rétention des logs admin (jours).',
             '90'
+        );
+        $this->addOption(
+            'inactive-months',
+            null,
+            InputOption::VALUE_REQUIRED,
+            'Suppression des comptes sans connexion depuis N mois.',
+            (string) PurgeInactiveUsersCommand::DEFAULT_MONTHS
         );
     }
 
@@ -55,6 +62,13 @@ class DataRetentionPurgeCommand extends Command
             $output
         );
 
-        return Command::SUCCESS === $auditCode ? Command::SUCCESS : (int) $auditCode;
+        if (Command::SUCCESS !== $auditCode) {
+            return (int) $auditCode;
+        }
+
+        return (int) $application->find('app:inactive-users:purge')->run(
+            new ArrayInput(['--months' => (string) $input->getOption('inactive-months')]),
+            $output
+        );
     }
 }
