@@ -41,18 +41,19 @@ Périmètre : exploration de la carte (expo-location, mobile et web), stockage c
 | Politique de confidentialité (`app/legal.tsx`) réécrite : géolocalisation, communauté, push, bases légales par traitement, durées, sous-traitants (Contabo, OpenFreeMap, CARTO, Expo/Apple/Google), stockage web `localStorage`, droit de réclamation CNIL. | Art. 12, 13 |
 | iOS : `NSLocationWhenInUseUsageDescription` précisé ; `privacyManifests` ajouté dans `app.json` (types de données collectées + `NSPrivacyAccessedAPITypes` de React Native). | Exigence Apple (Privacy manifest, mai 2024) |
 | Registre art. 30 mis à jour (T10, T12, sous-traitants). | Art. 30 |
+| Thème sombre de la carte : CARTO Dark Matter (gratuit pour un usage non commercial seulement) remplacé par OpenFreeMap Dark ; plus aucun appel à CARTO dans le build. | Art. 28 ; conditions CARTO |
+| Comptes inactifs : `user.last_active_at` (mis à jour au plus une fois par jour à chaque émission de JWT, dont le rafraîchissement) et `app:inactive-users:purge` (36 mois par défaut, administrateurs exclus, `--dry-run`), appelée par `app:data-retention:purge`. La migration initialise les comptes existants à la date de mise en prod. | Art. 5.1.e ; CNIL, durées de conservation |
+| Android : `ACCESS_FINE_LOCATION` et `ACCESS_BACKGROUND_LOCATION` bloquées (`android.blockedPermissions`, `tools:node="remove"` sur les déclarations injectées par expo-location et MapLibre). expo-location calcule « granted » sur la permission approximative, la précision `Balanced` suffit. | Art. 5.1.c, 25 |
 
 ### Risques restants
 
 | Niveau | Risque | Action | Référence |
 |--------|--------|--------|-----------|
-| 🔴 Élevé | Les durées annoncées (logs 30/90 j, refresh tokens) ne sont pas appliquées : cron de purge jamais installé sur le VPS. | Installer `scripts/prod-cron-purge.sh` + logrotate (cf. PLAN_LANCEMENT §1). | Art. 5.1.e |
+| 🔴 Élevé | Les durées annoncées (logs 30/90 j, refresh tokens, comptes inactifs 3 ans) ne sont pas appliquées : cron de purge jamais installé sur le VPS. | Installer `scripts/prod-cron-purge.sh` + logrotate (cf. PLAN_LANCEMENT §1). | Art. 5.1.e |
 | 🔴 Élevé | Mentions légales incomplètes (identité de l'éditeur, statut, adresse, SIRET). | **Juridique** : compléter `legal.tsx` une fois la structure choisie (D1). | LCEN art. 6-III |
 | 🔴 Élevé | Notifications push via Expo (États-Unis) : transfert hors UE sans DPA vérifié. | **Juridique** : accepter le DPA d'Expo, vérifier son adhésion au Data Privacy Framework, garder la preuve. | Art. 28, 44–46 |
-| 🟠 Moyen | Fonds de carte OpenFreeMap / CARTO : reçoivent l'IP et la zone affichée, sans contrat. Les basemaps CARTO sont gratuites pour un usage non commercial seulement. | Héberger les tuiles soi-même (PMTiles sur le VPS) ou contractualiser ; à défaut, garder l'information dans la politique (faite). | Art. 28 ; conditions CARTO |
-| 🟠 Moyen | Pas de purge des comptes inactifs : un compte abandonné garde indéfiniment ses données (dont les cellules). | Ajouter `lastLoginAt`, prévenir puis supprimer après 2–3 ans d'inactivité. | Art. 5.1.e ; CNIL, durées de conservation |
+| 🟠 Moyen | OpenFreeMap (seul fournisseur de tuiles) reçoit l'IP et la zone affichée, sans contrat. | Héberger les tuiles soi-même (PMTiles sur le VPS) pour supprimer ce destinataire. | Art. 28 |
 | 🟠 Moyen | Preuve du consentement limitée à un horodatage, sans version du texte ; il est remis à zéro au retrait. | Journal de consentement (date, version du texte, action) conservé à part, sans donnée de position. | Art. 7.1 |
-| 🟠 Moyen | Android déclare `ACCESS_FINE_LOCATION` alors que la précision `Balanced` suffit. | Retirer la permission fine après test sur appareil (build EAS). | Art. 5.1.c, 25 |
 | 🟠 Moyen | `NSAllowsArbitraryLoads` / `usesCleartextTraffic` encore actifs. | Retirer (déjà au plan de lancement §2), la prod est en HTTPS. | Art. 32 ; review Apple |
 | 🟡 Faible | Jetons push jamais purgés quand l'appareil n'est plus utilisé. | Purge des jetons non mis à jour depuis 90 j dans `app:data-retention:purge`. | Art. 5.1.c, e |
 | 🟡 Faible | AIPD : la géolocalisation « à large échelle » figure sur la liste CNIL des traitements soumis à AIPD. Non requise à l'échelle bêta (données agrégées, opt-in). | Documenter la décision ; refaire l'analyse au-delà de quelques milliers d'utilisateurs actifs. | Art. 35 ; liste CNIL (délibération 2018-327) |

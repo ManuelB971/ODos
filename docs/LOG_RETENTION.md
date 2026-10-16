@@ -44,6 +44,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T php \
 
 - `app:refresh-token:purge`
 - `app:admin-audit:purge --days=90`
+- `app:inactive-users:purge --months=36` (comptes sans connexion, administrateurs exclus ; `--dry-run` pour simuler)
 
 Alternative Gesdinet : `gesdinet:jwt:clear-invalid-tokens`.
 

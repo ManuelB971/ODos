@@ -15,10 +15,14 @@ export type OdosMapStylePreset = 'liberty' | 'positron' | 'dark' | 'demotiles';
 const PRESETS: Record<OdosMapStylePreset, string> = {
   /** OpenFreeMap Liberty — contraste naturel, bon défaut applicatif */
   liberty: 'https://tiles.openfreemap.org/styles/liberty',
-  /** Carto Positron — très clair, peu de bruit */
-  positron: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-  /** Carto Dark Matter — thème sombre */
-  dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+  /** OpenFreeMap Positron — très clair, peu de bruit */
+  positron: 'https://tiles.openfreemap.org/styles/positron',
+  /**
+   * OpenFreeMap Dark — thème sombre. Remplace CARTO Dark Matter, dont les basemaps
+   * gratuites sont réservées à un usage non commercial (cf. docs/RGPD_AUDIT_2026.md) :
+   * un seul fournisseur de tuiles pour les deux thèmes.
+   */
+  dark: 'https://tiles.openfreemap.org/styles/dark',
   /** Démo MapLibre (léger, utile pour debug) */
   demotiles: 'https://demotiles.maplibre.org/style.json',
 };
