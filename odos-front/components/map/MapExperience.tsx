@@ -25,6 +25,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
 import { FontFamily } from '@/constants/theme';
 import { useResponsive } from '@/hooks/useResponsive';
+import { webFadeIn, webInteraction, webPopIn, webStagger } from '@/constants/webMotion';
 import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useMapExploration } from '@/hooks/useMapExploration';
@@ -60,6 +61,9 @@ const FRANCE_FALLBACK_REGION: LatLngRegion = {
 
 const CAMERA_EASE_MS = 380;
 
+/** Liste du panneau latéral (desktop web), pour y amener le lieu sélectionné. */
+type PanelListHandle = FlatList<ApiActivity> | null;
+
 /**
  * Carte plein écran : pins ODOS interactifs + callout sur sélection (tap pin).
  * Mobile : pas de bottom sheet — l’activité s’affiche au tap sur le marqueur.
@@ -84,6 +88,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   const { isAuthenticated, user, setUser } = useAuth();
   const { selectedCity, cityCentroid } = useCity();
   const cameraRef = useRef<CameraRef | null>(null);
+  const panelListRef = useRef<PanelListHandle>(null);
   const cameraBusyRef = useRef(false);
   const cameraTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastFilterKeyRef = useRef('');
@@ -314,6 +319,25 @@ export function MapExperience({ activities, loading = false, error = null }: Map
     fitFilteredBounds(true);
   }, [fitFilteredBounds]);
 
+  // Panneau latéral (desktop web) : un lieu choisi sur la carte est amené dans la
+  // liste, pour que pin et résultat restent liés visuellement.
+  useEffect(() => {
+    if (!sidePanel || selectedId == null) return;
+    const index = filtered.findIndex((a) => a.id === selectedId);
+    if (index < 0) return;
+    panelListRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.3 });
+  }, [sidePanel, selectedId, filtered]);
+
+  // Web : Échap ferme la fiche du lieu (le pin sélectionné n'est pas un piège clavier).
+  useEffect(() => {
+    if (Platform.OS !== 'web' || selectedId == null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelectedId(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedId]);
+
   const showEmpty = !loading && !error && filtered.length === 0;
 
   return (
@@ -327,11 +351,14 @@ export function MapExperience({ activities, loading = false, error = null }: Map
             </Text>
           </View>
           <FlatList
+            ref={panelListRef}
             data={filtered}
             keyExtractor={(a) => String(a.id)}
             contentContainerStyle={styles.panelListContent}
             showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
+            onScrollToIndexFailed={() => {}}
+            renderItem={({ item, index }) => (
+              <View style={webStagger(index)}>
               <ActivityCard
                 activity={item}
                 active={item.id === selectedId}
@@ -339,6 +366,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
                 compact
                 onPress={() => focusActivity(item)}
               />
+              </View>
             )}
             ListEmptyComponent={
               loading ? null : (
@@ -405,6 +433,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         <View style={styles.topRow} pointerEvents="box-none">
           <Pressable
             style={styles.iconBtn}
+            {...webInteraction('lift')}
             onPress={() => router.back()}
             accessibilityRole="button"
             accessibilityLabel="Retour"
@@ -428,20 +457,20 @@ export function MapExperience({ activities, loading = false, error = null }: Map
       </SafeAreaView>
 
       {loading ? (
-        <View style={[styles.banner, floatingCards && styles.bannerBounded]}>
+        <View style={[styles.banner, floatingCards && styles.bannerBounded, webFadeIn()]}>
           <ActivityIndicator color={colors.mapPrimaryCta} size="small" />
           <Text style={styles.bannerText}>Chargement des activités…</Text>
         </View>
       ) : null}
 
       {error ? (
-        <View style={[styles.banner, styles.bannerError, floatingCards && styles.bannerBounded]}>
+        <View style={[styles.banner, styles.bannerError, floatingCards && styles.bannerBounded, webFadeIn()]}>
           <Text style={styles.bannerErrorText}>{error}</Text>
         </View>
       ) : null}
 
       {showEmpty ? (
-        <View style={[styles.banner, floatingCards && styles.bannerBounded]}>
+        <View style={[styles.banner, floatingCards && styles.bannerBounded, webFadeIn()]}>
           <Text style={styles.bannerTitle}>Aucun lieu trouvé</Text>
           <Text style={styles.bannerText}>Essaie un autre filtre ou élargis ta recherche.</Text>
         </View>
@@ -454,6 +483,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
           { bottom: 24 + insets.bottom + (selectedActivity && !floatingCards ? 168 : 0) },
         ]}
         onPress={resetViewport}
+        {...webInteraction('lift')}
         accessibilityRole="button"
         accessibilityLabel="Recentrer la carte"
       >
@@ -462,10 +492,13 @@ export function MapExperience({ activities, loading = false, error = null }: Map
 
       {selectedActivity ? (
         <View
+          // Web : remonté à chaque sélection pour rejouer l'apparition de la fiche.
+          key={Platform.OS === 'web' ? `callout-${selectedActivity.id}` : 'callout'}
           style={[
             styles.callout,
             floatingCards && styles.calloutFloating,
             { paddingBottom: Math.max(insets.bottom, floatingCards ? 20 : 12) },
+            webPopIn(),
           ]}
         >
           <ActivityCard

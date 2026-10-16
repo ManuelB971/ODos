@@ -20,6 +20,7 @@ import type { ApiActivity } from '@/types';
 import { useActivities } from '@/hooks/useActivities';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useResponsive } from '@/hooks/useResponsive';
+import { webInteraction, webStagger } from '@/constants/webMotion';
 import { resolveImageUrl } from '@/utils/imageUrl';
 
 /** Palette alignée sur docs/DESIGN_DIRECTION.md */
@@ -146,6 +147,9 @@ export default function SearchScreen() {
               key={label}
               onPress={() => setActiveChip(label)}
               style={[styles.chip, active ? styles.chipActive : styles.chipInactive]}
+              {...webInteraction('chip')}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
             >
               <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Text>
             </Pressable>
@@ -323,7 +327,9 @@ function MosaicPopBrowseSection({
         <View style={[styles.gridRow, styles.gridRowWide]}>
           {[featured, gridLeft, gridRight].map((item, i) =>
             item ? (
-              <MosaicPopCard key={item.id} item={item} variant="grid" />
+              <View key={item.id} style={[styles.gridSpacer, webStagger(i)]}>
+                <MosaicPopCard item={item} variant="grid" />
+              </View>
             ) : (
               <View key={`spacer-${i}`} style={styles.gridSpacer} />
             )
@@ -392,7 +398,7 @@ function GridCard({ activity, onPress }: { activity: ApiActivity; onPress: () =>
   const styles = useMemo(() => createStyles(colors), [colors]);
   const uri = resolveImageUrl(activity.imageUrl);
   return (
-    <Pressable onPress={onPress} style={styles.gridCard} accessibilityRole="button">
+    <Pressable onPress={onPress} style={styles.gridCard} accessibilityRole="button" {...webInteraction('lift')}>
       <View style={styles.gridImageWrap}>
         {uri ? (
           <Image source={{ uri }} style={styles.gridImage} contentFit="cover" transition={200} />
@@ -419,7 +425,7 @@ function BannerCard({ activity, onPress }: { activity: ApiActivity; onPress: () 
       : activity.description;
 
   return (
-    <Pressable onPress={onPress} style={styles.banner} accessibilityRole="button">
+    <Pressable onPress={onPress} style={styles.banner} accessibilityRole="button" {...webInteraction('row')}>
       <View style={styles.bannerThumbWrap}>
         {uri ? (
           <Image source={{ uri }} style={styles.bannerThumb} contentFit="cover" />

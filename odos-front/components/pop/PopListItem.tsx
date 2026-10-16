@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } fro
 import { ChevronRight } from 'lucide-react-native';
 
 import { FontFamily } from '@/constants/theme';
+import { webInteraction } from '@/constants/webMotion';
 import { PopSurface } from './PopSurface';
 import { usePopTokens } from './usePop';
 
@@ -42,6 +43,7 @@ export function PopListItem({
       ]}
       accessibilityRole={onPress ? 'button' : undefined}
       accessibilityLabel={label}
+      {...(onPress ? webInteraction('row') : null)}
     >
       <PopSurface shadow={4} radius={12} contentStyle={styles.content}>
         {icon ? (

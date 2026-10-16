@@ -12,6 +12,7 @@ import { HapticTab } from '@/components/HapticTab';
 import { useSocialUnreadCount } from '@/hooks/useSocialUnreadCount';
 import { useAppIconBadge } from '@/hooks/useAppIconBadge';
 import { useResponsive } from '@/hooks/useResponsive';
+import { webScreenLayout } from '@/components/web/WebScreenLayout';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import React, { useEffect } from 'react';
 
@@ -112,7 +113,7 @@ export default function TabLayout() {
               style={[StyleSheet.absoluteFill, styles.centerShadow, { backgroundColor: pop.ink }]}
             />
             <View style={[styles.centerBtn, railNav && styles.centerBtnRail, { backgroundColor: pop.orange, borderColor: pop.ink, borderWidth: 2.5 }]}>
-              <MaterialIcons name="route" size={26} color={pop.ink} />
+              <MaterialIcons name="route" size={railNav ? 18 : 26} color={pop.ink} />
             </View>
           </View>
         </View>
@@ -122,7 +123,7 @@ export default function TabLayout() {
       <View style={styles.centerSlot}>
         <View style={wrapStyle}>
           <View style={[styles.centerBtn, railNav && styles.centerBtnRail, { backgroundColor: colors.accent, borderColor: colors.background, borderWidth: 4 }]}>
-            <MaterialIcons name="route" size={26} color={colors.onAccent} />
+            <MaterialIcons name="route" size={railNav ? 18 : 26} color={colors.onAccent} />
           </View>
         </View>
       </View>
@@ -146,6 +147,7 @@ export default function TabLayout() {
 
   return (
     <Tabs
+      screenLayout={webScreenLayout}
       screenOptions={{
         headerShown: false,
         tabBarButton: HapticTab,
@@ -284,14 +286,14 @@ const styles = StyleSheet.create({
   // Rail vertical (desktop) : pas de soulèvement, le bouton s'aligne aux autres.
   // Le bouton fait la taille d'une pastille pour laisser son libellé lisible dessous.
   centerWrapRail: {
-    width: 40,
-    height: 40,
+    width: 32,
+    height: 32,
     transform: [{ translateY: 0 }],
   },
   centerBtnRail: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
   },
   centerShadow: {
     borderRadius: 100,

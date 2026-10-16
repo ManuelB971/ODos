@@ -9,6 +9,7 @@ import { OdosTokens } from '@/constants/themes/tokens';
 import { ApiActivity } from '@/types';
 import { resolveImageUrl } from '@/utils/imageUrl';
 import { ActivityCardQuickActions } from '@/components/cards/ActivityCardQuickActions';
+import { webInteraction } from '@/constants/webMotion';
 
 export type ActivityCardProps = {
   activity: ApiActivity;
@@ -47,6 +48,7 @@ function ActivityCardComponent({ activity, distanceKm, active = false, fullWidth
     <Pressable
       onPress={onPress}
       style={[styles.card, active && styles.cardActive, fullWidth && styles.cardFull]}
+      {...webInteraction('lift')}
       accessibilityRole="button"
       accessibilityLabel={`Activité ${activity.name}`}
     >

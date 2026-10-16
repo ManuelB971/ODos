@@ -268,9 +268,24 @@ export function Marker({ lngLat, anchor = 'center', children, onPress }: MarkerP
       e.stopPropagation();
       onPressRef.current?.();
     };
+    // Atteignable au clavier : Tab pour parcourir les pins, Entrée / Espace pour
+    // ouvrir la fiche. Le nom accessible vient du `MapPin` (aria-label enfant).
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      onPressRef.current?.();
+    };
+    if (onPressRef.current) {
+      node.tabIndex = 0;
+      node.setAttribute('role', 'button');
+    }
     node.addEventListener('click', handler);
+    node.addEventListener('keydown', onKey);
     setEl(node);
-    return () => node.removeEventListener('click', handler);
+    return () => {
+      node.removeEventListener('click', handler);
+      node.removeEventListener('keydown', onKey);
+    };
   }, []);
 
   // Création / nettoyage du marqueur GL.

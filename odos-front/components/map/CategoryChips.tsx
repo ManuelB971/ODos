@@ -1,5 +1,7 @@
 import React, { memo, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+
+import { webInteraction } from '@/constants/webMotion';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 
 export type Chip = {
@@ -31,6 +33,7 @@ function CategoryChipsComponent({ chips, activeId, onPressChip }: CategoryChipsP
             key={chip.id}
             onPress={() => onPressChip(chip)}
             style={[styles.chip, isActive && styles.chipActive]}
+            {...webInteraction('chip')}
             accessibilityRole="button"
             accessibilityState={{ selected: isActive }}
             accessibilityLabel={`${chip.label}${isActive ? ', sélectionné' : ''}`}
