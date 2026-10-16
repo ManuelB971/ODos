@@ -341,6 +341,7 @@ export default function SettingsScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       {/* Header */}
+      <ResponsiveShell bar>
       <View style={styles.header}>
         <Pressable style={styles.headerBtn} onPress={() => router.back()} hitSlop={8} accessibilityRole="button" accessibilityLabel="Retour">
           <ArrowLeft color={colors.text} size={22} />
@@ -348,6 +349,7 @@ export default function SettingsScreen() {
         <Text style={styles.headerTitle}>Paramètres</Text>
         <View style={styles.headerBtn} />
       </View>
+      </ResponsiveShell>
 
       {/* Web : colonne de réglages centrée (cf. AUDIT_RESPONSIVE_WEB.md, Niveau 0). */}
       <ResponsiveShell>

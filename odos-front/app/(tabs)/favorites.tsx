@@ -11,7 +11,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Compass, Heart, LayoutGrid, List } from 'lucide-react-native';
 
 import { useFavorites } from '@/hooks/useFavorites';
-import { useResponsive } from '@/hooks/useResponsive';
+import { useResponsive, webGridCellStyle } from '@/hooks/useResponsive';
+import { ResponsiveShell, SHELL_MAX_WIDTH } from '@/components/layout/ResponsiveShell';
 import { useAuth } from '@/context/AuthContext';
 import { Fonts, FontFamily, Spacing } from '@/constants/theme';
 import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
@@ -163,8 +164,10 @@ export default function FavoritesScreen() {
   }
 
   // ── Grille normale ──
+  const cellStyle = dense ? undefined : webGridCellStyle(numColumns, GRID_GAP);
   return (
     <View style={styles.container}>
+      <ResponsiveShell maxWidth={SHELL_MAX_WIDTH.wide}>
       <FlatList
         data={favorites}
         // `key` force le remount quand le nb de colonnes change (exigence FlatList).
@@ -179,8 +182,8 @@ export default function FavoritesScreen() {
             <DensityToggle dense={dense} onChange={setDense} />
           </>
         }
-        renderItem={({ item }) =>
-          dense ? (
+        renderItem={({ item }) => {
+          const card = dense ? (
             <MosaicPopRow item={item} />
           ) : cardStyle === 'mosaicPop' ? (
             <MosaicPopCard
@@ -197,9 +200,11 @@ export default function FavoritesScreen() {
               onPress={() => router.push(`/activity/${item.id}`)}
               onToggleFavorite={() => handleToggle(item.id)}
             />
-          )
-        }
+          );
+          return cellStyle ? <View style={cellStyle}>{card}</View> : card;
+        }}
       />
+      </ResponsiveShell>
     </View>
   );
 }
@@ -249,6 +254,9 @@ function Header({ count }: { count: number | null }) {
   );
 }
 
+/** Espacement horizontal entre colonnes de la grille. */
+const GRID_GAP = 14;
+
 function createStyles(colors: OdosColorPalette) {
   return StyleSheet.create({
   container: {
@@ -286,7 +294,7 @@ function createStyles(colors: OdosColorPalette) {
     paddingBottom: 100,
   },
   row: {
-    gap: 14,
+    gap: GRID_GAP,
   },
   densityRow: {
     flexDirection: 'row',

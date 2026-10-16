@@ -1,4 +1,4 @@
-import { useWindowDimensions } from 'react-native';
+import { Platform, useWindowDimensions, type ViewStyle } from 'react-native';
 
 /**
  * Breakpoints responsives ODOS — **source unique** pour adapter les layouts à la
@@ -40,4 +40,21 @@ export function useResponsive(): Responsive {
   const gridColumns = width >= DESKTOP_WIDE_MIN ? 5 : isDesktop ? 4 : isTablet ? 3 : 2;
 
   return { width, breakpoint, isPhone, isTablet, isDesktop, gridColumns };
+}
+
+/**
+ * Cellule de grille `FlatList` (web) : la dernière rangée incomplète garde la
+ * largeur d'une colonne au lieu de s'étirer (`flex:1` seul sur sa rangée = carte
+ * pleine largeur). `gap` = espacement horizontal du `columnWrapperStyle`.
+ * Natif : `undefined` → rendu inchangé.
+ */
+export function webGridCellStyle(columns: number, gap = 0): ViewStyle | undefined {
+  if (Platform.OS !== 'web' || columns <= 1) return undefined;
+  const share = 100 / columns;
+  const gapShare = (gap * (columns - 1)) / columns;
+  return {
+    flex: 1,
+    // `calc()` est transmis tel quel au CSS par react-native-web.
+    maxWidth: `calc(${share}% - ${gapShare}px)` as unknown as number,
+  };
 }

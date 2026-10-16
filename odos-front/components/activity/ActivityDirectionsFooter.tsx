@@ -23,6 +23,7 @@ import { FontFamily, Radius, Spacing } from '@/constants/theme';
 import type { OdosColorPalette } from '@/context/ThemeContext';
 import { useOdosColors } from '@/context/ThemeContext';
 import { useMotionConfig } from '@/constants/motion';
+import { useResponsive } from '@/hooks/useResponsive';
 
 /** Hauteur de base du footer (hors safe area) pour le padding du scroll parent. */
 export const ACTIVITY_DIRECTIONS_FOOTER_SCROLL_PADDING = 136;
@@ -58,6 +59,9 @@ export function ActivityDirectionsFooter({
     [colors, isMosaicPop, pop],
   );
   const [launching, setLaunching] = useState(false);
+  // Web tablette/desktop : carte bornée et centrée, pas un bandeau pleine largeur.
+  const { isPhone } = useResponsive();
+  const boundedWidth = Platform.OS === 'web' && !isPhone;
 
   const enterY = useSharedValue(motion.reduced ? 0 : 18);
   const enterOpacity = useSharedValue(motion.reduced ? 1 : 0);
@@ -171,7 +175,13 @@ export function ActivityDirectionsFooter({
         style={[styles.scrim, composerActive && styles.scrimHidden]}
         pointerEvents="none"
       />
-      <View style={[styles.inner, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <View
+        style={[
+          styles.inner,
+          boundedWidth && styles.innerBounded,
+          { paddingBottom: Math.max(insets.bottom, 12) },
+        ]}
+      >
         {isMosaicPop ? (
             <PopSurface shadow={5} radius={Radius.card} contentStyle={styles.popCard}>
               {cardBody}
@@ -205,6 +215,11 @@ function createStyles(colors: OdosColorPalette, pop: ReturnType<typeof usePopTok
     inner: {
       paddingHorizontal: Spacing.lg,
       paddingTop: Spacing.sm,
+    },
+    innerBounded: {
+      width: '100%',
+      maxWidth: 560,
+      alignSelf: 'center',
     },
     card: {
       backgroundColor: colors.elevated,

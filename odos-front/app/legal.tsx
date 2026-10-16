@@ -126,6 +126,7 @@ export default function LegalScreen() {
 
   return (
     <View style={styles.screen}>
+      <ResponsiveShell bar>
       <View style={styles.header}>
         <Pressable
           style={styles.backButton}
@@ -139,6 +140,7 @@ export default function LegalScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>{title}</Text>
         <View style={styles.headerSpacer} />
       </View>
+      </ResponsiveShell>
 
       <ResponsiveShell>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>

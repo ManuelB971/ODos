@@ -17,12 +17,14 @@ export type ActivityCardProps = {
   active?: boolean;
   /** Si `true`, la card prend la largeur de son container (utile pour la liste pleine). */
   fullWidth?: boolean;
+  /** Image 16:9 au lieu de 4:3 — listes denses (panneau latéral de la carte, web desktop). */
+  compact?: boolean;
   /** Masque les contrôles rapides (cœur + parcours) — ex. cartes non interactives. */
   hideQuickActions?: boolean;
   onPress?: () => void;
 };
 
-function ActivityCardComponent({ activity, distanceKm, active = false, fullWidth = false, hideQuickActions = false, onPress }: ActivityCardProps) {
+function ActivityCardComponent({ activity, distanceKm, active = false, fullWidth = false, compact = false, hideQuickActions = false, onPress }: ActivityCardProps) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const img = resolveImageUrl(activity.imageUrl);
@@ -48,7 +50,7 @@ function ActivityCardComponent({ activity, distanceKm, active = false, fullWidth
       accessibilityRole="button"
       accessibilityLabel={`Activité ${activity.name}`}
     >
-      <View style={styles.imageWrap}>
+      <View style={[styles.imageWrap, compact && styles.imageWrapCompact]}>
         <Animated.View style={[StyleSheet.absoluteFill, imageStyle]}>
           {img ? (
             <Image
@@ -155,6 +157,9 @@ function createStyles(colors: OdosColorPalette) {
       aspectRatio: 4 / 3,
       backgroundColor: colors.surface,
       overflow: 'hidden',
+    },
+    imageWrapCompact: {
+      aspectRatio: 16 / 9,
     },
     imagePlaceholder: {
       backgroundColor: colors.surface,

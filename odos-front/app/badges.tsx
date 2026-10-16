@@ -111,6 +111,7 @@ export default function BadgesScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
+      <ResponsiveShell bar>
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Retour">
           <ArrowLeft size={22} color={colors.text} />
@@ -118,6 +119,7 @@ export default function BadgesScreen() {
         <Text style={styles.headerTitle}>Mes badges</Text>
         <View style={{ width: 22 }} />
       </View>
+      </ResponsiveShell>
 
       {isLoading && (
         <View style={styles.centered}>
