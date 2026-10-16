@@ -12,6 +12,7 @@ import { Compass, Heart, LayoutGrid, List } from 'lucide-react-native';
 
 import { useFavorites } from '@/hooks/useFavorites';
 import { useResponsive, webGridCellStyle } from '@/hooks/useResponsive';
+import { webStagger } from '@/constants/webMotion';
 import { ResponsiveShell, SHELL_MAX_WIDTH } from '@/components/layout/ResponsiveShell';
 import { useAuth } from '@/context/AuthContext';
 import { Fonts, FontFamily, Spacing } from '@/constants/theme';
@@ -182,7 +183,7 @@ export default function FavoritesScreen() {
             <DensityToggle dense={dense} onChange={setDense} />
           </>
         }
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           const card = dense ? (
             <MosaicPopRow item={item} />
           ) : cardStyle === 'mosaicPop' ? (
@@ -201,7 +202,7 @@ export default function FavoritesScreen() {
               onToggleFavorite={() => handleToggle(item.id)}
             />
           );
-          return cellStyle ? <View style={cellStyle}>{card}</View> : card;
+          return cellStyle ? <View style={[cellStyle, webStagger(index)]}>{card}</View> : card;
         }}
       />
       </ResponsiveShell>

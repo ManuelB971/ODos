@@ -26,6 +26,8 @@ import { ThemedStatusBar } from '@/components/ThemedStatusBar';
 import { BadgeUnlockProvider, useBadgeUnlock } from '@/context/BadgeUnlockContext';
 import { BadgeUnlockModal } from '@/components/badges/BadgeUnlockModal';
 import SplashScreen from '@/components/SplashScreen';
+import { WebGlobalStyles } from '@/components/web/WebGlobalStyles';
+import { webScreenLayout } from '@/components/web/WebScreenLayout';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,7 +76,7 @@ export default function RootLayout() {
             <BadgeUnlockProvider>
               <InterestProvider>
               <CityProvider>
-                <Stack screenOptions={{ headerShown: false }}>
+                <Stack screenOptions={{ headerShown: false }} screenLayout={webScreenLayout}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="login" options={{ headerShown: false }} />
                   <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
@@ -87,6 +89,7 @@ export default function RootLayout() {
                   <Stack.Screen name="map" options={{ headerShown: false, animation: 'fade' }} />
                   <Stack.Screen name="+not-found" />
                 </Stack>
+                <WebGlobalStyles />
                 <BadgeUnlockOverlay />
                 <NotificationRouter />
                 <ThemedStatusBar />

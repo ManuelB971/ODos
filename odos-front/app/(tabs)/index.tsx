@@ -36,6 +36,7 @@ import { Map, Camera, Marker } from '@maplibre/maplibre-react-native';
 import { getOdosMaplibreStyleUrl } from '@/constants/maplibreStyle';
 import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
 import { useResponsive } from '@/hooks/useResponsive';
+import { webStagger } from '@/constants/webMotion';
 
 /** Helper: get the category display name from the API response */
 const getCategoryName = (cat: ApiActivity['category']): string => {
@@ -57,6 +58,14 @@ const formatPrice = (price: number | null | undefined): string => {
   if (price === 0) return 'Gratuit';
   return `À partir de ${Math.round(price)}€`;
 };
+
+/** Grilles desktop web : chaque carte entre en cascade (40 ms d'écart). */
+const staggered = (cards: React.ReactElement[]) =>
+  cards.map((card, i) => (
+    <View key={card.key} style={webStagger(i)}>
+      {card}
+    </View>
+  ));
 
 /** Carte verticale horizontale (liste "Toutes les activités") — image arrondie + infos. */
 function ActivityRow({ item }: { item: ApiActivity }) {
@@ -373,7 +382,7 @@ export default function HomeScreen() {
                   )
                 );
                 return gridMode ? (
-                  <View style={styles.recoGrid}>{cards}</View>
+                  <View style={styles.recoGrid}>{staggered(cards)}</View>
                 ) : (
                   <ScrollView
                     horizontal
@@ -404,7 +413,7 @@ export default function HomeScreen() {
                     )
                   );
                   return gridMode ? (
-                    <View style={styles.recoGrid}>{cards}</View>
+                    <View style={styles.recoGrid}>{staggered(cards)}</View>
                   ) : (
                     <ScrollView
                       horizontal

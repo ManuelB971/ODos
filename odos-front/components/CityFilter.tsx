@@ -1,9 +1,10 @@
 import React, { memo, useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text } from 'react-native';
 import { useOdosColors, type OdosColorPalette } from '@/context/ThemeContext';
 import { useCity } from '@/context/CityContext';
 import { FontFamily } from '@/constants/theme';
 import { useIsMosaicPop } from '@/components/pop/usePop';
+import { webInteraction } from '@/constants/webMotion';
 
 type CityFilterProps = {
   /** Libellé accessibilité du groupe (ex. « Filtrer par ville »). */
@@ -35,6 +36,7 @@ function CityFilterComponent({
             key={city.name}
             onPress={() => setSelectedCity(city.name)}
             style={[styles.chip, isActive && styles.chipActive]}
+            {...webInteraction('chip')}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
             accessibilityLabel={`${city.name}, ${city.activityCount} activités${isActive ? ', sélectionné' : ''}`}
@@ -74,7 +76,9 @@ function createStyles(colors: OdosColorPalette, isMosaicPop: boolean) {
       color: colors.muted,
     },
     chipTextActive: {
-      color: colors.accent,
+      // Web : orange sur orange pâle ≈ 1,2:1 (illisible) → encre, l'état actif reste
+      // porté par le fond et la bordure orange (WCAG 1.4.3). Natif inchangé.
+      color: Platform.OS === 'web' ? colors.text : colors.accent,
       fontFamily: FontFamily.uiBold,
     },
   });

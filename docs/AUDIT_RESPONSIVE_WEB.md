@@ -388,6 +388,29 @@ Breakpoints inchangés (600 / 1024 / 1440). Tout est gardé par `Platform.OS ===
 
 ---
 
+## Partie 7 — Mouvement, flow et états d'interaction web (2026-10-16)
+
+Le web « sautait » d'un écran à l'autre et seuls `CTAButton` / `MosaicPopCard` réagissaient au
+survol. Couche commune ajoutée, **web only** (natif inchangé) :
+
+| Brique | Fichier | Rôle |
+|--------|---------|------|
+| Tokens de mouvement web | [constants/webMotion.ts](../odos-front/constants/webMotion.ts) | Keyframes précompilées (`StyleSheet.create` : react-native-web n'accepte pas `animationKeyframes` en inline), courbe DA `cubic-bezier(0.22, 1, 0.36, 1)`, cascade 40 ms plafonnée à 8 éléments, `webInteraction()` (`data-odos`) |
+| Styles globaux | [components/web/WebGlobalStyles.tsx](../odos-front/components/web/WebGlobalStyles.tsx) | Focus clavier visible (3 px bleu action), curseur + transitions sur tout `Pressable`, survol/appui `lift` / `chip` / `row`, survol du rail, pins de carte, barres de défilement, `prefers-reduced-motion` |
+| Transitions d'écran | [components/web/WebScreenLayout.tsx](../odos-front/components/web/WebScreenLayout.tsx) | `screenLayout` du Stack racine et des onglets : entrée en fondu + glissé (310 ms), fondu court rejoué au retour sur un onglet (écran non démonté) |
+
+Appliqué à : cascades (accueil desktop, favoris, rangée Recherche, panneau de la carte), fiche de
+carte qui apparaît à chaque sélection, panneau qui défile jusqu'au lieu choisi, **Échap** pour
+fermer la fiche, **pins atteignables au clavier** (Tab + Entrée/Espace), chips et lignes du Compte.
+Correctifs : chip de ville actif lisible (orange sur orange ≈ 1,2:1 → encre), bouton Parcours du
+rail réduit à 32 px (il masquait son libellé).
+
+Pièges : `.maplibregl-marker` ne doit jamais avoir de transition (MapLibre le positionne par
+`transform` à chaque frame) ; deux keyframes identiques reçoivent le même nom (hash du contenu) et
+ne se rejouent pas, d'où `tabFocusA` 8 px / `tabFocusB` 7 px.
+
+---
+
 ## Annexe — Pourquoi le shell centré d'abord
 
 Sur une web app **derrière login**, l'objectif n'est pas une vitrine marketing pleine largeur

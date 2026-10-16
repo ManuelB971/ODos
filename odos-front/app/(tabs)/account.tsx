@@ -37,6 +37,7 @@ import { PopSurface } from '@/components/pop/PopSurface';
 import { PopListItem } from '@/components/pop/PopListItem';
 import { useIsMosaicPop, usePopTokens } from '@/components/pop/usePop';
 import { ResponsiveShell } from '@/components/layout/ResponsiveShell';
+import { webInteraction } from '@/constants/webMotion';
 
 /**
  * Écran profil — éditorial, low-visual-noise.
@@ -388,6 +389,7 @@ function MenuItem({
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}
+      {...webInteraction('row')}
       accessibilityRole="button"
       accessibilityLabel={label}
     >
