@@ -119,9 +119,10 @@ Dossier `monitoring/` du repo, déployé dans `/home/odos/odos-monitoring` (proj
 | Logs nginx + Symfony | Loki + Grafana Alloy | ⏳ v2 |
 
 - [x] Pile déployée et cibles « up » (16/10) : ~185 Mo de RAM au total, contre ~2,2 Go pour Wazuh
-- [ ] Installer CrowdSec + bouncer pare-feu
+- [x] CrowdSec + bouncer iptables installés le 16/10 (collections linux, sshd, nginx, http-cve, base-http-scenarios) ; cible Prometheus `crowdsec` up ; premiers bannissements actifs (bruteforce SSH, proxy ouvert)
 - [ ] Choisir un canal d'alerte (Discord ou email) et le brancher dans Alertmanager
-- [ ] Importer les tableaux Grafana (Node Exporter Full 1860, PostgreSQL 9628, Redis 763, Blackbox 7587 — IDs à vérifier sur grafana.com)
+- [x] Tableau de bord **« ODOS — Vue d'ensemble »** provisionné (dossier ODOS, `monitoring/grafana/dashboards/odos-overview.json`) : disponibilité + TLS, serveur, Postgres/Redis, CrowdSec, alertes en cours (34 panneaux, toutes les requêtes vérifiées le 16/10)
+- [ ] Optionnel : importer en plus Node Exporter Full (ID 1860) pour le détail serveur
 - [ ] Valider les alertes (test de panne volontaire)
 - [ ] Wazuh : conteneurs déjà supprimés ; supprimer les 12 volumes `odos_wazuh_*` et `docker-compose.wazuh.yml`, garder les exports dans `deliverables/`
 - [ ] Mettre à jour `CLAUDE.md`, `README.md`, `docs/LOG_RETENTION.md` (références à Wazuh)
