@@ -156,7 +156,11 @@ export const Map = forwardRef<View, MapProps>(function Map(
       await import('maplibre-gl/dist/maplibre-gl.css');
       if (cancelled || !containerRef.current) return;
 
-      const maplibregl = mod.default ?? (mod as unknown as Gl);
+      // v6 est ESM-only (exports nommés) ; on garde le repli `default` par sûreté.
+      const maplibregl = (mod as unknown as { default?: Gl }).default ?? mod;
+      // Worker publié en statique par scripts/copy-maplibre-worker.js (v6 le
+      // cherche sinon via `import.meta.url`, que Metro ne fournit pas).
+      maplibregl.setWorkerUrl(`/maplibre-gl-worker.js?v=${maplibregl.getVersion()}`);
       const instance = new maplibregl.Map({
         container: containerRef.current,
         style: mapStyle ?? 'https://demotiles.maplibre.org/style.json',
@@ -389,12 +393,12 @@ export function Layer({ id, type, source, paint, layout }: LayerProps) {
       if (!map.getLayer(id)) return;
       if (paint) {
         for (const [k, v] of Object.entries(paint)) {
-          map.setPaintProperty(id, k, v as never);
+          map.setPaintProperty(id, k as never, v as never);
         }
       }
       if (layout) {
         for (const [k, v] of Object.entries(layout)) {
-          map.setLayoutProperty(id, k, v as never);
+          map.setLayoutProperty(id, k as never, v as never);
         }
       }
     } catch {
