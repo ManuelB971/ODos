@@ -1,6 +1,6 @@
 # Audit RGPD — ODOS
 
-État des lieux **juin 2026**, après les sprints social / parcours. Complète le [registre](RGPD_registre.md).
+État des lieux **juin 2026**, après les sprints social / parcours, complété en **octobre 2026** par l’[audit géolocalisation](#audit-géolocalisation--octobre-2026). Complète le [registre](RGPD_registre.md).
 
 > **Juin 2026 :** traitement **T11 — Communauté & modération sociale** ajouté au registre (messages, amis, blocages, pièces jointes). Consentement explicite via `POST /api/social/consent`.
 
@@ -12,6 +12,57 @@ En bref : le code tient la route côté droits, sécurité de base et admin. Ce 
 | Urgent (prod / stores) | 3–4 points |
 | À affiner sous 3 mois | ~6 points |
 | Recommandé plus tard | ~5 points |
+
+---
+
+## Audit géolocalisation — octobre 2026
+
+Périmètre : exploration de la carte (expo-location, mobile et web), stockage côté API, partage, droits, sous-traitants, App Store.
+
+### Ce que fait le code (vérifié)
+
+| Point | Constat |
+|-------|---------|
+| Consentement préalable | Exploration **désactivée par défaut** (`mapExplorationEnabled = false`). La position n'est demandée (`requestForegroundPermissionsAsync`, qui ouvre la demande du navigateur sur le web) qu'une fois le consentement in-app donné **et** l'interrupteur activé (`isMapExplorationActive()`). Refus possible sans bloquer l'app. |
+| Collecte | Premier plan uniquement, carte ouverte (`watchPositionAsync`, précision `Balanced`, 80 m / 30 s). Pas de tâche en arrière-plan. |
+| Minimisation | Les coordonnées sont converties **sur l'appareil** en geohash de précision 6 (≈ 1,2 km × 0,6 km). L'API n'accepte que les cellules du catalogue (zones contenant une activité publiée) : toute autre cellule, ou précision, est ignorée. Aucune latitude/longitude d'utilisateur n'est stockée ni journalisée. |
+| Partage | Les cellules ne sont visibles que par leur propriétaire (`/api/me/exploration`). Aucun partage avec amis, groupes, forum ou profil public. Le profil public n'expose que le nombre de lieux marqués « visités » (marquage manuel), si le profil est public. |
+| Recommandations | Le LLM et le filtrage collaboratif ne reçoivent aucune position. |
+| Droits | Export (`GET /api/me/export`, cellules incluses), effacement (`DELETE /api/me`, cascade `user_map_cell`). |
+
+### Corrigé dans cette PR
+
+| Correctif | Référence |
+|-----------|-----------|
+| Désactiver l'exploration **retire le consentement** : cellules effacées et `mapExplorationConsentAt` remis à zéro (une réactivation redemande l'accord). Confirmation explicite dans Paramètres. | RGPD art. 7.3, 17.1.b |
+| Le bouton « Refuser » de la fenêtre de consentement enregistre le refus (réglage repassé à désactivé) au lieu d'un « Plus tard » reposé à chaque ouverture de la carte. | Art. 4.11, 7 ; CNIL, lignes directrices consentement (refuser aussi simple qu'accepter) |
+| Plus de ré-horodatage `lastVisitedAt` à chaque passage dans une cellule : seule la première visite est datée, aucune trace temporelle de présence. | Art. 5.1.c, 25 |
+| Texte de consentement complété : finalité, granularité, caractère facultatif, retrait. | Art. 7.2, 13 |
+| Politique de confidentialité (`app/legal.tsx`) réécrite : géolocalisation, communauté, push, bases légales par traitement, durées, sous-traitants (Contabo, OpenFreeMap, CARTO, Expo/Apple/Google), stockage web `localStorage`, droit de réclamation CNIL. | Art. 12, 13 |
+| iOS : `NSLocationWhenInUseUsageDescription` précisé ; `privacyManifests` ajouté dans `app.json` (types de données collectées + `NSPrivacyAccessedAPITypes` de React Native). | Exigence Apple (Privacy manifest, mai 2024) |
+| Registre art. 30 mis à jour (T10, T12, sous-traitants). | Art. 30 |
+
+### Risques restants
+
+| Niveau | Risque | Action | Référence |
+|--------|--------|--------|-----------|
+| 🔴 Élevé | Les durées annoncées (logs 30/90 j, refresh tokens) ne sont pas appliquées : cron de purge jamais installé sur le VPS. | Installer `scripts/prod-cron-purge.sh` + logrotate (cf. PLAN_LANCEMENT §1). | Art. 5.1.e |
+| 🔴 Élevé | Mentions légales incomplètes (identité de l'éditeur, statut, adresse, SIRET). | **Juridique** : compléter `legal.tsx` une fois la structure choisie (D1). | LCEN art. 6-III |
+| 🔴 Élevé | Notifications push via Expo (États-Unis) : transfert hors UE sans DPA vérifié. | **Juridique** : accepter le DPA d'Expo, vérifier son adhésion au Data Privacy Framework, garder la preuve. | Art. 28, 44–46 |
+| 🟠 Moyen | Fonds de carte OpenFreeMap / CARTO : reçoivent l'IP et la zone affichée, sans contrat. Les basemaps CARTO sont gratuites pour un usage non commercial seulement. | Héberger les tuiles soi-même (PMTiles sur le VPS) ou contractualiser ; à défaut, garder l'information dans la politique (faite). | Art. 28 ; conditions CARTO |
+| 🟠 Moyen | Pas de purge des comptes inactifs : un compte abandonné garde indéfiniment ses données (dont les cellules). | Ajouter `lastLoginAt`, prévenir puis supprimer après 2–3 ans d'inactivité. | Art. 5.1.e ; CNIL, durées de conservation |
+| 🟠 Moyen | Preuve du consentement limitée à un horodatage, sans version du texte ; il est remis à zéro au retrait. | Journal de consentement (date, version du texte, action) conservé à part, sans donnée de position. | Art. 7.1 |
+| 🟠 Moyen | Android déclare `ACCESS_FINE_LOCATION` alors que la précision `Balanced` suffit. | Retirer la permission fine après test sur appareil (build EAS). | Art. 5.1.c, 25 |
+| 🟠 Moyen | `NSAllowsArbitraryLoads` / `usesCleartextTraffic` encore actifs. | Retirer (déjà au plan de lancement §2), la prod est en HTTPS. | Art. 32 ; review Apple |
+| 🟡 Faible | Jetons push jamais purgés quand l'appareil n'est plus utilisé. | Purge des jetons non mis à jour depuis 90 j dans `app:data-retention:purge`. | Art. 5.1.c, e |
+| 🟡 Faible | AIPD : la géolocalisation « à large échelle » figure sur la liste CNIL des traitements soumis à AIPD. Non requise à l'échelle bêta (données agrégées, opt-in). | Documenter la décision ; refaire l'analyse au-delà de quelques milliers d'utilisateurs actifs. | Art. 35 ; liste CNIL (délibération 2018-327) |
+
+### Actions hors code
+
+1. **URL publique de la politique** : la route web `/legal?section=privacy` est accessible sans connexion. Après déploiement, `https://app.odos.world/legal?section=privacy` peut servir d'URL pour App Store Connect et Google Play.
+2. **Fiche « App Privacy » (Apple) / « Data safety » (Google)** : déclarer localisation approximative, email, identifiant utilisateur, photos, contenus utilisateur, identifiant d'appareil — liés à l'utilisateur, sans suivi publicitaire, pour le fonctionnement de l'app. Doit rester cohérent avec `privacyManifests`.
+3. **DPA** à accepter ou archiver : Contabo, Expo ; Twilio si le SMS admin est activé.
+4. Désigner le responsable incident (cf. [INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md)).
 
 ---
 
@@ -150,3 +201,4 @@ CNIL violation : notifications@cnil.fr
 | Audit initial | 8 urgents, 11 affinements, 6 recommandations |
 | Sprints 1–3 | Droits, rate limit, CORS, docs, a11y admin, legal in-app |
 | Mai 2026 | Clôture code — écarts ops/juridique documentés |
+| Octobre 2026 | Audit géolocalisation : retrait du consentement = effacement, refus persistant, minimisation des horodatages, politique et manifeste iOS mis à jour |

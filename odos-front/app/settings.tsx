@@ -121,7 +121,7 @@ export default function SettingsScreen() {
       setSuccessMsg(
         enabled
           ? 'Exploration carte activée. Ouvrez la carte pour autoriser la position si besoin.'
-          : 'Exploration carte désactivée.'
+          : 'Exploration carte désactivée, zones visitées effacées.'
       );
     },
     onError: (err) => {
@@ -553,13 +553,31 @@ export default function SettingsScreen() {
                 <View style={styles.switchTextCol}>
                   <Text style={styles.switchLabel}>Exploration de la carte</Text>
                   <Text style={styles.switchHint}>
-                    Suivi des zones visitées et badges « Explorateur ». Désactivé : pas de GPS, pas de
-                    progression ni calque sur la carte (badges déjà obtenus conservés).
+                    Facultatif. Suivi des zones visitées (cellules d&apos;environ 1 km, pas de trace GPS)
+                    et badges « Explorateur », uniquement carte ouverte. Désactiver retire votre
+                    consentement et efface vos zones visitées (badges déjà obtenus conservés).
                   </Text>
                 </View>
                 <Switch
                   value={user?.mapExplorationEnabled ?? false}
-                  onValueChange={(on) => explorationMutation.mutate(on)}
+                  onValueChange={(on) => {
+                    if (on) {
+                      explorationMutation.mutate(true);
+                      return;
+                    }
+                    odosAlert(
+                      "Désactiver l'exploration",
+                      'Vos zones visitées seront effacées et la position ne sera plus utilisée. Vos badges sont conservés.',
+                      [
+                        { text: 'Annuler', style: 'cancel' },
+                        {
+                          text: 'Désactiver et effacer',
+                          style: 'destructive',
+                          onPress: () => explorationMutation.mutate(false),
+                        },
+                      ]
+                    );
+                  }}
                   disabled={explorationMutation.isPending}
                   trackColor={{ true: colors.mapPrimaryCta }}
                   accessibilityLabel="Activer l'exploration de la carte"

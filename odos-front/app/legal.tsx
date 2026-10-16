@@ -45,50 +45,71 @@ Les présentes CGU sont régies par le droit français. Tout litige relève de l
   },
   privacy: {
     title: 'Politique de confidentialité',
-    body: `Dernière mise à jour : juin 2026
+    body: `Dernière mise à jour : octobre 2026
 
 1. Responsable du traitement
-ODOS — application mobile de découverte d'activités.
+ODOS — application de découverte d'activités (mobile et web).
 Contact : contact@odos-app.fr
 
 2. Données collectées
-- Adresse email (obligatoire pour la création de compte)
-- Centres d'intérêt sélectionnés (catégories d'activités)
-- Activités ajoutées en favoris
-- Activités marquées comme visitées (bouton « J'ai visité ce lieu »)
-- Alias et photo de profil (optionnels)
-- Notes et commentaires sur les activités (optionnels)
+Toujours (nécessaires au compte) :
+- Adresse email, mot de passe (stocké chiffré), date d'acceptation des CGU
+- Centres d'intérêt et ville de référence
+- Activités ajoutées en favoris ou marquées comme visitées (bouton « J'ai visité ce lieu »)
+- Données techniques : adresse IP et requêtes dans les journaux du serveur
 
-3. Finalités
-Les données sont collectées pour :
-- la gestion de votre compte utilisateur ;
-- la personnalisation des recommandations d'activités par filtrage sur vos centres d'intérêt ;
-- l'amélioration des recommandations par filtrage collaboratif : les activités que vous favorisez ou marquez comme visitées sont recoupées, de manière anonymisée, avec les données d'autres utilisateurs pour identifier des suggestions pertinentes ;
-- l'amélioration continue de l'Application.
+Seulement si vous les fournissez ou activez la fonction :
+- Alias, bio et photo de profil
+- Notes et commentaires sur les activités
+- Communauté (après votre accord) : sujets et réponses du forum, demandes d'amis, messages privés, groupes, parcours partagés, blocages et signalements
+- Exploration de la carte (après votre accord) : zones approximatives visitées, voir l'article 3
+- Notifications : identifiant technique de l'appareil (jeton push)
 
-Le filtrage collaboratif n'utilise pas votre identité directe (email) : seuls les identifiants internes d'activités sont croisés entre utilisateurs.
+3. Géolocalisation (exploration de la carte)
+L'exploration est désactivée par défaut et facultative : l'application fonctionne sans.
+- Elle n'est utilisée qu'avec votre accord explicite, demandé à l'ouverture de la carte, puis l'autorisation de position de votre téléphone ou navigateur. Vous pouvez refuser l'une ou l'autre sans perdre l'accès à l'application.
+- Votre position n'est lue que lorsque la carte est ouverte au premier plan, jamais en arrière-plan.
+- Vos coordonnées GPS ne quittent pas votre appareil : il les convertit en zones d'environ 1 km × 600 m (geohash de précision 6). Seules les zones qui contiennent une activité ODOS sont enregistrées, avec la date de première visite. Aucun trajet ni historique horodaté n'est conservé.
+- Finalité : calculer votre pourcentage de zones explorées et débloquer des badges.
+- Ces zones ne sont visibles que par vous. Elles ne sont jamais partagées avec vos amis, vos groupes ou la communauté.
+- Retrait : Paramètres → « Exploration de la carte ». Désactiver retire votre accord et efface immédiatement vos zones visitées (les badges déjà obtenus sont conservés).
+Le bouton « J'ai visité ce lieu » est un marquage manuel : il n'utilise pas votre position.
 
-4. Base légale
-Le traitement repose sur le consentement de l'utilisateur (création de compte) et l'exécution du service (personnalisation des recommandations).
+4. Finalités et bases légales
+- Compte, favoris, visites, recommandations : exécution du service (contrat).
+- Recommandations par filtrage collaboratif : les activités favorites ou visitées sont recoupées avec celles d'autres utilisateurs à partir d'identifiants internes, sans votre email (contrat).
+- Communauté, exploration de la carte, notifications : votre consentement, que vous pouvez retirer à tout moment.
+- Sécurité, prévention des abus, journaux du serveur : intérêt légitime.
 
-5. Conservation
-Les données sont conservées tant que le compte est actif. En cas de suppression du compte, les données personnelles sont effacées dans un délai de 30 jours. Les signaux de visites et favoris sont supprimés en cascade avec le compte.
+5. Durées de conservation
+- Compte et contenus : tant que le compte est actif ; effacement sous 30 jours après la suppression du compte (les commentaires publics sont anonymisés).
+- Zones d'exploration : jusqu'au retrait de votre accord ou à la suppression du compte.
+- Session : jeton d'accès 15 minutes, jeton de rafraîchissement 30 jours.
+- Journaux du serveur : 30 jours (accès) à 90 jours (erreurs et application).
 
-6. Droits de l'utilisateur
-Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, de suppression, de portabilité et d'opposition.
-- Export de vos données (art. 20) : Paramètres → « Exporter mes données en PDF ». L'export génère un PDF lisible contenant votre profil, favoris, visites, commentaires, notes et badges.
+6. Destinataires et sous-traitants
+Vos données ne sont ni vendues ni utilisées pour de la publicité.
+- Hébergement de l'API et des données : Contabo GmbH (Allemagne, Union européenne).
+- Fonds de carte : OpenFreeMap (thème clair) et CARTO (thème sombre) servent les images de la carte. Ils reçoivent votre adresse IP et la zone affichée à l'écran, comme pour toute carte en ligne, mais jamais votre position GPS ni votre identité ODOS.
+- Notifications push : Expo (650 Industries, États-Unis), puis Apple ou Google, acheminent les notifications à partir du jeton de l'appareil. Ce transfert hors de l'Union européenne repose sur le cadre de protection des données UE–États-Unis ou sur des clauses contractuelles types.
+- Recommandations par IA : modèle de langage auto-hébergé, sans transfert à un tiers (voir l'article 9).
+
+7. Vos droits
+Conformément au RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, de portabilité et d'opposition, et du droit de retirer votre consentement à tout moment.
+- Export de vos données (art. 20) : Paramètres → « Exporter mes données en PDF » (profil, favoris, visites, zones d'exploration, commentaires, notes, badges).
 - Suppression de compte (art. 17) : Paramètres → « Supprimer mon compte ».
-- Révocation d'un signal : le bouton « J'ai visité » est réversible à tout moment depuis la fiche de l'activité.
-Pour toute demande : contact@odos-app.fr
+- Exploration de la carte : Paramètres → désactiver, ce qui efface vos zones visitées.
+- Signal « J'ai visité » : réversible depuis la fiche de l'activité.
+Pour toute demande : contact@odos-app.fr. Vous pouvez aussi adresser une réclamation à la CNIL (www.cnil.fr/fr/plaintes).
 
-7. Stockages locaux (application mobile)
-L'application stocke localement (SecureStore) les jetons d'authentification JWT et de rafraîchissement, nécessaires au maintien de session. Aucun cookie publicitaire n'est utilisé.
+8. Stockages locaux
+Application mobile : les jetons de session sont conservés dans le stockage sécurisé du téléphone (SecureStore). Version web : ils sont conservés dans le stockage local du navigateur (localStorage), avec, si l'exploration est active, la liste des zones en attente d'envoi. Ces stockages sont nécessaires au fonctionnement ; aucun cookie publicitaire ni traceur de mesure d'audience n'est utilisé.
 
-8. Recommandations par intelligence artificielle
-Les recommandations peuvent être affinées par un modèle de langage (LLM) auto-hébergé. Ce modèle reçoit uniquement vos centres d'intérêt et des métadonnées d'activités (nom, catégorie, ville) — jamais votre email ni votre identité. Le résultat est mis en cache et non partagé avec des tiers.
+9. Recommandations par intelligence artificielle
+Les recommandations peuvent être affinées par un modèle de langage (LLM) auto-hébergé. Ce modèle reçoit uniquement vos centres d'intérêt et des métadonnées d'activités (nom, catégorie, ville), jamais votre email, votre identité ni votre position. Le résultat est mis en cache et n'est pas partagé avec des tiers.
 
-9. Sécurité
-Les données sont protégées par des mesures techniques : chiffrement des mots de passe (Argon2/bcrypt), tokens JWT à durée limitée, transport HTTPS, rate limiting.`,
+10. Sécurité
+Les données sont protégées par des mesures techniques : chiffrement des mots de passe (Argon2/bcrypt), jetons de session à durée limitée, transport HTTPS, limitation du nombre de requêtes.`,
   },
   mentions: {
     title: 'Mentions légales',

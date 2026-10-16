@@ -62,9 +62,19 @@ final class MapExplorationService
         $this->em->flush();
     }
 
+    /**
+     * Désactiver l'exploration = retirer son consentement (RGPD art. 7.3) : les
+     * cellules visitées, collectées sur cette seule base, sont effacées (art. 17.1.b)
+     * et l'horodatage du consentement est remis à zéro, pour qu'une réactivation
+     * redemande un consentement explicite. Les badges déjà obtenus sont conservés.
+     */
     public function setEnabled(User $user, bool $enabled): void
     {
         $user->setMapExplorationEnabled($enabled);
+        if (!$enabled) {
+            $this->cellRepository->deleteForUser($user);
+            $user->setMapExplorationConsentAt(null);
+        }
         $this->em->flush();
     }
 
@@ -98,9 +108,11 @@ final class MapExplorationService
                 continue;
             }
 
+            // Minimisation (RGPD art. 5.1.c) : une cellule déjà connue n'est pas
+            // ré-horodatée, sinon chaque passage laisserait une trace temporelle
+            // de présence. Seule la première visite compte pour la progression.
             $existing = $this->cellRepository->findOneForUserAndCell($user, $cellId);
             if ($existing instanceof UserMapCell) {
-                $existing->touch();
                 continue;
             }
 

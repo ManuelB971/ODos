@@ -25,19 +25,30 @@ export function ExplorationConsentModal({
         <View style={styles.card}>
           <Text style={styles.title}>Exploration de la carte</Text>
           <Text style={styles.body}>
-            ODos peut utiliser votre position lorsque la carte est ouverte pour calculer le pourcentage
-            de zones visitées et débloquer des badges. Les cellules enregistrées sont des identifiants
-            géographiques approximatifs (geohash), pas un historique GPS détaillé.
+            Avec votre accord, ODos utilise votre position uniquement lorsque la carte est ouverte,
+            pour calculer le pourcentage de zones visitées et débloquer des badges. Seules les zones
+            d&apos;environ 1 km proches des activités sont enregistrées (geohash), jamais vos
+            coordonnées GPS ni un historique de trajets.
+          </Text>
+          <Text style={styles.body}>
+            C&apos;est facultatif : l&apos;app fonctionne pareil sans. Vous pouvez retirer votre accord
+            à tout moment dans Paramètres, ce qui efface vos zones visitées.
           </Text>
           <Pressable
             style={[styles.btnPrimary, loading && styles.btnDisabled]}
             onPress={onAccept}
             disabled={loading}
+            accessibilityRole="button"
           >
-            <Text style={styles.btnPrimaryText}>{loading ? 'Activation…' : 'Activer'}</Text>
+            <Text style={styles.btnPrimaryText}>{loading ? 'Activation…' : 'Accepter'}</Text>
           </Pressable>
-          <Pressable style={styles.btnGhost} onPress={onDecline} disabled={loading}>
-            <Text style={styles.btnGhostText}>Plus tard</Text>
+          <Pressable
+            style={styles.btnGhost}
+            onPress={onDecline}
+            disabled={loading}
+            accessibilityRole="button"
+          >
+            <Text style={styles.btnGhostText}>Refuser</Text>
           </Pressable>
         </View>
       </View>

@@ -28,7 +28,7 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useMapExploration } from '@/hooks/useMapExploration';
-import { fetchVisitedIds } from '@/scripts/api';
+import { fetchVisitedIds, patchMapExplorationEnabled } from '@/scripts/api';
 import { ApiActivity } from '@/types';
 import { LatLngRegion, regionToBounds, regionToInitialCamera } from '@/utils/mapViewport';
 import {
@@ -491,6 +491,14 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         onDecline={() => {
           setConsentDismissed(true);
           setShowConsentModal(false);
+          // Refus = choix persistant (le réglage repasse à « désactivé ») ; l'utilisateur
+          // peut le réactiver dans Paramètres. Aucune position n'est demandée.
+          if (user) {
+            setUser({ ...user, mapExplorationEnabled: false });
+          }
+          patchMapExplorationEnabled(false).catch(() => {
+            // Hors ligne : le refus reste effectif pour la session (consentDismissed).
+          });
         }}
       />
       </View>

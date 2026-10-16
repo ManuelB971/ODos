@@ -48,6 +48,17 @@ class UserMapCellRepository extends ServiceEntityRepository
         return array_values(array_map('strval', $rows));
     }
 
+    /** Efface tout l'historique d'exploration d'un utilisateur ; renvoie le nombre de cellules supprimées. */
+    public function deleteForUser(User $user): int
+    {
+        return (int) $this->createQueryBuilder('c')
+            ->delete()
+            ->andWhere('c.user = :user')
+            ->setParameter('user', $user)
+            ->getQuery()
+            ->execute();
+    }
+
     public function findOneForUserAndCell(User $user, string $cellId): ?UserMapCell
     {
         return $this->findOneBy(['user' => $user, 'cellId' => $cellId]);
