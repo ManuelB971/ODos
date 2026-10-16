@@ -1,0 +1,122 @@
+# Supervision ODOS : Prometheus + Alertmanager + Grafana + exporters.
+# Remplace Wazuh. Projet Compose séparé (`name:`) : le `--remove-orphans` du
+# déploiement de l'app (projet "odos") ne peut pas le supprimer.
+#
+# Tout écoute sur 127.0.0.1 uniquement. Accès depuis le PC :
+#   ssh -L 3000:127.0.0.1:3000 -L 9090:127.0.0.1:9090 odos@<vps>
+#   → http://localhost:3000 (Grafana), http://localhost:9090 (Prometheus)
+#
+# Lancement (depuis ce dossier, fichier .env à côté, cf. .env.example) :
+#   docker compose up -d
+#
+# Prometheus, Grafana et node-exporter sont en réseau hôte pour joindre sans
+# règle UFW les services liés à 127.0.0.1 (CrowdSec :6060, exporters publiés).
+
+name: odos-monitoring
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    network_mode: host
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --storage.tsdb.retention.size=4GB
+      - --web.listen-address=127.0.0.1:9090
+    volumes:
+      - ./prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    mem_limit: 768m
+
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"
+    volumes:
+      - ./alertmanager:/etc/alertmanager:ro
+      - alertmanager_data:/alertmanager
+    mem_limit: 128m
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      GF_SERVER_HTTP_ADDR: 127.0.0.1
+      GF_SERVER_HTTP_PORT: "3000"
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?manquant, voir .env.example}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    mem_limit: 256m
+
+  node-exporter:
+    image: prom/node-exporter:v1.9.1
+    restart: unless-stopped
+    network_mode: host
+    pid: host
+    command:
+      - --path.rootfs=/host
+      - --web.listen-address=127.0.0.1:9100
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($$|/)
+    volumes:
+      - /:/host:ro,rslave
+    mem_limit: 64m
+
+  # Pas de cAdvisor : v0.52/v0.53 ne voient pas les conteneurs avec le stockage
+  # d'images containerd de Docker 29 ("failed to identify the read-write layer").
+  # Les pannes restent couvertes par blackbox (php/nginx), pg_up et redis_up.
+
+  blackbox:
+    image: prom/blackbox-exporter:v0.27.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/blackbox/blackbox.yml
+    ports:
+      - "127.0.0.1:9115:9115"
+    volumes:
+      - ./blackbox:/etc/blackbox:ro
+    mem_limit: 64m
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.17.1
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: ${POSTGRES_EXPORTER_DSN:?manquant, voir .env.example}
+    ports:
+      - "127.0.0.1:9187:9187"
+    networks:
+      - odos_app
+    mem_limit: 64m
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.74.0
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    ports:
+      - "127.0.0.1:9121:9121"
+    networks:
+      - odos_app
+    mem_limit: 64m
+
+networks:
+  # Réseau de l'app ODOS (projet "odos") pour joindre postgres et redis.
+  odos_app:
+    external: true
+    name: odos_app_network
+
+volumes:
+  prometheus_data:
+  alertmanager_data:
+  grafana_data:

@@ -1,0 +1,13 @@
+# Aucun canal de notification pour l'instant : les alertes sont visibles dans
+# Alertmanager (http://localhost:9093 via tunnel SSH) et dans Grafana.
+# Pour Discord : ajouter un receiver `discord_configs` avec `webhook_url_file`
+# pointant vers un fichier secret monté (jamais l'URL en clair dans le repo).
+route:
+  receiver: "aucun"
+  group_by: [alertname]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+
+receivers:
+  - name: "aucun"

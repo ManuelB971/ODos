@@ -1,0 +1,60 @@
+groups:
+  - name: odos-disponibilite
+    rules:
+      - alert: SiteInjoignable
+        expr: probe_success{job="blackbox-https"} == 0
+        for: 3m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.instance }} ne répond plus (HTTPS)"
+
+      - alert: CertificatTLSBientotExpire
+        expr: probe_ssl_earliest_cert_expiry{job="blackbox-https"} - time() < 15 * 86400
+        for: 1h
+        labels: { severity: warning }
+        annotations:
+          summary: "Certificat TLS de {{ $labels.instance }} expire dans moins de 15 jours"
+
+      - alert: PostgresInjoignable
+        expr: pg_up == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "postgres-exporter n'arrive plus à joindre la base"
+
+      - alert: RedisInjoignable
+        expr: redis_up == 0
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "redis-exporter n'arrive plus à joindre Redis"
+
+      - alert: CibleDeSupervisionDown
+        expr: up == 0
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Cible Prometheus {{ $labels.job }} ({{ $labels.instance }}) injoignable"
+
+  - name: odos-serveur
+    rules:
+      - alert: DisquePresquePlein
+        expr: node_filesystem_avail_bytes{mountpoint="/",fstype!="tmpfs"} / node_filesystem_size_bytes{mountpoint="/",fstype!="tmpfs"} < 0.15
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Moins de 15 % d'espace libre sur / ({{ $value | humanizePercentage }})"
+
+      - alert: MemoireFaible
+        expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Moins de 10 % de RAM disponible"
+
+      - alert: CPUSature
+        expr: 1 - avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) > 0.90
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "CPU au-dessus de 90 % depuis 15 min"
