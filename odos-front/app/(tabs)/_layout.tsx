@@ -111,7 +111,7 @@ export default function TabLayout() {
               pointerEvents="none"
               style={[StyleSheet.absoluteFill, styles.centerShadow, { backgroundColor: pop.ink }]}
             />
-            <View style={[styles.centerBtn, { backgroundColor: pop.orange, borderColor: pop.ink, borderWidth: 2.5 }]}>
+            <View style={[styles.centerBtn, railNav && styles.centerBtnRail, { backgroundColor: pop.orange, borderColor: pop.ink, borderWidth: 2.5 }]}>
               <MaterialIcons name="route" size={26} color={pop.ink} />
             </View>
           </View>
@@ -121,7 +121,7 @@ export default function TabLayout() {
     return (
       <View style={styles.centerSlot}>
         <View style={wrapStyle}>
-          <View style={[styles.centerBtn, { backgroundColor: colors.accent, borderColor: colors.background, borderWidth: 4 }]}>
+          <View style={[styles.centerBtn, railNav && styles.centerBtnRail, { backgroundColor: colors.accent, borderColor: colors.background, borderWidth: 4 }]}>
             <MaterialIcons name="route" size={26} color={colors.onAccent} />
           </View>
         </View>
@@ -157,7 +157,7 @@ export default function TabLayout() {
               borderRightColor: isMosaicPop ? pop.ink : colors.border,
               borderRightWidth: isMosaicPop ? 2.5 : 1,
               borderTopWidth: 0,
-              width: 108,
+              width: 124,
               paddingTop: 24,
               paddingBottom: 24,
             }
@@ -180,6 +180,20 @@ export default function TabLayout() {
         tabBarItemStyle: railNav
           ? { paddingVertical: 12 }
           : { paddingVertical: 4 },
+        // Rail : React Navigation v7 passe par défaut en « libellé à côté » sur grand
+        // écran (sidebar ~360 px + fond actif bleu du thème) — d'où des libellés qui
+        // chevauchent les pastilles. On garde l'idiome compact icône + libellé dessous.
+        // Même cause en barre du bas sur tablette web (≥ 768 px). Natif inchangé.
+        ...(Platform.OS === 'web' ? { tabBarLabelPosition: 'below-icon' as const } : null),
+        ...(railNav
+          ? {
+              // `below-icon` sur un rail n'est accepté qu'en variante « material »
+              // (navigation rail), la variante « uikit » lève une erreur.
+              tabBarVariant: 'material' as const,
+              tabBarActiveBackgroundColor: 'transparent',
+              tabBarInactiveBackgroundColor: 'transparent',
+            }
+          : null),
         tabBarLabelStyle: tabLabelStyle,
         tabBarActiveTintColor: isMosaicPop ? pop.ink : colors.accent,
         tabBarInactiveTintColor: isMosaicPop ? pop.muted : colors.muted,
@@ -268,8 +282,16 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -8 }],
   },
   // Rail vertical (desktop) : pas de soulèvement, le bouton s'aligne aux autres.
+  // Le bouton fait la taille d'une pastille pour laisser son libellé lisible dessous.
   centerWrapRail: {
+    width: 40,
+    height: 40,
     transform: [{ translateY: 0 }],
+  },
+  centerBtnRail: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   centerShadow: {
     borderRadius: 100,

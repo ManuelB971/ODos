@@ -35,11 +35,13 @@ type Props = {
   /** Largeur maximale de la colonne (défaut : colonne de lecture). */
   maxWidth?: number;
   style?: StyleProp<ViewStyle>;
+  /** Barre (en-tête d'écran) : même colonne que le contenu, sans `flex: 1`. */
+  bar?: boolean;
 };
 
-export function ResponsiveShell({ children, maxWidth = SHELL_MAX_WIDTH.reading, style }: Props) {
+export function ResponsiveShell({ children, maxWidth = SHELL_MAX_WIDTH.reading, style, bar = false }: Props) {
   if (Platform.OS !== 'web') return <>{children}</>;
-  return <View style={[styles.shell, { maxWidth }, style]}>{children}</View>;
+  return <View style={[styles.shell, bar && styles.bar, { maxWidth }, style]}>{children}</View>;
 }
 
 const styles = StyleSheet.create({
@@ -47,5 +49,12 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     alignSelf: 'center',
+  },
+  // Pas `flex: 0` : react-native-web le traduit en `flex-basis: 0%`, la barre
+  // s'effondre et l'en-tête chevauche le contenu.
+  bar: {
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
   },
 });

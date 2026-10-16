@@ -142,7 +142,7 @@ Dossier `monitoring/` du repo, déployé dans `/home/odos/odos-monitoring` (proj
 - [ ] Ajouter le crash reporting (D5)
 - [ ] Politique de confidentialité accessible par URL publique (exigée par Apple et Google)
 - [ ] Mettre à jour CGU / mentions légales (modération forum/commentaires, DSA/LCEN)
-- [ ] Mettre à jour `docs/RGPD_registre.md` (sous-traitants : Contabo, Twilio, Expo/EAS, crash reporting)
+- [x] Mettre à jour `docs/RGPD_registre.md` (sous-traitants : Contabo, Twilio, Expo/EAS, fonds de carte — crash reporting à ajouter si D5)
 - [ ] Préparer la fiche « App Privacy » (Apple) et « Data safety » (Google)
 - [ ] Captures d'écran, description, mots-clés, icône 1024 px
 - [ ] Compte de démonstration pour l'équipe de review Apple

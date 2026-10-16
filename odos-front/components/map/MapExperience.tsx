@@ -28,7 +28,7 @@ import { useResponsive } from '@/hooks/useResponsive';
 import { useOdosColors, useTheme, type OdosColorPalette } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
 import { useMapExploration } from '@/hooks/useMapExploration';
-import { fetchVisitedIds } from '@/scripts/api';
+import { fetchVisitedIds, patchMapExplorationEnabled } from '@/scripts/api';
 import { ApiActivity } from '@/types';
 import { LatLngRegion, regionToBounds, regionToInitialCamera } from '@/utils/mapViewport';
 import {
@@ -70,7 +70,11 @@ export function MapExperience({ activities, loading = false, error = null }: Map
   const colors = useOdosColors();
   const { colorScheme } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { isDesktop } = useResponsive();
+  const { isDesktop, isPhone } = useResponsive();
+  // Web tablette/desktop : la fiche sélectionnée devient une carte flottante bornée
+  // (bas-gauche) au lieu d'un bandeau pleine largeur ; la recherche et les bannières
+  // sont bornées aussi. Mobile (web étroit + natif) : bottom sheet inchangée.
+  const floatingCards = Platform.OS === 'web' && !isPhone;
   // Desktop web : carte + **panneau latéral de résultats** (façon Maps/Airbnb),
   // au lieu du seul callout au tap. Gardé derrière web+desktop → mobile/natif inchangé.
   // Cf. docs/AUDIT_RESPONSIVE_WEB.md (Niveau 2).
@@ -332,6 +336,7 @@ export function MapExperience({ activities, loading = false, error = null }: Map
                 activity={item}
                 active={item.id === selectedId}
                 fullWidth
+                compact
                 onPress={() => focusActivity(item)}
               />
             )}
@@ -392,7 +397,11 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         </Map>
       </View>
 
-      <SafeAreaView edges={['top']} style={styles.topOverlay} pointerEvents="box-none">
+      <SafeAreaView
+        edges={['top']}
+        style={[styles.topOverlay, floatingCards && styles.topOverlayBounded]}
+        pointerEvents="box-none"
+      >
         <View style={styles.topRow} pointerEvents="box-none">
           <Pressable
             style={styles.iconBtn}
@@ -419,27 +428,31 @@ export function MapExperience({ activities, loading = false, error = null }: Map
       </SafeAreaView>
 
       {loading ? (
-        <View style={styles.banner}>
+        <View style={[styles.banner, floatingCards && styles.bannerBounded]}>
           <ActivityIndicator color={colors.mapPrimaryCta} size="small" />
           <Text style={styles.bannerText}>Chargement des activités…</Text>
         </View>
       ) : null}
 
       {error ? (
-        <View style={[styles.banner, styles.bannerError]}>
+        <View style={[styles.banner, styles.bannerError, floatingCards && styles.bannerBounded]}>
           <Text style={styles.bannerErrorText}>{error}</Text>
         </View>
       ) : null}
 
       {showEmpty ? (
-        <View style={styles.banner}>
+        <View style={[styles.banner, floatingCards && styles.bannerBounded]}>
           <Text style={styles.bannerTitle}>Aucun lieu trouvé</Text>
           <Text style={styles.bannerText}>Essaie un autre filtre ou élargis ta recherche.</Text>
         </View>
       ) : null}
 
       <Pressable
-        style={[styles.recenterBtn, { bottom: 24 + insets.bottom + (selectedActivity ? 168 : 0) }]}
+        style={[
+          styles.recenterBtn,
+          // La carte flottante (web large) est à gauche : le bouton n'a pas à remonter.
+          { bottom: 24 + insets.bottom + (selectedActivity && !floatingCards ? 168 : 0) },
+        ]}
         onPress={resetViewport}
         accessibilityRole="button"
         accessibilityLabel="Recentrer la carte"
@@ -448,11 +461,18 @@ export function MapExperience({ activities, loading = false, error = null }: Map
       </Pressable>
 
       {selectedActivity ? (
-        <View style={[styles.callout, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <View
+          style={[
+            styles.callout,
+            floatingCards && styles.calloutFloating,
+            { paddingBottom: Math.max(insets.bottom, floatingCards ? 20 : 12) },
+          ]}
+        >
           <ActivityCard
             activity={selectedActivity}
             active
             fullWidth
+            compact={floatingCards}
             onPress={() => router.push(`/activity/${selectedActivity.id}`)}
           />
         </View>
@@ -471,6 +491,14 @@ export function MapExperience({ activities, loading = false, error = null }: Map
         onDecline={() => {
           setConsentDismissed(true);
           setShowConsentModal(false);
+          // Refus = choix persistant (le réglage repasse à « désactivé ») ; l'utilisateur
+          // peut le réactiver dans Paramètres. Aucune position n'est demandée.
+          if (user) {
+            setUser({ ...user, mapExplorationEnabled: false });
+          }
+          patchMapExplorationEnabled(false).catch(() => {
+            // Hors ligne : le refus reste effectif pour la session (consentDismissed).
+          });
         }}
       />
       </View>
@@ -640,6 +668,22 @@ function createStyles(colors: OdosColorPalette) {
     right: 16,
     bottom: 0,
     zIndex: 9,
+  },
+  // ── Web tablette/desktop : overlays bornés au lieu de pleine largeur ──
+  calloutFloating: {
+    left: 20,
+    right: 'auto',
+    width: 360,
+    maxWidth: '90%',
+  },
+  topOverlayBounded: {
+    right: 'auto',
+    width: '100%',
+    maxWidth: 640,
+  },
+  bannerBounded: {
+    maxWidth: 420,
+    marginHorizontal: 'auto',
   },
 });
 }

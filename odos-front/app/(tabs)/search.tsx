@@ -19,6 +19,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ApiActivity } from '@/types';
 import { useActivities } from '@/hooks/useActivities';
 import { useDebounce } from '@/hooks/useDebounce';
+import { useResponsive } from '@/hooks/useResponsive';
 import { resolveImageUrl } from '@/utils/imageUrl';
 
 /** Palette alignée sur docs/DESIGN_DIRECTION.md */
@@ -306,6 +307,38 @@ function MosaicPopBrowseSection({
 }) {
   const colors = useOdosColors();
   const styles = useMemo(() => createStyles(colors), [colors]);
+  const { isPhone } = useResponsive();
+  // Web tablette/desktop : la vedette 16:10 pleine largeur occupe tout l'écran.
+  // On aligne les trois premières cartes sur une rangée (vedette badgée en tête).
+  const wideRow = Platform.OS === 'web' && !isPhone;
+
+  if (wideRow) {
+    return (
+      <View style={styles.searchResultsBlock}>
+        <View style={styles.wideBadgeRow}>
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>INCONTOURNABLE</Text>
+          </View>
+        </View>
+        <View style={[styles.gridRow, styles.gridRowWide]}>
+          {[featured, gridLeft, gridRight].map((item, i) =>
+            item ? (
+              <MosaicPopCard key={item.id} item={item} variant="grid" />
+            ) : (
+              <View key={`spacer-${i}`} style={styles.gridSpacer} />
+            )
+          )}
+        </View>
+        {banner ? <MosaicPopRow item={banner} /> : null}
+        {extraCount > 0 ? (
+          <Text style={styles.mosaicBrowseHint}>
+            {extraCount} autre{extraCount > 1 ? 's' : ''} activité{extraCount > 1 ? 's' : ''} — utilisez la recherche ou
+            les catégories pour affiner.
+          </Text>
+        ) : null}
+      </View>
+    );
+  }
 
   return (
     <View style={styles.searchResultsBlock}>
@@ -625,6 +658,17 @@ function createStyles(colors: OdosColorPalette) {
   },
   gridSpacer: {
     flex: 1,
+  },
+  // Web large : 3 cartes alignées sur la largeur de la colonne (720).
+  gridRowWide: {
+    maxWidth: 720,
+  },
+  wideBadgeRow: {
+    flexDirection: 'row',
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+    marginBottom: 10,
   },
   mosaicFeaturedWrap: {
     marginBottom: 16,

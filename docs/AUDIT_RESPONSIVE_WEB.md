@@ -367,6 +367,27 @@ amorcés. Reste du **polish** continu (Niveau 3) et une *feature* (lien externe)
 
 ---
 
+## Partie 6 — Recette visuelle 375 / 768 / 1440 (2026-10-16)
+
+Recette par captures (Edge headless + API factice locale) de 12 écrans aux 3 largeurs. Le
+ressenti « interface bizarre sur le web » venait surtout de défauts que le code ne laissait pas
+voir :
+
+| # | Défaut constaté | Cause | Correctif |
+|---|-----------------|-------|-----------|
+| R1 | **Rail desktop de ~360 px**, fond actif bleu, libellés qui chevauchent les pastilles | React Navigation v7 passe d'office en `beside-icon` sur grand écran (sidebar large + `activeBackgroundColor` du thème). `width: 108` ignoré. | Rail en variante `material` + `tabBarLabelPosition: 'below-icon'`, fonds actifs transparents ([_layout.tsx](../odos-front/app/(tabs)/_layout.tsx)) |
+| R2 | Barre du bas **tablette** (≥ 768) : libellés à côté des icônes, chevauchement | même cause (`beside-icon` dès 768 px) | `below-icon` forcé sur tout le web (identique au mobile) |
+| R3 | **Favoris** : la dernière carte d'une rangée incomplète prend toute la largeur | `flex: 1` seul sur sa rangée (`numColumns` 4–5) | `webGridCellStyle(columns, gap)` ([useResponsive.ts](../odos-front/hooks/useResponsive.ts)) borne chaque cellule à une colonne ; grille capée à `SHELL_MAX_WIDTH.wide` |
+| R4 | **Recherche** : carte vedette 16:10 de 680 × 540 px, un seul lieu visible | vedette pleine largeur pensée mobile | Web ≥ 600 : vedette + 2 cartes sur une rangée de 3 |
+| R5 | **Fiche activité** : pied « Y aller » sur toute la largeur de l'écran | footer absolu `left/right: 0` | Carte bornée à 560 px et centrée (web ≥ 600) |
+| R6 | **Carte** : fiche du lieu sélectionné en bandeau pleine largeur (tablette et desktop), barre de recherche de 1 000 px, bannières étirées, cartes du panneau latéral en 4:3 (3 lieux par écran) | overlays `left/right` fixes | Web ≥ 600 : fiche **flottante 360 px** en bas à gauche (le bouton recentrer ne remonte plus), recherche ≤ 640 px, bannières ≤ 420 px centrées, cartes du panneau en 16:9 (`compact`). Mobile : bottom sheet inchangée |
+| R7 | En-têtes de Paramètres / Mentions / Badges collés aux bords alors que le contenu est centré | header hors du `ResponsiveShell` | `ResponsiveShell bar` (même colonne, sans `flex: 1`) |
+
+Breakpoints inchangés (600 / 1024 / 1440). Tout est gardé par `Platform.OS === 'web'`
+(ou passthrough natif du shell) → **rendu iOS/Android inchangé**.
+
+---
+
 ## Annexe — Pourquoi le shell centré d'abord
 
 Sur une web app **derrière login**, l'objectif n'est pas une vitrine marketing pleine largeur
