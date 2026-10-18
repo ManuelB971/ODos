@@ -1,0 +1,17 @@
+# /etc/crowdsec/acquis.d/odos.yaml — sources lues par CrowdSec sur le VPS.
+# Les logs odos-metrics-*.log (sans IP, pour Prometheus) sont volontairement
+# exclus : un « /var/log/nginx/*.log » les ferait analyser par le parser nginx
+# (lignes non reconnues, bruit dans cs_parser_hits).
+# Si /etc/crowdsec/acquis.yaml contient déjà ces fichiers, retirer les lignes
+# en double là-bas (sinon chaque ligne est lue deux fois).
+# Procédure : docs/ops/RUNBOOK_DURCISSEMENT_HOTE.md § 5
+filenames:
+  - /var/log/nginx/access.log
+  - /var/log/nginx/error.log
+labels:
+  type: nginx
+---
+filenames:
+  - /var/log/auth.log
+labels:
+  type: syslog

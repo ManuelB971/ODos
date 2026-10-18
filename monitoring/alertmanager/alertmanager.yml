@@ -1,13 +1,42 @@
-# Aucun canal de notification pour l'instant : les alertes sont visibles dans
-# Alertmanager (http://localhost:9093 via tunnel SSH) et dans Grafana.
-# Pour Discord : ajouter un receiver `discord_configs` avec `webhook_url_file`
-# pointant vers un fichier secret monté (jamais l'URL en clair dans le repo).
+# Notifications ODOS.
+#   - Toutes les alertes → Discord (salon #alertes).
+#   - Watchdog (toujours active) → dead man's switch healthchecks.io : si les
+#     pings cessent (VPS, Prometheus ou Alertmanager en panne), healthchecks.io
+#     prévient de son côté (e-mail / Discord configurés sur healthchecks.io).
+#
+# Les URL sont des secrets : jamais en clair ici. Elles sont lues dans des
+# fichiers montés par docker-compose.yml (secrets Compose → /run/secrets/),
+# créés sur le VPS hors du repo (voir docs/ops/RUNBOOK_SUPERVISION.md).
 route:
-  receiver: "aucun"
-  group_by: [alertname]
+  receiver: discord
+  group_by: [alertname, instance]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 12h
+  routes:
+    - matchers: [alertname = "Watchdog"]
+      receiver: deadmansswitch
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 1m
+    - matchers: [severity = "critical"]
+      receiver: discord
+      repeat_interval: 2h
+
+# Une panne franche masque les alertes secondaires qu'elle provoque.
+inhibit_rules:
+  - source_matchers: [alertname = "SiteInjoignable"]
+    target_matchers: [alertname =~ "SanteApiDegradee|Nginx5xxEleve|NginxLatenceP95Elevee"]
+  - source_matchers: [alertname =~ "PostgresInjoignable|RedisInjoignable"]
+    target_matchers: [alertname = "SanteApiDegradee"]
 
 receivers:
-  - name: "aucun"
+  - name: discord
+    discord_configs:
+      - webhook_url_file: /run/secrets/discord_webhook_url
+        send_resolved: true
+
+  - name: deadmansswitch
+    webhook_configs:
+      - url_file: /run/secrets/watchdog_ping_url
+        send_resolved: false

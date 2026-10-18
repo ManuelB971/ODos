@@ -41,6 +41,10 @@ services:
     volumes:
       - ./alertmanager:/etc/alertmanager:ro
       - alertmanager_data:/alertmanager
+    # URL de webhook (Discord, healthchecks.io) : fichiers hors repo, cf. .env.example.
+    secrets:
+      - discord_webhook_url
+      - watchdog_ping_url
     mem_limit: 128m
 
   grafana:
@@ -50,7 +54,9 @@ services:
     environment:
       GF_SERVER_HTTP_ADDR: 127.0.0.1
       GF_SERVER_HTTP_PORT: "3000"
-      GF_SECURITY_ADMIN_USER: admin
+      # Pas de compte « admin » devinable. Ne s'applique qu'à la création de la
+      # base Grafana : pour renommer un compte existant, voir RUNBOOK_SUPERVISION.md § 3.
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?manquant, voir .env.example}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?manquant, voir .env.example}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_ANALYTICS_REPORTING_ENABLED: "false"
@@ -68,7 +74,9 @@ services:
     command:
       - --path.rootfs=/host
       - --web.listen-address=127.0.0.1:9100
-      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($$|/)
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($|/)
+      # Métriques écrites par scripts/prod-backup.sh (âge de la dernière sauvegarde).
+      - --collector.textfile.directory=/host/var/lib/node_exporter/textfile
     volumes:
       - /:/host:ro,rslave
     mem_limit: 64m
@@ -86,6 +94,19 @@ services:
       - "127.0.0.1:9115:9115"
     volumes:
       - ./blackbox:/etc/blackbox:ro
+    mem_limit: 64m
+
+  # 5xx et latence du nginx hôte, tirés de ses logs dédiés (sans IP).
+  nginxlog-exporter:
+    image: quay.io/martinhelmich/prometheus-nginxlog-exporter:v1.11.0
+    restart: unless-stopped
+    command:
+      - -config-file=/etc/nginxlog/config.yml
+    ports:
+      - "127.0.0.1:4040:4040"
+    volumes:
+      - ./nginxlog:/etc/nginxlog:ro
+      - /var/log/nginx:/var/log/nginx:ro
     mem_limit: 64m
 
   postgres-exporter:
@@ -109,6 +130,12 @@ services:
     networks:
       - odos_app
     mem_limit: 64m
+
+secrets:
+  discord_webhook_url:
+    file: ${DISCORD_WEBHOOK_URL_FILE:-./secrets/discord_webhook_url}
+  watchdog_ping_url:
+    file: ${WATCHDOG_PING_URL_FILE:-./secrets/watchdog_ping_url}
 
 networks:
   # Réseau de l'app ODOS (projet "odos") pour joindre postgres et redis.

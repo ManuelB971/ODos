@@ -1,0 +1,32 @@
+# prometheus-nginxlog-exporter : taux de réponses par code et histogramme de
+# latence, tirés des logs dédiés du nginx hôte (log_format odos_metrics,
+# deploy/nginx/conf.d/odos-common.conf). Ces logs ne contiennent ni IP ni
+# query string : uniquement méthode, chemin, code, taille et durées.
+#
+# Métriques : nginx_http_response_count_total{vhost,method,status},
+# nginx_http_response_time_seconds_hist_bucket{vhost,le,...},
+# nginx_http_upstream_time_seconds_hist_bucket (API seulement).
+listen:
+  port: 4040
+  address: 0.0.0.0
+
+namespaces:
+  - name: api
+    namespace_label: vhost
+    metrics_override:
+      prefix: nginx
+    format: '"$request" $status $body_bytes_sent $request_time "$upstream_response_time"'
+    source:
+      files:
+        - /var/log/nginx/odos-metrics-api.log
+    histogram_buckets: [0.025, 0.05, 0.1, 0.25, 0.5, 1, 1.5, 2.5, 5, 10]
+
+  - name: web
+    namespace_label: vhost
+    metrics_override:
+      prefix: nginx
+    format: '"$request" $status $body_bytes_sent $request_time "$upstream_response_time"'
+    source:
+      files:
+        - /var/log/nginx/odos-metrics-web.log
+    histogram_buckets: [0.025, 0.05, 0.1, 0.25, 0.5, 1, 1.5, 2.5, 5, 10]

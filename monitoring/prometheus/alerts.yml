@@ -1,4 +1,22 @@
 groups:
+  - name: odos-meta
+    rules:
+      # Toujours active : Alertmanager la relaie chaque minute à healthchecks.io.
+      # Si les pings cessent, c'est la chaîne de supervision elle-même qui est
+      # tombée (VPS, Prometheus, Alertmanager ou réseau sortant).
+      - alert: Watchdog
+        expr: vector(1)
+        labels: { severity: none }
+        annotations:
+          summary: "Alerte de contrôle toujours active (dead man's switch)"
+
+      - alert: NotificationsEnEchec
+        expr: sum by (integration) (increase(alertmanager_notifications_failed_total{integration!="webhook"}[15m])) > 0
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "Alertmanager n'arrive plus à notifier via {{ $labels.integration }} (webhook révoqué ?)"
+
   - name: odos-disponibilite
     rules:
       - alert: SiteInjoignable
@@ -58,3 +76,131 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: "CPU au-dessus de 90 % depuis 15 min"
+
+  - name: odos-sauvegardes
+    rules:
+      # Métriques écrites par scripts/prod-backup.sh (cron quotidien à 3 h 15)
+      # dans le collecteur textfile de node-exporter.
+      - alert: SauvegardeTropAncienne
+        expr: time() - odos_backup_last_success_timestamp_seconds > 26 * 3600
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "Dernière sauvegarde réussie il y a {{ $value | humanizeDuration }} (attendu : < 26 h)"
+
+      - alert: SauvegardeHorsSiteTropAncienne
+        expr: odos_backup_offsite_enabled == 1 and time() - odos_backup_offsite_last_success_timestamp_seconds > 26 * 3600
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "Dernière copie hors site réussie il y a {{ $value | humanizeDuration }} (attendu : < 26 h)"
+
+      - alert: SauvegardeHorsSiteNonConfiguree
+        expr: odos_backup_offsite_enabled == 0
+        for: 1h
+        labels: { severity: warning }
+        annotations:
+          summary: "Les sauvegardes restent sur le VPS : RESTIC_REPOSITORY absent de ~/odos-config/backup.env"
+
+      - alert: MetriqueSauvegardeAbsente
+        expr: absent(odos_backup_last_run_timestamp_seconds)
+        for: 2h
+        labels: { severity: warning }
+        annotations:
+          summary: "node-exporter ne voit aucune métrique de sauvegarde (dossier textfile ou cron absent ?)"
+
+  - name: odos-application
+    rules:
+      - alert: SanteApiDegradee
+        expr: probe_success{job="blackbox-health"} == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "/api/health en échec : l'API ne joint plus la base ou Redis (voir les logs php)"
+
+      # Taux de 5xx sur 5 min, ignoré sous ~15 requêtes / 5 min (un seul 502 ne
+      # doit pas réveiller quelqu'un la nuit).
+      - alert: Nginx5xxEleve
+        expr: |
+          (
+            sum by (vhost) (rate(nginx_http_response_count_total{status=~"5.."}[5m]))
+            / sum by (vhost) (rate(nginx_http_response_count_total[5m]))
+          ) > 0.05
+          and sum by (vhost) (rate(nginx_http_response_count_total[5m])) > 0.05
+        for: 5m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.vhost }} : {{ $value | humanizePercentage }} de réponses 5xx sur 5 min"
+
+      - alert: NginxLatenceP95Elevee
+        expr: |
+          histogram_quantile(0.95,
+            sum by (vhost, le) (rate(nginx_http_response_time_seconds_hist_bucket[5m]))
+          ) > 1.5
+          and sum by (vhost) (rate(nginx_http_response_count_total[5m])) > 0.05
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $labels.vhost }} : latence p95 de {{ $value | humanizeDuration }} (seuil 1,5 s)"
+
+      - alert: MetriquesNginxAbsentes
+        expr: absent(nginx_http_response_count_total)
+        for: 1h
+        labels: { severity: warning }
+        annotations:
+          summary: "Aucune métrique nginx : log odos_metrics non configuré ou nginxlog-exporter en panne"
+
+  - name: odos-base-et-cache
+    rules:
+      - alert: PostgresConnexionsProchesDuMax
+        expr: sum(pg_stat_activity_count) / scalar(max(pg_settings_max_connections)) > 0.8
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Postgres utilise {{ $value | humanizePercentage }} de max_connections"
+
+      - alert: PostgresDeadlocks
+        expr: increase(pg_stat_database_deadlocks{datname="odos"}[15m]) > 0
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $value | printf \"%.0f\" }} deadlock(s) Postgres sur 15 min"
+
+      # Sans maxmemory (0), Redis n'a pas de plafond : la règle ne se déclenche pas,
+      # c'est MemoireFaible (hôte) qui couvre ce cas.
+      - alert: RedisMemoireProcheDuMax
+        expr: redis_memory_max_bytes > 0 and redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Redis utilise {{ $value | humanizePercentage }} de maxmemory"
+
+      - alert: RedisEvictions
+        expr: increase(redis_evicted_keys_total[15m]) > 0
+        labels: { severity: warning }
+        annotations:
+          summary: "Redis a évincé {{ $value | printf \"%.0f\" }} clé(s) sur 15 min (maxmemory atteint)"
+
+  - name: odos-hote
+    rules:
+      - alert: OOMKill
+        expr: increase(node_vmstat_oom_kill[15m]) > 0
+        labels: { severity: critical }
+        annotations:
+          summary: "Le noyau a tué {{ $value | printf \"%.0f\" }} processus faute de mémoire (dmesg | grep -i oom)"
+
+      - alert: ServeurRedemarre
+        expr: time() - node_boot_time_seconds < 1800
+        labels: { severity: warning }
+        annotations:
+          summary: "Le VPS a redémarré il y a {{ $value | humanizeDuration }} : vérifier conteneurs, crons et nginx"
+
+  - name: odos-securite
+    rules:
+      # Le bouncer pare-feu interroge l'API locale de CrowdSec toutes les 10 s.
+      # Plus aucune requête = les décisions (bans) ne sont plus appliquées.
+      - alert: CrowdSecBouncerMuet
+        expr: sum(increase(cs_lapi_bouncer_requests_total[15m])) < 1 or absent(cs_lapi_bouncer_requests_total)
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "Aucun bouncer CrowdSec n'interroge l'API locale depuis 15 min : les bans ne sont plus appliqués"

@@ -1,0 +1,12 @@
+apiVersion: 1
+
+# Dashboards versionnés : les .json de ce dossier (le provider ignore ce .yml).
+# Lecture seule dans l'interface : modifier le JSON dans le repo.
+providers:
+  - name: odos
+    folder: ODOS
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/provisioning/dashboards

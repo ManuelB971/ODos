@@ -31,6 +31,10 @@ scrape_configs:
     static_configs:
       - targets: ["127.0.0.1:9093"]
 
+  - job_name: nginxlog
+    static_configs:
+      - targets: ["127.0.0.1:4040"]
+
   # CrowdSec installé sur l'hôte (métriques sur 127.0.0.1:6060 par défaut).
   - job_name: crowdsec
     static_configs:
@@ -45,6 +49,22 @@ scrape_configs:
       - targets:
           - https://api.odos-api.com/api/categories
           - https://app.odos.world/
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: 127.0.0.1:9115
+
+  # Santé applicative : la base et Redis vus par Symfony.
+  - job_name: blackbox-health
+    metrics_path: /probe
+    params:
+      module: [https_health]
+    static_configs:
+      - targets:
+          - https://api.odos-api.com/api/health
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

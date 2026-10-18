@@ -3,6 +3,7 @@
 Combien de temps on garde quoi, et comment purger automatiquement en prod.
 
 Complète le [registre RGPD](RGPD_registre.md). Index : [docs/README.md](README.md)
+Logs de l'hôte (nginx, SSH, journald) : [ops/RUNBOOK_DURCISSEMENT_HOTE.md § 6](ops/RUNBOOK_DURCISSEMENT_HOTE.md#6-rétention-des-logs-contenant-des-ip-cnil)
 
 ---
 
@@ -12,6 +13,10 @@ Complète le [registre RGPD](RGPD_registre.md). Index : [docs/README.md](README.
 |--------|-----|------------------|---------|
 | Logs Symfony prod | `odos-back/var/log/prod.log` | 90 jours | rotation / troncature planifiée |
 | Nginx access | volume `nginx_logs` | 30 jours | logrotate sur l'hôte |
+| Nginx hôte access / error (IP des visiteurs) | `/var/log/nginx/` | 183 jours (CNIL : 6 mois à 1 an) | `deploy/logrotate/nginx` |
+| Nginx hôte métriques (sans IP) | `/var/log/nginx/odos-metrics-*.log` | 7 jours | `deploy/logrotate/nginx` |
+| SSH / sudo (`auth.log`) | `/var/log/auth.log` | 26 semaines | `deploy/logrotate/rsyslog` |
+| Journal systemd | journald | 6 mois, 1 Go max | `deploy/host/journald/` |
 | Nginx error | idem | 90 jours | logrotate |
 | Audit admin (BDD) | table `admin_audit_log` | 90 jours | cron → `app:admin-audit:purge` |
 | Refresh tokens expirés | table `refresh_tokens` | dès expiration | cron → `app:refresh-token:purge` |

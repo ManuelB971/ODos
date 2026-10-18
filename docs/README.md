@@ -34,6 +34,7 @@ Ces fichiers vont ensemble. Le registre (`RGPD_registre.md`) reste la référenc
 | [RGPD_registre.md](RGPD_registre.md) | Registre art. 30 — finalités, durées, bases légales |
 | [LOG_RETENTION.md](LOG_RETENTION.md) | Combien de temps on garde les logs, cron, JWT, CORS |
 | [INCIDENT_RESPONSE.md](INCIDENT_RESPONSE.md) | Que faire en cas de violation (72 h CNIL) |
+| [ops/](ops/README.md) | Runbooks VPS : nginx HTTPS, supervision et alertes, sauvegardes hors site, durcissement de l'hôte |
 
 Scripts liés : `scripts/prod-cron-purge.sh`  
 Textes légaux in-app : `odos-front/app/legal.tsx`
