@@ -152,3 +152,49 @@ déclencheront jamais, et un emballement du cache consommerait la RAM de l'hôte
   redis:
     command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
 ```
+
+---
+
+## 3. Dashboard « ODOS — Vue d'ensemble » et compte admin Grafana
+
+### 3.1 Dashboard versionné
+
+Le dashboard est dans `monitoring/grafana/provisioning/dashboards/odos-overview.json`
+(uid `odos-overview`, dossier Grafana **ODOS**, lecture seule dans l'interface : on
+modifie le JSON dans le repo). Nouvelles sections :
+
+- **Application (nginx)** : taux de 5xx API et web app, latence p95, requêtes/s, réponses
+  par classe de code, latence p50/p95/p99 par vhost ;
+- **Sauvegardes et supervision** : âge de la dernière sauvegarde locale et hors site,
+  taille, état du Watchdog, pings envoyés au dead man's switch ;
+- la vignette « API » suit `/api/health` ; le Watchdog est exclu du compteur et de la table des alertes.
+
+Après le § 0 : `docker compose up -d grafana`. Si l'ancienne version avait été montée depuis
+`grafana/dashboards/` (branche `feat/monitoring-stack`), le même uid est repris, rien à supprimer.
+
+### 3.2 Renommer le compte `admin`
+
+`GF_SECURITY_ADMIN_USER` n'est lu qu'à la **création** de la base Grafana : changer la
+variable ne renomme pas un compte existant. On renomme donc par l'API, puis on aligne `.env`.
+
+```bash
+cd /home/odos/odos-monitoring
+NEW_LOGIN="odos-$(openssl rand -hex 3)"; echo "Nouvel identifiant : ${NEW_LOGIN}"   # → gestionnaire de mots de passe
+read -rs -p "Mot de passe admin Grafana actuel : " GPW; echo
+ID="$(curl -fsS -u "admin:${GPW}" 'http://127.0.0.1:3000/api/users/lookup?loginOrEmail=admin' | grep -o '"id":[0-9]*' | head -n 1 | cut -d: -f2)"
+EMAIL="$(curl -fsS -u "admin:${GPW}" "http://127.0.0.1:3000/api/users/${ID}" | grep -o '"email":"[^"]*"' | cut -d'"' -f4)"
+curl -fsS -u "admin:${GPW}" -X PUT -H 'Content-Type: application/json' \
+  -d "{\"login\":\"${NEW_LOGIN}\",\"name\":\"${NEW_LOGIN}\",\"email\":\"${EMAIL}\"}" \
+  "http://127.0.0.1:3000/api/users/${ID}"
+# Aligner .env (variable désormais obligatoire dans docker-compose.yml) :
+grep -q '^GRAFANA_ADMIN_USER=' .env && sed -i "s/^GRAFANA_ADMIN_USER=.*/GRAFANA_ADMIN_USER=${NEW_LOGIN}/" .env \
+  || echo "GRAFANA_ADMIN_USER=${NEW_LOGIN}" >> .env
+docker compose up -d grafana
+# Vérifier : l'ancien identifiant est refusé, le nouveau accepté.
+curl -s -o /dev/null -w 'admin : %{http_code}\n' -u "admin:${GPW}" http://127.0.0.1:3000/api/user
+curl -s -o /dev/null -w "${NEW_LOGIN} : %{http_code}\n" -u "${NEW_LOGIN}:${GPW}" http://127.0.0.1:3000/api/user
+unset GPW
+```
+
+Attendu : `admin : 401`, `odos-xxxxxx : 200`. Sans `GRAFANA_ADMIN_USER` dans `.env`,
+`docker compose up` refuse de démarrer (message « manquant, voir .env.example »).

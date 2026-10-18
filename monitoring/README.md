@@ -56,3 +56,10 @@ lu par le collecteur textfile de node-exporter. Alertes `SauvegardeTropAncienne`
 - `nginxlog-exporter` lit `/var/log/nginx/odos-metrics-{api,web}.log` (log_format
   `odos_metrics`, sans IP ni query string) et expose taux de réponses par code et
   histogramme de latence par vhost (`nginx_http_*`). Config : `nginxlog/config.yml`.
+
+## Grafana
+
+Dashboard versionné : `grafana/provisioning/dashboards/odos-overview.json` (dossier ODOS,
+lecture seule dans l'interface). Compte admin : `GRAFANA_ADMIN_USER` /
+`GRAFANA_ADMIN_PASSWORD` dans `.env` ; renommer un compte existant :
+[RUNBOOK_SUPERVISION.md § 3](../docs/ops/RUNBOOK_SUPERVISION.md#3-dashboard--odos--vue-densemble--et-compte-admin-grafana).
