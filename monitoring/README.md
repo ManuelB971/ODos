@@ -49,3 +49,10 @@ docker run --rm --entrypoint amtool -v "$PWD/alertmanager:/a:ro" prom/alertmanag
 lu par le collecteur textfile de node-exporter. Alertes `SauvegardeTropAncienne`
 (> 26 h), `SauvegardeHorsSiteTropAncienne`, `SauvegardeHorsSiteNonConfiguree`,
 `MetriqueSauvegardeAbsente`. Mise en place : [docs/ops/RUNBOOK_SAUVEGARDES.md](../docs/ops/RUNBOOK_SAUVEGARDES.md).
+
+## Métriques applicatives
+
+- `blackbox-health` sonde `https://api.odos-api.com/api/health` (base + Redis vus par Symfony).
+- `nginxlog-exporter` lit `/var/log/nginx/odos-metrics-{api,web}.log` (log_format
+  `odos_metrics`, sans IP ni query string) et expose taux de réponses par code et
+  histogramme de latence par vhost (`nginx_http_*`). Config : `nginxlog/config.yml`.

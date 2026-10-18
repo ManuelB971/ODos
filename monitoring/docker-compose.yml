@@ -94,6 +94,19 @@ services:
       - ./blackbox:/etc/blackbox:ro
     mem_limit: 64m
 
+  # 5xx et latence du nginx hôte, tirés de ses logs dédiés (sans IP).
+  nginxlog-exporter:
+    image: ghcr.io/martin-helmich/prometheus-nginxlog-exporter/exporter:v1.11.0
+    restart: unless-stopped
+    command:
+      - -config-file=/etc/nginxlog/config.yml
+    ports:
+      - "127.0.0.1:4040:4040"
+    volumes:
+      - ./nginxlog:/etc/nginxlog:ro
+      - /var/log/nginx:/var/log/nginx:ro
+    mem_limit: 64m
+
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:v0.17.1
     restart: unless-stopped

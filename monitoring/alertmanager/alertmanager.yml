@@ -23,6 +23,13 @@ route:
       receiver: discord
       repeat_interval: 2h
 
+# Une panne franche masque les alertes secondaires qu'elle provoque.
+inhibit_rules:
+  - source_matchers: [alertname = "SiteInjoignable"]
+    target_matchers: [alertname =~ "SanteApiDegradee|Nginx5xxEleve|NginxLatenceP95Elevee"]
+  - source_matchers: [alertname =~ "PostgresInjoignable|RedisInjoignable"]
+    target_matchers: [alertname = "SanteApiDegradee"]
+
 receivers:
   - name: discord
     discord_configs:

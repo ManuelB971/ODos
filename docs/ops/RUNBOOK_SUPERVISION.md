@@ -94,3 +94,61 @@ e-mail « odos-watchdog is DOWN » de healthchecks.io → `docker compose start 
 
 Remettre l'ancien `alertmanager/alertmanager.yml` (receiver vide) et `docker compose up -d alertmanager`.
 Mettre le check healthchecks en pause pour éviter la fausse alerte.
+
+---
+
+## 2. Métriques applicatives (santé, 5xx, latence) et nouvelles alertes
+
+### 2.1 Ce qui est ajouté
+
+| Source | Métriques | Alertes |
+|--------|-----------|---------|
+| `GET /api/health` (Symfony, sonde `blackbox-health`) | `probe_success` : 200 + `"status":"ok"` seulement si `SELECT 1` et `PING` Redis répondent | `SanteApiDegradee` |
+| Logs `odos_metrics` du nginx hôte → `nginxlog-exporter` (:4040) | `nginx_http_response_count_total{vhost,status}`, `nginx_http_response_time_seconds_hist_bucket` | `Nginx5xxEleve` (> 5 % sur 5 min), `NginxLatenceP95Elevee` (p95 > 1,5 s sur 10 min), `MetriquesNginxAbsentes` |
+| postgres-exporter | `pg_stat_activity_count`, `pg_settings_max_connections`, `pg_stat_database_deadlocks` | `PostgresConnexionsProchesDuMax` (> 80 %), `PostgresDeadlocks` |
+| redis-exporter | `redis_memory_used_bytes`, `redis_memory_max_bytes`, `redis_evicted_keys_total` | `RedisMemoireProcheDuMax` (> 90 %), `RedisEvictions` |
+| node-exporter | `node_vmstat_oom_kill`, `node_boot_time_seconds` | `OOMKill`, `ServeurRedemarre` (< 30 min) |
+
+`/api/health` arrive en prod avec le déploiement automatique du merge ; il ne renvoie
+que `ok` / `fail` par dépendance (le détail de l'erreur part dans les logs Symfony).
+Pour que le healthcheck du déploiement l'utilise aussi : variable GitHub
+`PROD_HEALTHCHECK_URL=https://api.odos-api.com/api/health` (environnement `production`).
+
+### 2.2 Activer les logs de métriques nginx
+
+Les logs `odos_metrics` sont définis par `deploy/nginx/conf.d/odos-common.conf` et
+écrits par les blocs 443 versionnés : faire d'abord [RUNBOOK_NGINX.md](RUNBOOK_NGINX.md).
+Vérifier qu'ils se remplissent :
+
+```bash
+sudo tail -n 3 /var/log/nginx/odos-metrics-api.log /var/log/nginx/odos-metrics-web.log
+```
+
+Ces fichiers sont pris en charge par le logrotate d'Ubuntu (`/etc/logrotate.d/nginx`,
+`/var/log/nginx/*.log`, 14 jours) : ils ne contiennent ni IP ni query string.
+
+### 2.3 Démarrer l'exporter et recharger Prometheus
+
+```bash
+cd /home/odos/odos-monitoring          # après le § 0
+docker compose up -d nginxlog-exporter blackbox prometheus
+curl -fsS -X POST http://127.0.0.1:9090/-/reload
+curl -s http://127.0.0.1:4040/metrics | grep -m 3 '^nginx_http_response_count_total'
+curl -s 'http://127.0.0.1:9115/probe?module=https_health&target=https://api.odos-api.com/api/health' | grep '^probe_success'
+# Toutes les cibles doivent être « up » :
+curl -s http://127.0.0.1:9090/api/v1/targets | grep -o '"health":"[a-z]*"' | sort | uniq -c
+```
+
+### 2.4 Recommandation Redis
+
+Redis tourne sans `maxmemory` : `RedisMemoireProcheDuMax` et `RedisEvictions` ne se
+déclencheront jamais, et un emballement du cache consommerait la RAM de l'hôte
+(couvert seulement par `MemoireFaible` / `OOMKill`). Redis ne sert que de cache
+(LLM, rate limiter), une éviction LRU est donc acceptable. À faire dans une PR dédiée
+(le merge redéploie Redis) :
+
+```yaml
+# docker-compose.prod.yml
+  redis:
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+```
