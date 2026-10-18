@@ -1,4 +1,22 @@
 groups:
+  - name: odos-meta
+    rules:
+      # Toujours active : Alertmanager la relaie chaque minute à healthchecks.io.
+      # Si les pings cessent, c'est la chaîne de supervision elle-même qui est
+      # tombée (VPS, Prometheus, Alertmanager ou réseau sortant).
+      - alert: Watchdog
+        expr: vector(1)
+        labels: { severity: none }
+        annotations:
+          summary: "Alerte de contrôle toujours active (dead man's switch)"
+
+      - alert: NotificationsEnEchec
+        expr: sum by (integration) (increase(alertmanager_notifications_failed_total{integration!="webhook"}[15m])) > 0
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "Alertmanager n'arrive plus à notifier via {{ $labels.integration }} (webhook révoqué ?)"
+
   - name: odos-disponibilite
     rules:
       - alert: SiteInjoignable

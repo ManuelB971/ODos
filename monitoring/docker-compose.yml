@@ -41,6 +41,10 @@ services:
     volumes:
       - ./alertmanager:/etc/alertmanager:ro
       - alertmanager_data:/alertmanager
+    # URL de webhook (Discord, healthchecks.io) : fichiers hors repo, cf. .env.example.
+    secrets:
+      - discord_webhook_url
+      - watchdog_ping_url
     mem_limit: 128m
 
   grafana:
@@ -109,6 +113,12 @@ services:
     networks:
       - odos_app
     mem_limit: 64m
+
+secrets:
+  discord_webhook_url:
+    file: ${DISCORD_WEBHOOK_URL_FILE:-./secrets/discord_webhook_url}
+  watchdog_ping_url:
+    file: ${WATCHDOG_PING_URL_FILE:-./secrets/watchdog_ping_url}
 
 networks:
   # Réseau de l'app ODOS (projet "odos") pour joindre postgres et redis.
