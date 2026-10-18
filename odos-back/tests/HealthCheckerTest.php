@@ -21,6 +21,20 @@ final class HealthCheckerTest extends TestCase
         self::assertSame(['database' => 'ok', 'redis' => 'ok'], $checker->check());
     }
 
+    public function testRedisClientWithMagicCommandsLikePredisIsHealthy(): void
+    {
+        $checker = $this->checker($this->workingConnection(), static fn (): object => new FakeMagicRedis());
+
+        self::assertSame(['database' => 'ok', 'redis' => 'ok'], $checker->check());
+    }
+
+    public function testRealPredisClientIsAccepted(): void
+    {
+        // Predis n'a pas de méthode ping() déclarée : elle passe par __call.
+        self::assertFalse(method_exists(\Predis\Client::class, 'ping'));
+        self::assertTrue(is_callable([new \Predis\Client('redis://unused:6379'), 'ping']));
+    }
+
     public function testDatabaseDownIsReportedWithoutLeakingTheError(): void
     {
         $connection = $this->createMock(Connection::class);
@@ -96,6 +110,22 @@ final class FakeRedis
 {
     public function ping(): string
     {
+        return 'PONG';
+    }
+}
+
+/** Comme Predis\Client : les commandes Redis passent par __call. */
+final class FakeMagicRedis
+{
+    /**
+     * @param list<mixed> $arguments
+     */
+    public function __call(string $command, array $arguments): string
+    {
+        if ('ping' !== strtolower($command)) {
+            throw new \BadMethodCallException($command);
+        }
+
         return 'PONG';
     }
 }

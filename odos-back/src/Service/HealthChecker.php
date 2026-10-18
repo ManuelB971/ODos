@@ -44,7 +44,10 @@ class HealthChecker
             }),
             'redis' => $this->probe('redis', function (): void {
                 $redis = ($this->redisFactory)();
-                if (!method_exists($redis, 'ping')) {
+                // `is_callable` et non `method_exists` : Predis (client utilisé en prod,
+                // l'image n'a pas l'extension phpredis) expose ses commandes via
+                // `__call`. Avec `method_exists`, Redis était toujours signalé en échec.
+                if (!is_callable([$redis, 'ping'])) {
                     throw new \LogicException('Client Redis sans ping()');
                 }
                 $redis->ping();
