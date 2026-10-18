@@ -328,27 +328,33 @@ jobs:
 
           for path in / /map /_expo/app.js /maplibre-gl-worker.js; do
             h="$(web -D - -o /dev/null "https://app.odos.world${path}" | tr -d '\r')"
-            echo "$h" | grep -qi '^strict-transport-security: max-age=31536000' || { echo "HSTS manquant sur ${path}"; exit 1; }
-            echo "$h" | grep -qi "^content-security-policy: default-src 'self'" || { echo "CSP manquante sur ${path}"; exit 1; }
-            echo "$h" | grep -qi '^server: nginx$' || { echo "Version nginx exposée sur ${path}"; exit 1; }
+            # Here-strings plutôt que « echo | grep -q » : avec pipefail, grep -q qui
+            # sort à la première ligne fait recevoir SIGPIPE à echo (code 141).
+            grep -qi '^strict-transport-security: max-age=31536000' <<<"$h" || { echo "HSTS manquant sur ${path}"; exit 1; }
+            grep -qi "^content-security-policy: default-src 'self'" <<<"$h" || { echo "CSP manquante sur ${path}"; exit 1; }
+            grep -qi '^server: nginx$' <<<"$h" || { echo "Version nginx exposée sur ${path}"; exit 1; }
           done
-          web -D - -o /dev/null https://app.odos.world/_expo/app.js | grep -qi '^cache-control: public, immutable'
-          curl -s -o /dev/null -w '%{http_code}' --resolve app.odos.world:80:127.0.0.1 http://app.odos.world/map | grep -q 301
-          api -D - -o /dev/null https://api.odos-api.com/api/health | grep -qi '^strict-transport-security'
+          h="$(web -D - -o /dev/null https://app.odos.world/_expo/app.js)"
+          grep -qi '^cache-control: public, immutable' <<<"$h" || { echo "Cache-Control immutable absent sur /_expo/"; exit 1; }
+          code="$(curl -s -o /dev/null -w '%{http_code}' --resolve app.odos.world:80:127.0.0.1 http://app.odos.world/map)"
+          [ "$code" = "301" ] || { echo "Port 80 : HTTP $code au lieu de 301"; exit 1; }
+          h="$(api -D - -o /dev/null https://api.odos-api.com/api/health)"
+          grep -qi '^strict-transport-security' <<<"$h" || { echo "HSTS manquant sur l'API"; exit 1; }
 
           # Pas d'API derrière : 502 tant que la rafale tient, puis 429.
           codes="$(for i in $(seq 1 30); do api -o /dev/null -w '%{http_code}\n' -X POST https://api.odos-api.com/api/token/refresh; done | sort | uniq -c)"
           echo "$codes"
-          echo "$codes" | grep -q ' 429$' || { echo "limit_req inactif sur /api/token/refresh"; exit 1; }
+          grep -q ' 429$' <<<"$codes" || { echo "limit_req inactif sur /api/token/refresh"; exit 1; }
           get_codes="$(for i in $(seq 1 30); do api -o /dev/null -w '%{http_code}\n' https://api.odos-api.com/api/users/1/profile; done | sort -u)"
           [ "$get_codes" = "502" ] || { echo "GET limités à tort : $get_codes"; exit 1; }
 
           sleep 2
           metrics="$(curl -fsS http://127.0.0.1:4040/metrics)"
-          echo "$metrics" | grep -E '^nginx_http_response_count_total\{.*vhost="(api|web)"' | head
-          echo "$metrics" | grep -q 'nginx_http_response_count_total{.*status="429".*vhost="api"\|nginx_http_response_count_total{.*vhost="api".*status="429"' \
+          grep -E '^nginx_http_response_count_total\{.*vhost="(api|web)"' <<<"$metrics"
+          grep -qE '^nginx_http_response_count_total\{.*status="429".*vhost="api"' <<<"$metrics" \
             || { echo "nginxlog-exporter ne voit pas les 429 de l'API"; exit 1; }
-          echo "$metrics" | grep -q '^nginx_http_response_time_seconds_hist_bucket{.*vhost="web"'
+          grep -qE '^nginx_http_response_time_seconds_hist_bucket\{.*vhost="web"' <<<"$metrics" \
+            || { echo "Histogramme de latence absent. Métriques exposées :"; grep -oE '^nginx_[a-z_]+' <<<"$metrics" | sort -u; exit 1; }
           ! grep -E '([0-9]{1,3}\.){3}[0-9]{1,3}' "$T"/logs/odos-metrics-*.log || { echo "IP dans les logs de métriques"; exit 1; }
 
       - name: nginx logs on failure
