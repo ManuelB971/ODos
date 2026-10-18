@@ -72,7 +72,9 @@ services:
     command:
       - --path.rootfs=/host
       - --web.listen-address=127.0.0.1:9100
-      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($$|/)
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+)($|/)
+      # Métriques écrites par scripts/prod-backup.sh (âge de la dernière sauvegarde).
+      - --collector.textfile.directory=/host/var/lib/node_exporter/textfile
     volumes:
       - /:/host:ro,rslave
     mem_limit: 64m

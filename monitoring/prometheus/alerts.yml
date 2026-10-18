@@ -76,3 +76,35 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: "CPU au-dessus de 90 % depuis 15 min"
+
+  - name: odos-sauvegardes
+    rules:
+      # Métriques écrites par scripts/prod-backup.sh (cron quotidien à 3 h 15)
+      # dans le collecteur textfile de node-exporter.
+      - alert: SauvegardeTropAncienne
+        expr: time() - odos_backup_last_success_timestamp_seconds > 26 * 3600
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "Dernière sauvegarde réussie il y a {{ $value | humanizeDuration }} (attendu : < 26 h)"
+
+      - alert: SauvegardeHorsSiteTropAncienne
+        expr: odos_backup_offsite_enabled == 1 and time() - odos_backup_offsite_last_success_timestamp_seconds > 26 * 3600
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "Dernière copie hors site réussie il y a {{ $value | humanizeDuration }} (attendu : < 26 h)"
+
+      - alert: SauvegardeHorsSiteNonConfiguree
+        expr: odos_backup_offsite_enabled == 0
+        for: 1h
+        labels: { severity: warning }
+        annotations:
+          summary: "Les sauvegardes restent sur le VPS : RESTIC_REPOSITORY absent de ~/odos-config/backup.env"
+
+      - alert: MetriqueSauvegardeAbsente
+        expr: absent(odos_backup_last_run_timestamp_seconds)
+        for: 2h
+        labels: { severity: warning }
+        annotations:
+          summary: "node-exporter ne voit aucune métrique de sauvegarde (dossier textfile ou cron absent ?)"

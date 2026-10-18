@@ -41,3 +41,11 @@ docker run --rm --entrypoint promtool -v "$PWD/prometheus:/etc/prometheus:ro" pr
 docker run --rm --entrypoint amtool -v "$PWD/alertmanager:/a:ro" prom/alertmanager:v0.28.1 check-config /a/alertmanager.yml
 ```
 
+
+## Sauvegardes
+
+`scripts/prod-backup.sh` écrit `/var/lib/node_exporter/textfile/odos_backup.prom`
+(horodatage de la dernière sauvegarde locale et hors site réussie, taille, durée),
+lu par le collecteur textfile de node-exporter. Alertes `SauvegardeTropAncienne`
+(> 26 h), `SauvegardeHorsSiteTropAncienne`, `SauvegardeHorsSiteNonConfiguree`,
+`MetriqueSauvegardeAbsente`. Mise en place : [docs/ops/RUNBOOK_SAUVEGARDES.md](../docs/ops/RUNBOOK_SAUVEGARDES.md).
