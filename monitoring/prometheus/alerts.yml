@@ -193,3 +193,14 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: "Le VPS a redémarré il y a {{ $value | humanizeDuration }} : vérifier conteneurs, crons et nginx"
+
+  - name: odos-securite
+    rules:
+      # Le bouncer pare-feu interroge l'API locale de CrowdSec toutes les 10 s.
+      # Plus aucune requête = les décisions (bans) ne sont plus appliquées.
+      - alert: CrowdSecBouncerMuet
+        expr: sum(increase(cs_lapi_bouncer_requests_total[15m])) < 1 or absent(cs_lapi_bouncer_requests_total)
+        for: 15m
+        labels: { severity: warning }
+        annotations:
+          summary: "Aucun bouncer CrowdSec n'interroge l'API locale depuis 15 min : les bans ne sont plus appliqués"

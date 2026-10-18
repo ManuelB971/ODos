@@ -69,8 +69,9 @@ services:
   llm:
     image: ollama/ollama:latest
     restart: unless-stopped
+    # 127.0.0.1 : Docker contourne UFW, le LLM n'a pas à être joignable de l'extérieur.
     ports:
-      - "11434:11434"
+      - "127.0.0.1:11434:11434"
     volumes:
       - ollama_data:/root/.ollama
     networks:

@@ -28,5 +28,7 @@ services:
       - php_var_log:/app/var/log
 
   postgres:
+    # 127.0.0.1 : ce fichier est chargé par tout « docker compose up » lancé sans -f,
+    # y compris sur le VPS, et Docker contourne UFW (base exposée sur Internet).
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"

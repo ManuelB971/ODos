@@ -1,0 +1,22 @@
+// /etc/apt/apt.conf.d/52odos-unattended-upgrades — patchs de sécurité automatiques.
+// Complète 50unattended-upgrades (paquet) sans le modifier ; le dernier fichier lu l'emporte.
+// Procédure : docs/ops/RUNBOOK_DURCISSEMENT_HOTE.md § 2
+
+// Uniquement les dépôts de sécurité Ubuntu (+ ESM) : Docker (download.docker.com)
+// n'est PAS mis à jour automatiquement, son redémarrage couperait l'app.
+Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}-security";
+        "${distro_id}ESMApps:${distro_codename}-apps-security";
+        "${distro_id}ESM:${distro_codename}-infra-security";
+};
+
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+
+// Pas de redémarrage automatique : il est planifié à la main (snapshot Contabo
+// avant). /var/run/reboot-required signale qu'il en faut un ; l'alerte
+// ServeurRedemarre confirme ensuite que tout est revenu.
+Unattended-Upgrade::Automatic-Reboot "false";
+
+// Rapport d'erreur dans le journal système (pas de serveur mail sur le VPS).
+Unattended-Upgrade::SyslogEnable "true";
