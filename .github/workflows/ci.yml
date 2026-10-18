@@ -321,7 +321,7 @@ jobs:
           docker run -d --name nginx-ci --network host "${run_args[@]}" nginx:1.24-alpine
           docker run -d --name nginxlog-ci -p 127.0.0.1:4040:4040 \
             -v "$PWD/monitoring/nginxlog:/etc/nginxlog:ro" -v "$T/logs:/var/log/nginx:ro" \
-            ghcr.io/martin-helmich/prometheus-nginxlog-exporter/exporter:v1.11.0 -config-file=/etc/nginxlog/config.yml
+            quay.io/martinhelmich/prometheus-nginxlog-exporter:v1.11.0 -config-file=/etc/nginxlog/config.yml
           sleep 3
           web() { curl -sk --resolve app.odos.world:443:127.0.0.1 "$@"; }
           api() { curl -sk --resolve api.odos-api.com:443:127.0.0.1 "$@"; }
