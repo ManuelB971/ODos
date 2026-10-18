@@ -63,3 +63,8 @@ Dashboard versionné : `grafana/provisioning/dashboards/odos-overview.json` (dos
 lecture seule dans l'interface). Compte admin : `GRAFANA_ADMIN_USER` /
 `GRAFANA_ADMIN_PASSWORD` dans `.env` ; renommer un compte existant :
 [RUNBOOK_SUPERVISION.md § 3](../docs/ops/RUNBOOK_SUPERVISION.md#3-dashboard--odos--vue-densemble--et-compte-admin-grafana).
+
+La CI (`.github/workflows/ci.yml`, job « Ops config ») rejoue ces vérifications sur chaque
+PR qui touche `monitoring/`, `deploy/` ou `scripts/`, plus `nginx -t` (nginx 1.24 comme sur
+le VPS), un vrai démarrage de nginx pour contrôler HSTS, CSP, `server_tokens` et les 429,
+la lecture de ses logs par nginxlog-exporter, et shellcheck sur les scripts de sauvegarde.
