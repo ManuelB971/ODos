@@ -83,6 +83,9 @@ jobs:
             git checkout main
             git pull --ff-only origin main
             docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+            # nginx sert ./odos-back/public depuis l'hôte (ro) : recopie les assets des bundles (EasyAdmin, Swagger UI).
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T php php bin/console assets:install --env=prod
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml cp php:/app/public/bundles ./odos-back/public/
             docker compose exec -T php php bin/console doctrine:migrations:migrate --no-interaction --env=prod
             # Régénère le cache prod (sinon EasyAdmin renvoie un 500 "Permission denied" au runtime).
             docker compose exec -T php php bin/console cache:clear --env=prod
@@ -112,6 +115,8 @@ jobs:
               echo "Healthcheck failed, rolling back to ${PREV_COMMIT}"
               git checkout "${PREV_COMMIT}"
               docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml exec -T php php bin/console assets:install --env=prod
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml cp php:/app/public/bundles ./odos-back/public/
               echo "Restoring database from ${DB_BACKUP_FILE}"
               docker compose exec -T postgres sh -lc 'psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-odos}" "${POSTGRES_DB:-odos}"' < "${DB_BACKUP_FILE}"
               exit 1
