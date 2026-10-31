@@ -74,6 +74,7 @@
 - [ ] `LLM_ENABLED=true` alors que le conteneur Ollama ne tourne pas → `false` (ou démarrer le profil `llm`, en gardant le port fermé)
 - [ ] Logs Docker sans rotation (`json-file` sans `max-size`) et aucun conteneur limité en mémoire → `/etc/docker/daemon.json` + `mem_limit`
 - [ ] Fuite de versions : `X-Powered-By: PHP/8.2.32`, `Server: nginx/1.24.0` → `expose_php = Off`, `server_tokens off`
+- [ ] PHP 8.2 sans correctifs de sécurité après le 31/12/2026 → migrer vers 8.4 (support de sécurité jusqu'à fin 2028) : `Dockerfile`, `composer.json`, CI
 - [ ] Pas de HSTS sur l'API / la web app → `Strict-Transport-Security` dans le nginx hôte
 - [ ] Redis sans mot de passe (interne uniquement) → `requirepass` (optionnel)
 

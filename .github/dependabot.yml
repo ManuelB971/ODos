@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Image PHP épinglée dans le Dockerfile : correctifs de sécurité de la branche
+  # uniquement. Le passage à une nouvelle branche PHP (8.3, 8.4…) reste une décision
+  # manuelle.
+  - package-ecosystem: docker
+    directory: /odos-back
+    schedule:
+      interval: daily
+    ignore:
+      - dependency-name: php
+        update-types:
+          - version-update:semver-major
+          - version-update:semver-minor

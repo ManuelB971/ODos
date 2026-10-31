@@ -1,5 +1,9 @@
 # ---------- Base PHP-FPM ----------
-FROM php:8.2-fpm-alpine AS base
+# Version exacte : le déploiement (`up --build`) ne fait pas de pull, un tag flottant
+# comme `8.2-fpm-alpine` resterait sur l'image en cache du VPS, faille comprise.
+# 8.2.35 corrige PHP2Shell (CVE-2026-109618, CVE-2026-109619). Dependabot propose les
+# correctifs suivants. PHP 8.2 n'a plus de correctifs de sécurité après le 31/12/2026.
+FROM php:8.2.35-fpm-alpine AS base
 
 RUN apk add --no-cache \
         icu-dev \
@@ -29,6 +33,12 @@ ENV COMPOSER_ALLOW_SUPERUSER=1 \
     COMPOSER_PROCESS_TIMEOUT=600
 
 WORKDIR /app
+
+# Suivi de progression d'upload non utilisé par l'app : désactivé car c'est le vecteur de
+# CVE-2026-115560, encore sans correctif (mitigation recommandée par PHP). Le build échoue
+# si le réglage n'est pas pris en compte.
+RUN printf 'session.upload_progress.enabled = 0\n' > /usr/local/etc/php/conf.d/zz-odos-security.ini \
+    && php -r 'exit(ini_get("session.upload_progress.enabled") ? 1 : 0);'
 
 # Symfony reads env from Docker / env_file; PHP-FPM defaults to clear_env=yes which strips them from workers.
 RUN printf '\n; Allow container env (Docker Compose env_file) to reach PHP workers\nclear_env = no\n' >> /usr/local/etc/php-fpm.d/www.conf
